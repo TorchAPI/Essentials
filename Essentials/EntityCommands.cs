@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Torch.Commands;
+using Torch.Commands.Permissions;
+using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRageMath;
 
@@ -13,6 +15,7 @@ namespace Essentials
     public class EntityCommands : CommandModule
     {
         [Command("stop", "Stops an entity from moving")]
+        [Permission(MyPromoteLevel.Moderator)]
         public void Stop()
         {
             if (!Utilities.TryGetEntityByNameOrId(Context.Args.FirstOrDefault(), out IMyEntity entity))
@@ -26,6 +29,7 @@ namespace Essentials
         }
 
         [Command("delete", "Delete an entity.")]
+        [Permission(MyPromoteLevel.Moderator)]
         public void Delete()
         {
             if (!Utilities.TryGetEntityByNameOrId(Context.Args.FirstOrDefault(), out IMyEntity entity))

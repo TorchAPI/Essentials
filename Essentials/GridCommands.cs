@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using Torch.Commands;
+using Torch.Commands.Permissions;
 using VRage.Game.Entity.EntityComponents;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
@@ -16,6 +17,7 @@ namespace Essentials
     public class GridCommands : CommandModule
     {
         [Command("setowner", "Sets grid ownership to the given player or ID.", "Usage: setowner <grid> <newowner>")]
+        [Permission(MyPromoteLevel.Moderator)]
         public void SetOwner()
         {
             var firstArg = Context.Args.FirstOrDefault();
