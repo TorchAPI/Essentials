@@ -17,26 +17,26 @@ namespace Essentials
     public class GridCommands : CommandModule
     {
         [Command("setowner", "Sets grid ownership to the given player or ID.", "Usage: setowner <grid> <newowner>")]
-        [Permission(MyPromoteLevel.Moderator)]
-        public void SetOwner()
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void SetOwner(string gridName, string playerName)
         {
             var firstArg = Context.Args.FirstOrDefault();
-            Utilities.TryGetEntityByNameOrId(firstArg, out IMyEntity entity);
+            Utilities.TryGetEntityByNameOrId(gridName, out IMyEntity entity);
 
             if (!(entity is IMyCubeGrid grid))
             {
-                Context.Respond($"Grid {firstArg} not found.");
+                Context.Respond($"Grid {gridName} not found.");
                 return;
             }
 
             var secondArg = Context.Args.ElementAtOrDefault(1);
             long identityId;
-            if (!long.TryParse(secondArg, out identityId))
+            if (!long.TryParse(playerName, out identityId))
             {
-                var player = Context.Torch.Multiplayer.GetPlayerByName(secondArg);
+                var player = Context.Torch.Multiplayer.GetPlayerByName(playerName);
                 if (player == null)
                 {
-                    Context.Respond($"Player {secondArg} not found.");
+                    Context.Respond($"Player {playerName} not found.");
                     return;
                 }
                 identityId = player.IdentityId;

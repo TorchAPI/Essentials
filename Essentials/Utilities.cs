@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using Torch;
 using VRage.Game.ModAPI;
@@ -17,7 +18,17 @@ namespace Essentials
             if (long.TryParse(nameOrId, out long id))
                 return MyAPIGateway.Entities.TryGetEntityById(id, out entity);
 
-            return MyAPIGateway.Entities.TryGetEntityByName(nameOrId, out entity);
+            foreach (var ent in MyEntities.GetEntities())
+            {
+                if (ent.DisplayName == nameOrId)
+                {
+                    entity = ent;
+                    return true;
+                }
+            }
+
+            entity = null;
+            return false;
         }
 
         public static IMyPlayer GetPlayerByNameOrId(string nameOrSteamId)
