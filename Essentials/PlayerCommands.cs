@@ -18,10 +18,8 @@ namespace Essentials
             if (Context.Args.Count < 1)
                 return;
 
-            //var playerName = Context.Args[0];
-            Console.WriteLine($"'{playerName}'");
             var msgIndex = Context.RawArgs.IndexOf(" ", playerName.Length);
-            if (msgIndex > Context.RawArgs.Length)
+            if (msgIndex == -1 || msgIndex > Context.RawArgs.Length - 1)
                 return;
 
             var message = Context.RawArgs.Substring(msgIndex);
