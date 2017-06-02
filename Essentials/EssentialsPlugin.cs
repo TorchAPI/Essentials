@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using Torch;
+using Torch.API;
 using Torch.API.Plugins;
 
 namespace Essentials
@@ -13,9 +14,17 @@ namespace Essentials
     public class EssentialsPlugin : TorchPluginBase, IWpfPlugin
     {
         private EssentialsControl _control;
+        private Persistent<EssentialsConfig> _config;
 
         /// <inheritdoc />
         public UserControl GetControl() => _control ?? (_control = new EssentialsControl());
+
+        /// <inheritdoc />
+        public override void Init(ITorchBase torch)
+        {
+            base.Init(torch);
+
+        }
 
         /// <inheritdoc />
         public override void Update()
@@ -24,6 +33,9 @@ namespace Essentials
         }
 
         /// <inheritdoc />
-        public override void Dispose() {}
+        public override void Dispose()
+        {
+            
+        }
     }
 }

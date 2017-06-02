@@ -10,7 +10,7 @@ using VRage.Game.ModAPI;
 
 namespace Essentials
 {
-    public class PlayerCommands : CommandModule
+    public class PlayerModule : CommandModule
     {
         [Command("w", "Send a private message to another player.")]
         public void Whisper(string playerName)

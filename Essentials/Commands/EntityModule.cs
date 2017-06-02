@@ -15,7 +15,7 @@ using VRageMath;
 namespace Essentials
 {
     [Category("entity")]
-    public class EntityCommands : CommandModule
+    public class EntityModule : CommandModule
     {
         [Command("stop", "Stops an entity from moving")]
         [Permission(MyPromoteLevel.SpaceMaster)]

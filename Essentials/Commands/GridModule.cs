@@ -10,11 +10,13 @@ using Torch.Commands.Permissions;
 using VRage.Game.Entity.EntityComponents;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
+using VRageMath;
+using VRage.Game;
 
 namespace Essentials
 {
     [Category("grid")]
-    public class GridCommands : CommandModule
+    public class GridModule : CommandModule
     {
         [Command("setowner", "Sets grid ownership to the given player or ID.", "Usage: setowner <grid> <newowner>")]
         [Permission(MyPromoteLevel.SpaceMaster)]
@@ -49,9 +51,29 @@ namespace Essentials
                 if (ownerComp == null)
                     return false;
 
+                cubeBlock?.ChangeOwner(0, MyOwnershipShareModeEnum.All);
                 cubeBlock?.ChangeOwner(identityId, ownerComp.ShareMode);
                 return false;
             });
+        }
+
+        [Command("static large", "Makes all large grids static.")]
+        public void StaticLarge()
+        {
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(g => g.GridSizeEnum == MyCubeSize.Large))
+                grid.ConvertToStatic();
+        }
+
+        [Command("list", "List all grids owned by you.")]
+        public void List()
+        {
+            var sb = new StringBuilder("Grids:\n");
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+            {
+                if (grid.BigOwners.Contains(Context.Player.IdentityId))
+                    sb.AppendLine($"{grid.DisplayName}: {grid.PositionComp.GetPosition().ToString("N")}");
+            }
+            Context.Respond(sb.ToString());
         }
     }
 }
