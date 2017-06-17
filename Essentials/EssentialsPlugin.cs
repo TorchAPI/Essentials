@@ -10,7 +10,7 @@ using Torch.API.Plugins;
 
 namespace Essentials
 {
-    [Plugin("Essentials", "1.0", "cbfdd6ab-4cda-4544-a201-f73efa3d46c0")]
+    [Plugin("Essentials", "1.1", "cbfdd6ab-4cda-4544-a201-f73efa3d46c0")]
     public class EssentialsPlugin : TorchPluginBase, IWpfPlugin
     {
         private EssentialsControl _control;

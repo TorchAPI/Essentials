@@ -6,12 +6,15 @@ using System.Threading.Tasks;
 using Sandbox.Game.Entities;
 using Sandbox.Game.World;
 using Torch.Commands;
+using Torch.Commands.Permissions;
+using VRage.Game.ModAPI;
 
 namespace Essentials.Commands
 {
     public class WorldModule : CommandModule
     {
         [Command("identity clean", "Remove identities that have not logged on in X days.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void CleanIdentities(int days)
         {
             var idents = MySession.Static.Players.GetAllIdentities().ToList();
@@ -24,6 +27,7 @@ namespace Essentials.Commands
         }
 
         [Command("identity purge", "Remove identities AND the grids they own if they have not logged on in X days.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void PurgeIdentities(int days)
         {
             var grids = MyEntities.GetEntities().OfType<MyCubeGrid>().ToList();

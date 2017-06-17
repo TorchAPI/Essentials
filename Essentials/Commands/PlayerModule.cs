@@ -13,6 +13,7 @@ namespace Essentials
     public class PlayerModule : CommandModule
     {
         [Command("w", "Send a private message to another player.")]
+        [Permission(MyPromoteLevel.None)]
         public void Whisper(string playerName)
         {
             if (Context.Args.Count < 1)
@@ -32,7 +33,7 @@ namespace Essentials
                 return;
             }
 
-            Context.Torch.Multiplayer.SendMessage(message, Context.Player.DisplayName, player.IdentityId, MyFontEnum.Red);
+            Context.Torch.Multiplayer.SendMessage(message, Context.Player?.DisplayName ?? "Server", player.IdentityId, MyFontEnum.Red);
         }
 
         [Command("kick", "Kick a player from the game.")]

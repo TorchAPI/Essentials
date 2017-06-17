@@ -59,16 +59,15 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Find(string name)
         {
-            var search = name;
-            if (string.IsNullOrEmpty(search))
+            if (string.IsNullOrEmpty(name))
                 return;
 
             var sb = new StringBuilder("Found entities:\n");
             foreach (var entity in MyEntities.GetEntities())
             {
-                if (entity is IMyVoxelBase voxel && voxel.StorageName.Contains(search, StringComparison.CurrentCultureIgnoreCase))
+                if (entity is IMyVoxelBase voxel && (voxel.StorageName?.Contains(name, StringComparison.CurrentCultureIgnoreCase) ?? false))
                     sb.AppendLine($"{voxel.StorageName} ({entity.EntityId})");
-                else if (entity.DisplayName?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false)
+                else if (entity?.DisplayName?.Contains(name, StringComparison.CurrentCultureIgnoreCase) ?? false)
                     //This can be null??? :keen:
                     sb.AppendLine($"{entity.DisplayName} ({entity.EntityId})");
             }
@@ -102,7 +101,7 @@ namespace Essentials
 
             IMyEntity targetEntity;
             if (string.IsNullOrEmpty(entityToMove))
-                targetEntity = Context.Player.Controller.ControlledEntity.Entity;
+                targetEntity = Context.Player?.Controller.ControlledEntity.Entity;
             else
                 Utilities.TryGetEntityByNameOrId(entityToMove, out targetEntity);
 

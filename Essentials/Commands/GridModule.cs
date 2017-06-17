@@ -44,6 +44,10 @@ namespace Essentials
                 identityId = player.IdentityId;
             }
 
+            grid.ChangeGridOwnership(identityId, MyOwnershipShareModeEnum.Faction);
+            Context.Respond($"Transferred ownership of {grid.DisplayName} to {identityId}");
+
+            /*
             grid.GetBlocks(new List<IMySlimBlock>(), block =>
             {
                 var cubeBlock = block.FatBlock as MyCubeBlock;
@@ -54,10 +58,11 @@ namespace Essentials
                 cubeBlock?.ChangeOwner(0, MyOwnershipShareModeEnum.All);
                 cubeBlock?.ChangeOwner(identityId, ownerComp.ShareMode);
                 return false;
-            });
+            });*/
         }
 
         [Command("static large", "Makes all large grids static.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void StaticLarge()
         {
             foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(g => g.GridSizeEnum == MyCubeSize.Large))
@@ -65,12 +70,13 @@ namespace Essentials
         }
 
         [Command("list", "List all grids owned by you.")]
+        [Permission(MyPromoteLevel.None)]
         public void List()
         {
             var sb = new StringBuilder("Grids:\n");
             foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
             {
-                if (grid.BigOwners.Contains(Context.Player.IdentityId))
+                if (grid.BigOwners.Contains(Context.Player?.IdentityId ?? 0))
                     sb.AppendLine($"{grid.DisplayName}: {grid.PositionComp.GetPosition().ToString("N")}");
             }
             Context.Respond(sb.ToString());
