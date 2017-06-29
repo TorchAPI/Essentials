@@ -1,22 +1,67 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Sandbox;
+using Sandbox.Engine.Multiplayer;
 using Sandbox.Game.Entities;
+using Sandbox.Game.World;
 using Sandbox.ModAPI;
 using Torch.Commands;
 using Torch.Commands.Permissions;
+using VRage.Collections;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
+using VRage.Network;
+using VRage.Replication;
 using VRageMath;
 
 namespace Essentials
 {
-    [Category("entity")]
+    [Category("entities")]
     public class EntityModule : CommandModule
     {
+        [Command("refresh", "Resyncs all entities for the player running the command.")]
+        [Permission(MyPromoteLevel.None)]
+        public void Refresh2()
+        {
+            if (Context.Player == null)
+                return;
+
+            var playerEndpoint = new Endpoint(Context.Player.SteamUserId, 0);
+            var replicationServer = (MyReplicationServer)MyMultiplayer.ReplicationLayer;
+            var clientDataDict = typeof(MyReplicationServer).GetField("m_clientStates", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(replicationServer) as IDictionary;
+            object clientData;
+            try
+            {
+                clientData = clientDataDict[playerEndpoint];
+            }
+            catch
+            {
+                return;
+            }
+
+            var clientReplicables = clientData.GetType().GetField("Replicables").GetValue(clientData) as MyConcurrentDictionary<IMyReplicable, MyReplicableClientData>;
+            var removeForClientMethod = typeof(MyReplicationServer).GetMethod("RemoveForClient", BindingFlags.Instance | BindingFlags.NonPublic);
+            var forceReplicableMethod = typeof(MyReplicationServer).GetMethod("ForceReplicable", BindingFlags.Instance | BindingFlags.NonPublic, null, new[] {typeof(IMyReplicable), typeof(Endpoint)}, null);
+
+            var replicableList = new List<IMyReplicable>(clientReplicables.Count);
+            foreach (var pair in clientReplicables)
+                replicableList.Add(pair.Key);
+
+            foreach (var replicable in replicableList)
+            {
+                removeForClientMethod.Invoke(replicationServer, new object[] {replicable, playerEndpoint, clientData, true});
+                forceReplicableMethod.Invoke(replicationServer, new object[] {replicable, playerEndpoint});
+            }
+
+            Context.Respond($"Forced replication of {replicableList.Count} entities.");
+        }
+
         [Command("stop", "Stops an entity from moving")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Stop(string entityName)
@@ -79,24 +124,6 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Teleport(string destination, string entityToMove = null)
         {
-            /*
-            IMyEntity targetEntity;
-            IMyEntity destEntity;
-            switch (Context.Args.Count)
-            {
-                case 1:
-                    targetEntity = Context.Player.Controller.ControlledEntity.Entity;
-                    Utilities.TryGetEntityByNameOrId(Context.Args[0], out destEntity);
-                    break;
-                case 2:
-                    Utilities.TryGetEntityByNameOrId(Context.Args[0], out targetEntity);
-                    Utilities.TryGetEntityByNameOrId(Context.Args[1], out destEntity);
-                    break;
-                default:
-                    Context.Respond("Wrong number of arguments.");
-                    return;
-            }*/
-
             Utilities.TryGetEntityByNameOrId(destination, out IMyEntity destEntity);
 
             IMyEntity targetEntity;

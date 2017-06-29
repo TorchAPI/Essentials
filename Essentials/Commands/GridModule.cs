@@ -15,7 +15,7 @@ using VRage.Game;
 
 namespace Essentials
 {
-    [Category("grid")]
+    [Category("grids")]
     public class GridModule : CommandModule
     {
         [Command("setowner", "Sets grid ownership to the given player or ID.", "Usage: setowner <grid> <newowner>")]

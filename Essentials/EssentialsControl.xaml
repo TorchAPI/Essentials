@@ -7,7 +7,5 @@
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
     <StackPanel>
-        <TextBlock Text="WPF Control Test"/>
-        <Button Content="Click Meh"></Button>
     </StackPanel>
 </UserControl>
