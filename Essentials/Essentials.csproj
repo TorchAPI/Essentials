@@ -129,6 +129,8 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AutoCommand.cs" />
+    <Compile Include="Commands\BlocksModule.cs" />
     <Compile Include="Commands\VoxelModule.cs" />
     <Compile Include="Commands\WorldModule.cs" />
     <Compile Include="EssentialsConfig.cs" />

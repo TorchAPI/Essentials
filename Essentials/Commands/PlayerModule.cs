@@ -3,15 +3,58 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Sandbox.Game.Entities;
 using Torch.Commands;
 using Torch.Commands.Permissions;
+using Torch.Managers;
 using VRage.Game;
 using VRage.Game.ModAPI;
+using VRage.ModAPI;
 
 namespace Essentials
 {
     public class PlayerModule : CommandModule
     {
+        [Command("say", "Say a message as the server.")]
+        public void Say(string message)
+        {
+            Context.Torch.GetManager<MultiplayerManager>()?.SendMessage(Context.RawArgs);
+        }
+
+        [Command("tp", "Teleport one entity to another.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void Teleport(string entityToMove, string destination)
+        {
+            Utilities.TryGetEntityByNameOrId(destination, out IMyEntity destEntity);
+
+            IMyEntity targetEntity;
+            if (string.IsNullOrEmpty(entityToMove))
+                targetEntity = Context.Player?.Controller.ControlledEntity.Entity;
+            else
+                Utilities.TryGetEntityByNameOrId(entityToMove, out targetEntity);
+
+            if (targetEntity == null)
+            {
+                Context.Respond("Target entity not found.");
+                return;
+            }
+
+            if (destEntity == null)
+            {
+                Context.Respond("Destination entity not found");
+                return;
+            }
+
+            var targetPos = MyEntities.FindFreePlace(destEntity.GetPosition(), (float)targetEntity.WorldAABB.Extents.Max());
+            if (targetPos == null)
+            {
+                Context.Respond("No free place to teleport.");
+                return;
+            }
+
+            targetEntity.SetPosition(targetPos.Value);
+        }
+
         [Command("w", "Send a private message to another player.")]
         [Permission(MyPromoteLevel.None)]
         public void Whisper(string playerName)

@@ -4,8 +4,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Essentials"
-             mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="300">
+             mc:Ignorable="d">
+    <UserControl.DataContext>
+        <local:EssentialsConfig/>
+    </UserControl.DataContext>
     <StackPanel>
+        <Label Content="AutoCommands"></Label>
+        <DataGrid ItemsSource="{Binding AutoCommands, UpdateSourceTrigger=PropertyChanged}" KeyDown="UIElement_OnKeyDown"/>
     </StackPanel>
 </UserControl>

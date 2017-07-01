@@ -119,39 +119,5 @@ namespace Essentials
 
             Context.Respond(sb.ToString());
         }
-
-        [Command("tp", "Teleport to another entity or teleport another entity to you.")]
-        [Permission(MyPromoteLevel.SpaceMaster)]
-        public void Teleport(string destination, string entityToMove = null)
-        {
-            Utilities.TryGetEntityByNameOrId(destination, out IMyEntity destEntity);
-
-            IMyEntity targetEntity;
-            if (string.IsNullOrEmpty(entityToMove))
-                targetEntity = Context.Player?.Controller.ControlledEntity.Entity;
-            else
-                Utilities.TryGetEntityByNameOrId(entityToMove, out targetEntity);
-
-            if (targetEntity == null)
-            {
-                Context.Respond("Target entity not found.");
-                return;
-            }
-
-            if (destEntity == null)
-            {
-                Context.Respond("Destination entity not found");
-                return;
-            }
-
-            var targetPos = MyEntities.FindFreePlace(destEntity.GetPosition(), (float)targetEntity.WorldAABB.Extents.Max());
-            if (targetPos == null)
-            {
-                Context.Respond("No free place to teleport.");
-                return;
-            }
-
-            targetEntity.SetPosition(targetPos.Value);
-        }
     }
 }
