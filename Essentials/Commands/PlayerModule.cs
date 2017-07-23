@@ -15,6 +15,8 @@ namespace Essentials
 {
     public class PlayerModule : CommandModule
     {
+        private EssentialsPlugin _plugin => (EssentialsPlugin)Context.Plugin;
+
         [Command("say", "Say a message as the server.")]
         public void Say(string message)
         {
@@ -125,6 +127,13 @@ namespace Essentials
             {
                 Context.Respond("Player not found.");
             }
+        }
+
+        [Command("motd", "Show the server's Message of the Day.")]
+        [Permission(MyPromoteLevel.None)]
+        public void Motd()
+        {
+            Context.Respond(_plugin.Config.Motd);
         }
     }
 }

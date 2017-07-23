@@ -8,8 +8,11 @@ using Torch;
 
 namespace Essentials
 {
-    public class EssentialsConfig
+    public class EssentialsConfig : ViewModel
     {
-        public MTObservableCollection<AutoCommand> AutoCommands { get; } = new MTObservableCollection<AutoCommand>();
+        public ObservableList<AutoCommand> AutoCommands { get; } = new ObservableList<AutoCommand>();
+
+        private string _motd;
+        public string Motd { get => _motd; set { _motd = value; OnPropertyChanged(); } }
     }
 }

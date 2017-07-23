@@ -9,7 +9,11 @@
         <local:EssentialsConfig/>
     </UserControl.DataContext>
     <StackPanel>
+        <Label Content="Message of the Day"/>
+        <TextBox Text="{Binding Motd}" AcceptsReturn="true" MinLines="5" TextWrapping="Wrap"/>
         <Label Content="AutoCommands"></Label>
+        <Button Content="Add" Click="AddAutoCommand_OnClick"></Button>
         <DataGrid ItemsSource="{Binding AutoCommands, UpdateSourceTrigger=PropertyChanged}" KeyDown="UIElement_OnKeyDown"/>
+        <Button Content="Save Config" Click="SaveConfig_OnClick"/>
     </StackPanel>
 </UserControl>

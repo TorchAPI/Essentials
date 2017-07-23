@@ -5,7 +5,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Torch;
+using Torch.API;
 using Torch.Commands;
+using Torch.Server;
 
 namespace Essentials
 {
@@ -31,6 +33,9 @@ namespace Essentials
 
         private void RunCommand(object state)
         {
+            if (((TorchServer)TorchBase.Instance).State != ServerState.Running)
+                return;
+
             var autoCommand = (AutoCommand)state;
             TorchBase.Instance.Invoke(() =>
             {

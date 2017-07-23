@@ -27,7 +27,7 @@ namespace Essentials
     {
         [Command("refresh", "Resyncs all entities for the player running the command.")]
         [Permission(MyPromoteLevel.None)]
-        public void Refresh2()
+        public void Refresh()
         {
             if (Context.Player == null)
                 return;

@@ -45,5 +45,15 @@ namespace Essentials
                 Plugin.Config.AutoCommands.Remove(item);
             }
         }
+
+        private void SaveConfig_OnClick(object sender, RoutedEventArgs e)
+        {
+            Plugin.Save();
+        }
+
+        private void AddAutoCommand_OnClick(object sender, RoutedEventArgs e)
+        {
+            Plugin.Config.AutoCommands.Add(new AutoCommand());
+        }
     }
 }
