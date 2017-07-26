@@ -17,7 +17,7 @@ using VRage.Game.Entity;
 
 namespace Essentials
 {
-    [Plugin("Essentials", "1.4", "cbfdd6ab-4cda-4544-a201-f73efa3d46c0")]
+    [Plugin("Essentials", "1.5", "cbfdd6ab-4cda-4544-a201-f73efa3d46c0")]
     public class EssentialsPlugin : TorchPluginBase, IWpfPlugin
     {
         public EssentialsConfig Config => _config?.Data;
