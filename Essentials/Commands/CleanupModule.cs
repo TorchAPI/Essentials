@@ -32,12 +32,15 @@ namespace Essentials.Commands
             Context.Respond($"Deleted {count} grids matching the given conditions.");
         }
 
-        private IEnumerable<MyCubeGrid> ScanConditions(List<string> args)
+        private IEnumerable<MyCubeGrid> ScanConditions(IReadOnlyList<string> args)
         {
             var conditions = new List<Func<MyCubeGrid, bool>>();
 
             for (var i = 0; i < args.Count; i += 2)
             {
+                if (i + 1 > args.Count)
+                    break;
+
                 var arg = args[i];
                 var parameter = args[i + 1];
 

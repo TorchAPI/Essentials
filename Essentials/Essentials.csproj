@@ -135,11 +135,9 @@
     <Compile Include="AutoCommand.cs" />
     <Compile Include="Commands\BlocksModule.cs" />
     <Compile Include="Commands\CleanupModule.cs" />
-    <Compile Include="Commands\ScanModule.cs" />
     <Compile Include="Commands\VoxelModule.cs" />
     <Compile Include="Commands\WorldModule.cs" />
     <Compile Include="EssentialsConfig.cs" />
-    <Compile Include="Commands\DeleteModule.cs" />
     <Compile Include="Commands\EntityModule.cs" />
     <Compile Include="EssentialsControl.xaml.cs">
       <DependentUpon>EssentialsControl.xaml</DependentUpon>
