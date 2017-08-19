@@ -10,6 +10,7 @@ using Torch.Managers;
 using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
+using Torch.API.Managers;
 
 namespace Essentials
 {
@@ -20,7 +21,7 @@ namespace Essentials
         [Command("say", "Say a message as the server.")]
         public void Say(string message)
         {
-            Context.Torch.GetManager<MultiplayerManager>()?.SendMessage(Context.RawArgs);
+            Context.Torch.Managers.GetManager<MultiplayerManager>()?.SendMessage(Context.RawArgs);
         }
 
         [Command("tp", "Teleport one entity to another.")]
