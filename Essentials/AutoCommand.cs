@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Torch;
 using Torch.API;
 using Torch.Commands;
+using Torch.API.Managers;
 using Torch.Server;
 
 namespace Essentials
@@ -39,7 +40,7 @@ namespace Essentials
             var autoCommand = (AutoCommand)state;
             TorchBase.Instance.Invoke(() =>
             {
-                var manager = TorchBase.Instance.GetManager<CommandManager>();
+                var manager = TorchBase.Instance.Managers.GetManager<CommandManager>();
                 manager?.HandleCommandFromServer(autoCommand.Command);
             });
         }
