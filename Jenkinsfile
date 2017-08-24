@@ -9,6 +9,7 @@ def test_with_torch(branch)
 		}
 
 		stage('Build + Torch ' + branch) {
+			bat "\"${tool 'MSBuild'}msbuild\" Essentials.sln /p:Configuration=Release /p:Platform=x64 /t:Clean"
 			// bat "\"${tool 'MSBuild'}msbuild\" Essentials.sln /p:Configuration=Release /p:Platform=x64 /t:TransformOnBuild"
 			bat "\"${tool 'MSBuild'}msbuild\" Essentials.sln /p:Configuration=Release /p:Platform=x64"
 		}
@@ -32,12 +33,6 @@ def test_with_torch(branch)
 		    ])
 		}
 	*/
-
-		stage('Archive + Torch ' + branch) {
-			bat "copy bin/x64/Release/Essentials.dll bin/x64/Release/Essentials-${branch}.dll"
-			archiveArtifacts artifacts: "bin/x64/Release/Essentials-${branch}.dll", caseSensitive: false, fingerprint: true, onlyIfSuccessful: true
-		}
-
 		return true
 	} catch (e) {
 		return false
@@ -59,10 +54,14 @@ node {
 		bat 'nuget restore Essentials.sln'
 	}
 
-	bool resultMaster = test_with_torch("master")
-	bool resultStaging = test_with_torch("staging")
-	if (resultMaster || resultStaging)
+	resultMaster = test_with_torch("master")
+	resultStaging = test_with_torch("staging")
+	if (resultMaster || resultStaging) {
 		currentBuild.result = "SUCCESS"
+		stage('Archive') {
+			archiveArtifacts artifacts: "bin/x64/Release/Essentials.dll", caseSensitive: false, fingerprint: true, onlyIfSuccessful: true
+		}
+	}
 	else
 		currentBuild.result = "FAIL"
 }
