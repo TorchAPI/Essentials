@@ -17,7 +17,7 @@ cd %~dp0
 mklink /J TorchBinaries %path%
 if errorlevel 1 goto Error
 echo Done! You can now open the Torch solution without issue.
-goto End
+goto EndFinal
 :Error2
 echo An error occured creating the symlink.
 :EndFinal
