@@ -5,6 +5,7 @@ def test_with_torch(branch)
 			bat 'IF EXIST TorchBinaries RMDIR /S /Q TorchBinaries'
 			bat 'mkdir TorchBinaries'
 			step([$class: 'CopyArtifact', projectName: "Torch/Torch/${branch}", filter: "**/Torch*.dll", flatten: true, fingerprintArtifacts: true, target: "TorchBinaries"])
+			step([$class: 'CopyArtifact', projectName: "Torch/Torch/${branch}", filter: "**/Torch*.exe", flatten: true, fingerprintArtifacts: true, target: "TorchBinaries"])
 		}
 
 		stage('Build + Torch ' + branch) {
