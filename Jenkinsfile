@@ -63,7 +63,7 @@ node {
 	if (result) {
 		currentBuild.result = "SUCCESS"
 		stage('Archive') {
-			archiveArtifacts artifacts: "bin/x64/Release/Concealment.dll", caseSensitive: false, fingerprint: true, onlyIfSuccessful: true
+			archiveArtifacts artifacts: "bin/x64/Release/Essentials.dll", caseSensitive: false, fingerprint: true, onlyIfSuccessful: true
 		}
 	}
 	else
