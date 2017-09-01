@@ -55,12 +55,15 @@ node {
 		bat 'nuget restore Essentials.sln'
 	}
 
-	resultMaster = test_with_torch("master")
-	resultStaging = test_with_torch("staging")
-	if (resultMaster || resultStaging) {
+	if (env.BRANCH_NAME == "master") {
+		result = test_with_torch("master")
+	} else {
+		result = test_with_torch("staging")
+	}
+	if (result) {
 		currentBuild.result = "SUCCESS"
 		stage('Archive') {
-			archiveArtifacts artifacts: "bin/x64/Release/Essentials.dll", caseSensitive: false, fingerprint: true, onlyIfSuccessful: true
+			archiveArtifacts artifacts: "bin/x64/Release/Concealment.dll", caseSensitive: false, fingerprint: true, onlyIfSuccessful: true
 		}
 	}
 	else
