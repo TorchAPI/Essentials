@@ -12,6 +12,7 @@ using Sandbox.Game.World;
 using Sandbox.ModAPI;
 using Torch.Commands;
 using Torch.Commands.Permissions;
+using Torch.Utils;
 using VRage.Collections;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
@@ -25,6 +26,21 @@ namespace Essentials
     [Category("entities")]
     public class EntityModule : CommandModule
     {
+#pragma warning disable 649
+        [ReflectedGetter(Name = "m_clientStates")]
+        private static Func<MyReplicationServer, IDictionary> _clientStates;
+
+        private const string CLIENT_DATA_TYPE_NAME = "VRage.Network.MyReplicationServer+ClientData, VRage";
+        [ReflectedGetter(TypeName = CLIENT_DATA_TYPE_NAME, Name = "Replicables")]
+        private static Func<object, MyConcurrentDictionary<IMyReplicable, MyReplicableClientData>> _replicables;
+
+        [ReflectedMethod(Name = "RemoveForClient", OverrideTypeNames = new[] { null, null, CLIENT_DATA_TYPE_NAME, null })]
+        private static Action<MyReplicationServer, IMyReplicable, Endpoint, object, bool> _removeForClient;
+
+        [ReflectedMethod(Name = "ForceReplicable")]
+        private static Action<MyReplicationServer, IMyReplicable, Endpoint> _forceReplicable;
+#pragma warning restore 649
+
         [Command("refresh", "Resyncs all entities for the player running the command.")]
         [Permission(MyPromoteLevel.None)]
         public void Refresh()
@@ -34,7 +50,7 @@ namespace Essentials
 
             var playerEndpoint = new Endpoint(Context.Player.SteamUserId, 0);
             var replicationServer = (MyReplicationServer)MyMultiplayer.ReplicationLayer;
-            var clientDataDict = typeof(MyReplicationServer).GetField("m_clientStates", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(replicationServer) as IDictionary;
+            var clientDataDict = _clientStates.Invoke(replicationServer);
             object clientData;
             try
             {
@@ -45,9 +61,7 @@ namespace Essentials
                 return;
             }
 
-            var clientReplicables = clientData.GetType().GetField("Replicables").GetValue(clientData) as MyConcurrentDictionary<IMyReplicable, MyReplicableClientData>;
-            var removeForClientMethod = typeof(MyReplicationServer).GetMethod("RemoveForClient", BindingFlags.Instance | BindingFlags.NonPublic);
-            var forceReplicableMethod = typeof(MyReplicationServer).GetMethod("ForceReplicable", BindingFlags.Instance | BindingFlags.NonPublic, null, new[] {typeof(IMyReplicable), typeof(Endpoint)}, null);
+            var clientReplicables = _replicables.Invoke(clientData);
 
             var replicableList = new List<IMyReplicable>(clientReplicables.Count);
             foreach (var pair in clientReplicables)
@@ -55,8 +69,8 @@ namespace Essentials
 
             foreach (var replicable in replicableList)
             {
-                removeForClientMethod.Invoke(replicationServer, new object[] {replicable, playerEndpoint, clientData, true});
-                forceReplicableMethod.Invoke(replicationServer, new object[] {replicable, playerEndpoint});
+                _removeForClient.Invoke(replicationServer, replicable, playerEndpoint, clientData, true);
+                _forceReplicable.Invoke(replicationServer, replicable, playerEndpoint);
             }
 
             Context.Respond($"Forced replication of {replicableList.Count} entities.");
