@@ -70,10 +70,11 @@ namespace Essentials.Commands
                 }
             }
 
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+            foreach (var group in MyCubeGridGroups.Static.Logical.Groups)
             {
-                if (conditions.TrueForAll(func => func(grid)))
-                    yield return grid;
+                if (group.Nodes.All(grid => conditions.TrueForAll(func => func(grid.NodeData))))
+                    foreach (var grid in group.Nodes)
+                        yield return grid.NodeData;
             }
         }
 
