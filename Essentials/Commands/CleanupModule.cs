@@ -23,9 +23,7 @@ namespace Essentials.Commands
         public void List()
         {
             var grids = ScanConditions(Context.Args).OrderBy(g => g.DisplayName).ToList();
-            for (var i = 0; i < grids.Count; i++)
-                Context.Respond($"{i + 1}. {grids[i].DisplayName} ({grids[i].BlocksCount} block(s))");
-
+            Context.Respond(String.Join("\n", grids.Select((g, i) => $"{i + 1}. {grids[i].DisplayName} ({grids[i].BlocksCount} block(s))")));
             Context.Respond($"Found {grids.Count} grids matching the given conditions.");
         }
 
