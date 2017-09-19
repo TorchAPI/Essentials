@@ -19,6 +19,14 @@ namespace Essentials.Commands
             Context.Respond($"Found {count} grids matching the given conditions.");
         }
 
+        [Command("list", "Lists grids matching the given conditions: hastype, notype, hassubtype, nosubtype, blockslessthan, blocksgreaterthan, ownedby")]
+        public void List()
+        {
+            var grids = ScanConditions(Context.Args).OrderBy(g => g.DisplayName).ToList();
+            Context.Respond(String.Join("\n", grids.Select((g, i) => $"{i + 1}. {grids[i].DisplayName} ({grids[i].BlocksCount} block(s))")));
+            Context.Respond($"Found {grids.Count} grids matching the given conditions.");
+        }
+
         [Command("delete", "Delete grids matching the given conditions")]
         public void Delete()
         {
