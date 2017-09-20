@@ -103,30 +103,43 @@ namespace Essentials
         public void Ban(string playerName)
         {
             var player = Utilities.GetPlayerByNameOrId(playerName);
-            if (player != null)
+            var steamUserId = 0ul;
+            if (player == null)
             {
-                Context.Torch.Multiplayer.BanPlayer(player.SteamUserId);
-                Context.Respond($"Player '{player.DisplayName}' banned.");
+                if (!ulong.TryParse(playerName, out steamUserId) || playerName.Length != 17)
+                {
+                    Context.Respond("Player not found. Use !ban <steamID> to ban offline players.");
+                    return;
+                }
             }
             else
+                steamUserId = player.SteamUserId;
+            if (Context.Torch.Multiplayer.BannedPlayers.Contains(steamUserId))
             {
-                Context.Respond("Player not found.");
+                Context.Respond("Player is already banned.");
+                return;
             }
+            Context.Torch.Multiplayer.BanPlayer(steamUserId);
+            Context.Respond($"Player '{player?.DisplayName ?? steamUserId.ToString()}' banned.");
         }
 
         [Command("unban", "Unban a player from the game.")]
         [Permission(MyPromoteLevel.Moderator)]
-        public void Unban(string playerName)
+        public void Unban(string steamIdStr)
         {
-            var player = Utilities.GetPlayerByNameOrId(Context.Args.FirstOrDefault());
-            if (player != null)
+            if (!ulong.TryParse(steamIdStr, out var steamUserId) || steamIdStr.Length != 17)
             {
-                Context.Torch.Multiplayer.BanPlayer(player.SteamUserId, false);
-                Context.Respond($"Player '{player.DisplayName}' unbanned.");
+                Context.Respond($"Usage: !unban <steamID>");
+                return;
+            }
+            if (Context.Torch.Multiplayer.BannedPlayers.Contains(steamUserId))
+            {
+                Context.Torch.Multiplayer.BanPlayer(steamUserId, false);
+                Context.Respond($"Player '{steamUserId}' unbanned.");
             }
             else
             {
-                Context.Respond("Player not found.");
+                Context.Respond("Player is not banned.");
             }
         }
 
