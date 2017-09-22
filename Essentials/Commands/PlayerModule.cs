@@ -21,7 +21,7 @@ namespace Essentials
         [Command("say", "Say a message as the server.")]
         public void Say(string message)
         {
-            Context.Torch.Managers.GetManager<MultiplayerManager>()?.SendMessage(Context.RawArgs);
+            Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf(Context.RawArgs);
         }
 
         [Command("tp", "Teleport one entity to another.")]
@@ -70,7 +70,7 @@ namespace Essentials
                 return;
 
             var message = Context.RawArgs.Substring(msgIndex);
-            var player = Context.Torch.Multiplayer.GetPlayerByName(playerName);
+            var player = Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerBase>()?.GetPlayerByName(playerName);
             Console.WriteLine($"'{player?.DisplayName ?? "null"}'");
 
             if (player == null)
@@ -79,7 +79,7 @@ namespace Essentials
                 return;
             }
 
-            Context.Torch.Multiplayer.SendMessage(message, Context.Player?.DisplayName ?? "Server", player.IdentityId, MyFontEnum.Red);
+            Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsOther(message, Context.Player?.DisplayName ?? "Server", MyFontEnum.Red, player.SteamUserId);
         }
 
         [Command("kick", "Kick a player from the game.")]
@@ -89,7 +89,7 @@ namespace Essentials
             var player = Utilities.GetPlayerByNameOrId(playerName);
             if (player != null)
             {
-                Context.Torch.Multiplayer.KickPlayer(player.SteamUserId);
+                Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>()?.KickPlayer(player.SteamUserId);
                 Context.Respond($"Player '{player.DisplayName}' kicked.");
             }
             else
@@ -105,7 +105,7 @@ namespace Essentials
             var player = Utilities.GetPlayerByNameOrId(playerName);
             if (player != null)
             {
-                Context.Torch.Multiplayer.BanPlayer(player.SteamUserId);
+                Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>()?.BanPlayer(player.SteamUserId);
                 Context.Respond($"Player '{player.DisplayName}' banned.");
             }
             else
@@ -121,7 +121,7 @@ namespace Essentials
             var player = Utilities.GetPlayerByNameOrId(Context.Args.FirstOrDefault());
             if (player != null)
             {
-                Context.Torch.Multiplayer.BanPlayer(player.SteamUserId, false);
+                Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>()?.BanPlayer(player.SteamUserId, false);
                 Context.Respond($"Player '{player.DisplayName}' unbanned.");
             }
             else
