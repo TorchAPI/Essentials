@@ -65,7 +65,7 @@ node {
 	if (result) {
 		currentBuild.result = "SUCCESS"
 		stage('Archive') {
-			archiveArtifacts artifacts: "bin/x64/Release/Essentials.*", caseSensitive: false, fingerprint: true, onlyIfSuccessful: true
+			archiveArtifacts artifacts: "bin/x64/${buildMode}/Essentials.*", caseSensitive: false, fingerprint: true, onlyIfSuccessful: true
 
 			zipFile = "bin\\essentials.zip"
 			packageDir = "bin\\essentials\\"
