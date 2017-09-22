@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
+using Torch.API.Managers;
 using Torch.Commands;
 using Torch.Commands.Permissions;
 using VRage.Game.Entity.EntityComponents;
@@ -35,7 +36,7 @@ namespace Essentials
             long identityId;
             if (!long.TryParse(playerName, out identityId))
             {
-                var player = Context.Torch.Multiplayer.GetPlayerByName(playerName);
+                var player = Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerBase>().GetPlayerByName(playerName);
                 if (player == null)
                 {
                     Context.Respond($"Player {playerName} not found.");
