@@ -10,14 +10,15 @@ using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
 using Torch;
 using Torch.API;
+using Torch.API.Managers;
 using Torch.API.Plugins;
 using Torch.Commands;
 using Torch.Managers;
+using VRage.Game;
 using VRage.Game.Entity;
 
 namespace Essentials
 {
-    [Plugin("Essentials", typeof(EssentialsPlugin), "cbfdd6ab-4cda-4544-a201-f73efa3d46c0")]
     public class EssentialsPlugin : TorchPluginBase, IWpfPlugin
     {
         public EssentialsConfig Config => _config?.Data;
@@ -62,7 +63,9 @@ namespace Essentials
                 if (string.IsNullOrEmpty(Config.Motd) || _motdOnce.Contains(id))
                     return;
 
-                Torch.Multiplayer.SendMessage(Config.Motd, "MOTD", id);
+                if (MySession.Static.Players.TryGetPlayerId(id, out MyPlayer.PlayerId info))
+                    Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()
+                        .SendMessageAsOther("MOTD", Config.Motd, MyFontEnum.Blue, info.SteamId);
                 _motdOnce.Add(id);
             }
         }

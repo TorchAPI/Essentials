@@ -10,14 +10,14 @@ def test_with_torch(branch)
 
 		stage('Build + Torch ' + branch) {
 			currentBuild.description = bat(returnStdout: true, script: '@powershell -File Versioning/version.ps1').trim()
-			bat "\"${tool 'MSBuild'}msbuild\" Essentials.sln /p:Configuration=Release /p:Platform=x64 /t:Clean"
-			bat "\"${tool 'MSBuild'}msbuild\" Essentials.sln /p:Configuration=Release /p:Platform=x64"
+			bat "\"${tool 'MSBuild'}msbuild\" Essentials.sln /p:Configuration=${buildMode} /p:Platform=x64 /t:Clean"
+			bat "\"${tool 'MSBuild'}msbuild\" Essentials.sln /p:Configuration=${buildMode} /p:Platform=x64"
 		}
 
 	
 		stage('Test + Torch ' + branch) {
 			bat 'IF NOT EXIST reports MKDIR reports'
-			bat "\"packages/xunit.runner.console.2.2.0/tools/xunit.console.exe\" \"bin-test/x64/Release/Essentials.Tests.dll\" -parallel none -xml \"reports/Essentials.Tests.xml\""
+			bat "\"packages/xunit.runner.console.2.2.0/tools/xunit.console.exe\" \"bin-test/x64/${buildMode}/Essentials.Tests.dll\" -parallel none -xml \"reports/Essentials.Tests.xml\""
 		    step([
 		        $class: 'XUnitBuilder',
 		        thresholdMode: 1,
@@ -54,24 +54,42 @@ node {
 	stage('Acquire NuGet Packages') {
 		bat 'nuget restore Essentials.sln'
 	}
-
+	
 	if (env.BRANCH_NAME == "master") {
+		buildMode = "Release"
 		result = test_with_torch("master")
 	} else {
+		buildMode = "Debug"
 		result = test_with_torch("staging")
 	}
 	if (result) {
 		currentBuild.result = "SUCCESS"
 		stage('Archive') {
-			archiveArtifacts artifacts: "bin/x64/Release/Essentials.dll", caseSensitive: false, fingerprint: true, onlyIfSuccessful: true
+			archiveArtifacts artifacts: "bin/x64/${buildMode}/Essentials.*", caseSensitive: false, fingerprint: true, onlyIfSuccessful: true
+
+			zipFile = "bin\\essentials.zip"
+			packageDir = "bin\\essentials\\"
+
+			bat "IF EXIST ${zipFile} DEL ${zipFile}"
+			bat "IF EXIST ${packageDir} RMDIR /S /Q ${packageDir}"
+
+			bat "xcopy bin\\x64\\${buildMode} ${packageDir}"
+			if (buildMode == "Release") {
+				bat "del ${packageDir}*.pdb"
+			}
+			powershell "(Get-Content manifest.xml).Replace('\${VERSION}', [System.Diagnostics.FileVersionInfo]::GetVersionInfo(\"\$PWD\\${packageDir}Essentials.dll\").ProductVersion) | Set-Content \"${packageDir}/manifest.xml\""
+			powershell "Add-Type -Assembly System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::CreateFromDirectory(\"\$PWD\\${packageDir}\", \"\$PWD\\${zipFile}\")"
+			archiveArtifacts artifacts: zipFile, caseSensitive: false, onlyIfSuccessful: true
 		}
 
-		gitVersion = bat(returnStdout: true, script: "@git describe --tags").trim()
-		gitSimpleVersion = bat(returnStdout: true, script: "@git describe --tags --abbrev=0").trim()
-		if (gitVersion == gitSimpleVersion) {
-			stage('Release') {
-				withCredentials([usernamePassword(credentialsId: 'torch-github', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-					powershell "& ./Jenkins/release.ps1 \"https://api.github.com/repos/TorchAPI/Essentials/\" \"$gitSimpleVersion\" \"$USERNAME:$PASSWORD\" @(\"bin/x64/Release/Essentials.dll\")"
+		if (env.BRANCH_NAME == "master") {
+			gitVersion = bat(returnStdout: true, script: "@git describe --tags").trim()
+			gitSimpleVersion = bat(returnStdout: true, script: "@git describe --tags --abbrev=0").trim()
+			if (gitVersion == gitSimpleVersion) {
+				stage('Release') {
+					withCredentials([usernamePassword(credentialsId: 'torch-github', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+						powershell "& ./Jenkins/release.ps1 \"https://api.github.com/repos/TorchAPI/Essentials/\" \"$gitSimpleVersion\" \"$USERNAME:$PASSWORD\" @(\"bin/essentials.zip\")"
+					}
 				}
 			}
 		}
