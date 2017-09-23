@@ -102,6 +102,9 @@ namespace Essentials
         [Permission(MyPromoteLevel.Moderator)]
         public void Ban(string playerName)
         {
+            var multiplayerManager = Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>();
+            if (multiplayerManager == null)
+                return;
             var player = Utilities.GetPlayerByNameOrId(playerName);
             var steamUserId = 0ul;
             if (player == null)
@@ -115,12 +118,12 @@ namespace Essentials
             }
             else
                 steamUserId = player.SteamUserId;
-            if (Context.Torch.Multiplayer.BannedPlayers.Contains(steamUserId))
+            if (multiplayerManager.BannedPlayers.Contains(steamUserId))
             {
                 Context.Respond("Player is already banned.");
                 return;
             }
-            Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>()?.BanPlayer(steamUserId);
+            multiplayerManager.BanPlayer(steamUserId);
             Context.Respond($"Player '{player?.DisplayName ?? steamUserId.ToString()}' banned.");
         }
 
@@ -128,14 +131,17 @@ namespace Essentials
         [Permission(MyPromoteLevel.Moderator)]
         public void Unban(string steamIdStr)
         {
+            var multiplayerManager = Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>();
+            if (multiplayerManager == null)
+                return;
             if (!ulong.TryParse(steamIdStr, out var steamUserId) || steamIdStr.Length != 17)
             {
                 Context.Respond($"Usage: !unban <steamID>");
                 return;
             }
-            if (Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>()?.BannedPlayers.Contains(steamUserId))
+            if (multiplayerManager.BannedPlayers.Contains(steamUserId))
             {
-                Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>()?.BanPlayer(steamUserId, false);
+                multiplayerManager.BanPlayer(steamUserId, false);
                 Context.Respond($"Player '{steamUserId}' unbanned.");
             }
             else
