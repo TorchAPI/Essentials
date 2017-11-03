@@ -40,7 +40,7 @@ namespace Essentials
             var autoCommand = (AutoCommand)state;
             TorchBase.Instance.Invoke(() =>
             {
-                var manager = TorchBase.Instance.Managers.GetManager<CommandManager>();
+                var manager = TorchBase.Instance.CurrentSession.Managers.GetManager<CommandManager>();
                 manager?.HandleCommandFromServer(autoCommand.Command);
             });
         }

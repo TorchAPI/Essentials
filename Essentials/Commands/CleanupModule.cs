@@ -75,6 +75,9 @@ namespace Essentials.Commands
                     case "ownedby":
                         conditions.Add(g => OwnedBy(g, parameter));
                         break;
+                    default:
+                        Context.Respond($"Unknown argument '{arg}'");
+                        yield break;
                 }
             }
 

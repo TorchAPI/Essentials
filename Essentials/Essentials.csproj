@@ -69,17 +69,17 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
-    <Reference Include="Torch">
-      <HintPath>$(SolutionDir)\TorchBinaries\Torch.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="Torch, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\TorchBinaries\Torch.dll</HintPath>
     </Reference>
-    <Reference Include="Torch.API">
-      <HintPath>$(SolutionDir)\TorchBinaries\Torch.API.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="Torch.API, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\TorchBinaries\Torch.API.dll</HintPath>
     </Reference>
-    <Reference Include="Torch.Server">
-      <HintPath>$(SolutionDir)\TorchBinaries\Torch.Server.exe</HintPath>
-      <Private>False</Private>
+    <Reference Include="Torch.Server, Version=1.1.230.650, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\TorchBinaries\Torch.Server.exe</HintPath>
     </Reference>
     <Reference Include="VRage">
       <HintPath>$(SolutionDir)\GameBinaries\VRage.dll</HintPath>
