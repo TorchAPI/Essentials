@@ -10,6 +10,8 @@ def test_with_torch(branch)
 
 		stage('Build + Torch ' + branch) {
 			currentBuild.description = bat(returnStdout: true, script: '@powershell -File Versioning/version.ps1').trim()
+			bat "IF EXIST \"bin\"rmdir /Q /S \"bin\""
+			bat "IF EXIST \"bin-test\" rmdir /Q /S \"bin-test\""
 			bat "\"${tool 'MSBuild'}msbuild\" Essentials.sln /p:Configuration=${buildMode} /p:Platform=x64 /t:Clean"
 			bat "\"${tool 'MSBuild'}msbuild\" Essentials.sln /p:Configuration=${buildMode} /p:Platform=x64"
 		}
