@@ -59,11 +59,10 @@ node {
 	
 	if (env.BRANCH_NAME == "master") {
 		buildMode = "Release"
-		result = test_with_torch("master")
 	} else {
 		buildMode = "Debug"
-		result = test_with_torch("staging")
 	}
+	result = test_with_torch("master")
 	if (result) {
 		currentBuild.result = "SUCCESS"
 		stage('Archive') {
@@ -82,18 +81,6 @@ node {
 			powershell "(Get-Content manifest.xml).Replace('\${VERSION}', [System.Diagnostics.FileVersionInfo]::GetVersionInfo(\"\$PWD\\${packageDir}Essentials.dll\").ProductVersion) | Set-Content \"${packageDir}/manifest.xml\""
 			powershell "Add-Type -Assembly System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::CreateFromDirectory(\"\$PWD\\${packageDir}\", \"\$PWD\\${zipFile}\")"
 			archiveArtifacts artifacts: zipFile, caseSensitive: false, onlyIfSuccessful: true
-		}
-
-		if (env.BRANCH_NAME == "master") {
-			gitVersion = bat(returnStdout: true, script: "@git describe --tags").trim()
-			gitSimpleVersion = bat(returnStdout: true, script: "@git describe --tags --abbrev=0").trim()
-			if (gitVersion == gitSimpleVersion) {
-				stage('Release') {
-					withCredentials([usernamePassword(credentialsId: 'torch-github', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-						powershell "& ./Jenkins/release.ps1 \"https://api.github.com/repos/TorchAPI/Essentials/\" \"$gitSimpleVersion\" \"$USERNAME:$PASSWORD\" @(\"bin/essentials.zip\")"
-					}
-				}
-			}
 		}
 	}
 	else
