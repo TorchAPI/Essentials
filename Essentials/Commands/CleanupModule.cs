@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Sandbox.Game.Entities;
 using Sandbox.Game.World;
 using Torch.Commands;
+using VRage.Game.Entity;
 
 namespace Essentials.Commands
 {
@@ -75,6 +76,9 @@ namespace Essentials.Commands
                     case "ownedby":
                         conditions.Add(g => OwnedBy(g, parameter));
                         break;
+                    case "matches":
+                        conditions.Add(g => NameMatches(g, parameter));
+                        break;
                     default:
                         Context.Respond($"Unknown argument '{arg}'");
                         yield break;
@@ -86,6 +90,18 @@ namespace Essentials.Commands
                 if (group.Nodes.All(grid => conditions.TrueForAll(func => func(grid.NodeData))))
                     foreach (var grid in group.Nodes)
                         yield return grid.NodeData;
+            }
+        }
+
+        private bool NameMatches(MyCubeGrid grid, string str)
+        {
+            try
+            {
+                var regex = new Regex(str);
+                return regex.IsMatch(grid.DisplayName);
+            } catch( Exception e )
+            {
+                return false;
             }
         }
 
