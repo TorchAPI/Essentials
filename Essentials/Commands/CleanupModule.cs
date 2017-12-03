@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Sandbox.Game.Entities;
 using Sandbox.Game.World;
 using Torch.Commands;
+using NLog;
 using VRage.Game.Entity;
 
 namespace Essentials.Commands
@@ -95,14 +96,8 @@ namespace Essentials.Commands
 
         private bool NameMatches(MyCubeGrid grid, string str)
         {
-            try
-            {
-                var regex = new Regex(str);
-                return regex.IsMatch(grid.DisplayName);
-            } catch( Exception e )
-            {
-                return false;
-            }
+            var regex = new Regex(str);
+            return regex.IsMatch(grid.DisplayName ?? "");
         }
 
         private bool BlocksLessThan(MyCubeGrid grid, string str)
