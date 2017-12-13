@@ -77,7 +77,7 @@ namespace Essentials.Commands
                     case "ownedby":
                         conditions.Add(g => OwnedBy(g, parameter));
                         break;
-                    case "matches":
+                    case "name":
                         conditions.Add(g => NameMatches(g, parameter));
                         break;
                     default:
