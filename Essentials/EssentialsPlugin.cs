@@ -12,8 +12,10 @@ using Torch;
 using Torch.API;
 using Torch.API.Managers;
 using Torch.API.Plugins;
+using Torch.API.Session;
 using Torch.Commands;
 using Torch.Managers;
+using Torch.Session;
 using VRage.Game;
 using VRage.Game.Entity;
 
@@ -22,6 +24,8 @@ namespace Essentials
     public class EssentialsPlugin : TorchPluginBase, IWpfPlugin
     {
         public EssentialsConfig Config => _config?.Data;
+
+        private TorchSessionManager _sessionManager;
 
         private EssentialsControl _control;
         private Persistent<EssentialsConfig> _config;
@@ -41,13 +45,31 @@ namespace Essentials
         {
             base.Init(torch);
             _config = Persistent<EssentialsConfig>.Load(Path.Combine(StoragePath, "Essentials.cfg"));
-            Torch.SessionLoaded += Torch_SessionLoaded;
+            _sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
+            if (_sessionManager != null)
+                _sessionManager.SessionStateChanged += SessionChanged;
+            else
+                Log.Warn("No session manager.  MOTD won't work");
         }
 
-        private void Torch_SessionLoaded()
+        private void SessionChanged(ITorchSession session, TorchSessionState state)
         {
-            MyEntities.OnEntityAdd += MotdOnce;
-            Sync.Players.PlayerCharacterDied += ResetMotdOnce;
+            switch (state)
+            {
+                case TorchSessionState.Loaded:
+                    MyEntities.OnEntityAdd += MotdOnce;
+                    if (Sync.Players != null)
+                        Sync.Players.PlayerCharacterDied += ResetMotdOnce;
+                    break;
+                case TorchSessionState.Unloading:
+                    MyEntities.OnEntityAdd -= MotdOnce;
+                    if (Sync.Players != null)
+                        Sync.Players.PlayerCharacterDied -= ResetMotdOnce;
+                    break;
+                default:
+                    // ignore
+                    break;
+            }
         }
 
         private void ResetMotdOnce(long obj)
@@ -73,10 +95,9 @@ namespace Essentials
         /// <inheritdoc />
         public override void Dispose()
         {
-            Torch.SessionLoaded -= Torch_SessionLoaded;
-            MyEntities.OnEntityAdd -= MotdOnce;
-            Sync.Players.PlayerCharacterDied -= ResetMotdOnce;
-            _config.Save();
+            if (_sessionManager != null)
+                _sessionManager.SessionStateChanged -= SessionChanged;
+            _sessionManager = null;
         }
     }
 }
