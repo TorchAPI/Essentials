@@ -13,6 +13,9 @@ namespace Essentials
         public ObservableCollection<AutoCommand> AutoCommands { get; } = new ObservableCollection<AutoCommand>();
 
         private string _motd;
-        public string Motd { get => _motd; set { _motd = value; OnPropertyChanged(); } }
+        public string Motd { get => _motd; set => SetValue(ref _motd, value); }
+
+        private string _motdUrl;
+        public string MotdUrl { get => _motdUrl; set => SetValue(ref _motdUrl, value); }
     }
 }

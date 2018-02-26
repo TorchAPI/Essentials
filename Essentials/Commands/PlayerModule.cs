@@ -16,7 +16,7 @@ namespace Essentials
 {
     public class PlayerModule : CommandModule
     {
-        private EssentialsPlugin _plugin => (EssentialsPlugin)Context.Plugin;
+        private EssentialsPlugin Plugin => (EssentialsPlugin)Context.Plugin;
 
         [Command("say", "Say a message as the server.")]
         public void Say(string message)
@@ -134,7 +134,7 @@ namespace Essentials
         [Permission(MyPromoteLevel.None)]
         public void Motd()
         {
-            Context.Respond(_plugin.Config.Motd);
+            Plugin.SendMotd(Context.Player.IdentityId);
         }
     }
 }

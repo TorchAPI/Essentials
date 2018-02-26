@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows.Controls;
 using NLog;
 using Sandbox.Engine.Multiplayer;
+using Sandbox.Game;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.Multiplayer;
@@ -82,14 +83,20 @@ namespace Essentials
             if (obj is MyCharacter character)
             {
                 var id = character.ControllerInfo?.ControllingIdentityId ?? 0;
-                if (string.IsNullOrEmpty(Config.Motd) || _motdOnce.Contains(id))
-                    return;
-
-                if (MySession.Static.Players.TryGetPlayerId(id, out MyPlayer.PlayerId info))
-                    Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()
-                        .SendMessageAsOther("MOTD", Config.Motd, MyFontEnum.Blue, info.SteamId);
+                SendMotd(id);
                 _motdOnce.Add(id);
             }
+        }
+
+        public void SendMotd(long playerId = 0)
+        {
+            if (!string.IsNullOrEmpty(Config.MotdUrl))
+                MyVisualScriptLogicProvider.OpenSteamOverlay(Config.MotdUrl, playerId);
+
+            if (!string.IsNullOrEmpty(Config.Motd))
+                if (MySession.Static.Players.TryGetPlayerId(playerId, out MyPlayer.PlayerId info))
+                    Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()
+                        .SendMessageAsOther("MOTD", Config.Motd, MyFontEnum.Blue, info.SteamId);
         }
 
         /// <inheritdoc />
