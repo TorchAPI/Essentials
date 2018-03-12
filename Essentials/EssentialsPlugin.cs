@@ -9,6 +9,7 @@ using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
+using Sandbox.Graphics.GUI;
 using Torch;
 using Torch.API;
 using Torch.API.Managers;
@@ -91,8 +92,13 @@ namespace Essentials
         public void SendMotd(long playerId = 0)
         {
             if (!string.IsNullOrEmpty(Config.MotdUrl))
-                MyVisualScriptLogicProvider.OpenSteamOverlay(Config.MotdUrl, playerId);
-
+            {
+                if (MyGuiSandbox.IsUrlWhitelisted(Config.MotdUrl))
+                    MyVisualScriptLogicProvider.OpenSteamOverlay(Config.MotdUrl, playerId);
+                else
+                    MyVisualScriptLogicProvider.OpenSteamOverlay($"https://steamcommunity.com/linkfilter/?url={Config.MotdUrl}", playerId);
+            }
+                
             if (!string.IsNullOrEmpty(Config.Motd))
                 if (MySession.Static.Players.TryGetPlayerId(playerId, out MyPlayer.PlayerId info))
                     Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()
