@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Sandbox.Game.Entities;
 using Sandbox.Game.World;
 using Torch.Commands;
+using NLog;
+using VRage.Game.Entity;
 
 namespace Essentials.Commands
 {
@@ -75,6 +77,9 @@ namespace Essentials.Commands
                     case "ownedby":
                         conditions.Add(g => OwnedBy(g, parameter));
                         break;
+                    case "name":
+                        conditions.Add(g => NameMatches(g, parameter));
+                        break;
                     default:
                         Context.Respond($"Unknown argument '{arg}'");
                         yield break;
@@ -87,6 +92,12 @@ namespace Essentials.Commands
                     foreach (var grid in group.Nodes)
                         yield return grid.NodeData;
             }
+        }
+
+        private bool NameMatches(MyCubeGrid grid, string str)
+        {
+            var regex = new Regex(str);
+            return regex.IsMatch(grid.DisplayName ?? "");
         }
 
         private bool BlocksLessThan(MyCubeGrid grid, string str)
