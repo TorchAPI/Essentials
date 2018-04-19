@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Controls;
 using NLog;
 using Sandbox.Engine.Multiplayer;
@@ -20,6 +22,7 @@ using Torch.Managers;
 using Torch.Session;
 using VRage.Game;
 using VRage.Game.Entity;
+using VRage.Game.ModAPI;
 
 namespace Essentials
 {
@@ -32,7 +35,7 @@ namespace Essentials
         private EssentialsControl _control;
         private Persistent<EssentialsConfig> _config;
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
-        private List<long> _motdOnce = new List<long>();
+        private HashSet<ulong> _motdOnce = new HashSet<ulong>();
 
         /// <inheritdoc />
         public UserControl GetControl() => _control ?? (_control = new EssentialsControl(this));
@@ -56,36 +59,45 @@ namespace Essentials
 
         private void SessionChanged(ITorchSession session, TorchSessionState state)
         {
+            var mpMan = Torch.CurrentSession.Managers.GetManager<IMultiplayerManagerServer>();
             switch (state)
             {
                 case TorchSessionState.Loaded:
+                    mpMan.PlayerLeft += ResetMotdOnce;
                     MyEntities.OnEntityAdd += MotdOnce;
-                    if (Sync.Players != null)
-                        Sync.Players.PlayerCharacterDied += ResetMotdOnce;
                     break;
                 case TorchSessionState.Unloading:
+                    mpMan.PlayerLeft -= ResetMotdOnce;
                     MyEntities.OnEntityAdd -= MotdOnce;
-                    if (Sync.Players != null)
-                        Sync.Players.PlayerCharacterDied -= ResetMotdOnce;
-                    break;
-                default:
-                    // ignore
                     break;
             }
         }
 
-        private void ResetMotdOnce(long obj)
+        private void ResetMotdOnce(IPlayer player)
         {
-            _motdOnce.Remove(obj);
+            _motdOnce.Remove(player.SteamId);
         }
 
         private void MotdOnce(MyEntity obj)
         {
             if (obj is MyCharacter character)
             {
-                var id = character.ControllerInfo?.ControllingIdentityId ?? 0;
-                SendMotd(id);
-                _motdOnce.Add(id);
+                Task.Run(() =>
+                {
+                    Thread.Sleep(1000);
+                    Torch.Invoke(() =>
+                    {
+                        if (_motdOnce.Contains(character.ControlSteamId))
+                            return;
+                        
+                        var id = character.ControllerInfo?.ControllingIdentityId;
+                        if (!id.HasValue)
+                            return;
+                        
+                        SendMotd(id.Value);
+                        _motdOnce.Add(character.ControlSteamId);
+                    });
+                });
             }
         }
 
