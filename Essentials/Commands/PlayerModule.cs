@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Sandbox.Game.Entities;
+using Sandbox.Game.World;
 using Torch.Commands;
 using Torch.Commands.Permissions;
 using Torch.Managers;
@@ -100,34 +101,58 @@ namespace Essentials
 
         [Command("ban", "Ban a player from the game.")]
         [Permission(MyPromoteLevel.Moderator)]
-        public void Ban(string playerName)
+        public void Ban(string nameOrSteamId)
         {
-            var man = Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>();
-            if (ulong.TryParse(playerName, out ulong steamId))
+            var man = Context.Torch.CurrentSession.Managers.GetManager<IMultiplayerManagerServer>();
+            var isId = ulong.TryParse(nameOrSteamId, out var steamId);
+
+            foreach (var identity in MySession.Static.Players.GetAllIdentities())
+            {
+                var id = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
+                if (id != 0 && (identity.DisplayName == nameOrSteamId || id == steamId))
+                {
+                    man.BanPlayer(id);
+                    Context.Respond($"Player {identity.DisplayName} banned. ({id})");
+                    return;
+                }
+            }
+
+            if (isId)
             {
                 man.BanPlayer(steamId);
-                Context.Respond($"Player '{steamId}' banned.");
+                Context.Respond($"Steam ID {steamId} banned.");
                 return;
             }
             
-            var player = Utilities.GetPlayerByNameOrId(playerName);
-            if (player != null)
-            {
-                man.BanPlayer(player.SteamUserId);
-                Context.Respond($"Player '{player.DisplayName}' banned.");
-            }
-            else
-            {
-                Context.Respond("Player not found.");
-            }
+            Context.Respond($"Player '{nameOrSteamId}' not found.");
         }
 
         [Command("unban", "Unban a player from the game.")]
         [Permission(MyPromoteLevel.Moderator)]
-        public void Unban(ulong steamId)
+        public void Unban(string nameOrSteamId)
         {
-            Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>()?.BanPlayer(steamId, false);
-            Context.Respond($"User {steamId} unbanned.");
+            var man = Context.Torch.CurrentSession.Managers.GetManager<IMultiplayerManagerServer>();
+            var isId = ulong.TryParse(nameOrSteamId, out var steamId);
+
+            foreach (var identity in MySession.Static.Players.GetAllIdentities())
+            {
+                var id = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
+                if (id != 0 && (identity.DisplayName == nameOrSteamId || id == steamId))
+                {
+                    man.BanPlayer(id, false);
+                    Context.Respond($"Player {identity.DisplayName} unbanned. ({id})");
+                    return;
+                }
+            }
+
+            if (isId)
+            {
+                man.BanPlayer(steamId, false);
+                Context.Respond($"Steam ID {steamId} unbanned.");
+                return;
+            }
+            
+            Context.Respond($"Player '{nameOrSteamId}' not found.");
         }
 
         [Command("motd", "Show the server's Message of the Day.")]
