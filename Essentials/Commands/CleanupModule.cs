@@ -7,6 +7,8 @@ using Sandbox.Game.Entities;
 using Sandbox.Game.World;
 using Torch.Commands;
 using NLog;
+using Sandbox.Game.EntityComponents;
+using SpaceEngineers.Game.Entities.Blocks;
 using VRage.Game.Entity;
 
 namespace Essentials.Commands
@@ -80,6 +82,12 @@ namespace Essentials.Commands
                     case "name":
                         conditions.Add(g => NameMatches(g, parameter));
                         break;
+                    case "nopower":
+                        conditions.Add(g=>!HasPower(g));
+                        break;
+                    case "haspower":
+                        conditions.Add(g => HasPower(g));
+                        break;
                     default:
                         Context.Respond($"Unknown argument '{arg}'");
                         yield break;
@@ -112,6 +120,21 @@ namespace Essentials.Commands
         {
             if (int.TryParse(str, out int count))
                 return grid.BlocksCount > count;
+
+            return false;
+        }
+
+        private bool HasPower(MyCubeGrid grid)
+        {
+            foreach (var b in grid.GetFatBlocks())
+            {
+                var c = b.Components?.Get<MyResourceSourceComponent>();
+                if (c == null)
+                    continue;
+
+                if (c.HasCapacityRemainingByType(MyResourceDistributorComponent.ElectricityId) && c.ProductionEnabledByType(MyResourceDistributorComponent.ElectricityId))
+                    return true;
+            }
 
             return false;
         }

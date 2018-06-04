@@ -17,5 +17,8 @@ namespace Essentials
 
         private string _motdUrl;
         public string MotdUrl { get => _motdUrl; set => SetValue(ref _motdUrl, value); }
+
+        private bool _stopShips;
+        public bool StopShipsOnStart { get => _stopShips; set => SetValue(ref _stopShips, value); }
     }
 }

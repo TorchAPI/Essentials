@@ -12,10 +12,12 @@
         <Label Content="Message of the Day"/>
         <TextBox Text="{Binding Motd}" AcceptsReturn="true" MinLines="5" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible"/>
         <Label Content="MOTD URL (will open in steam overlay)"/>
-        <TextBox Text="{Binding MotdUrl}" ToolTip="Must be a link to YouTube, the Keen forum, or steamcommunity.com"/>
+        <TextBox Text="{Binding MotdUrl}"/>
         <Label Content="AutoCommands"></Label>
         <Button Content="Add" Click="AddAutoCommand_OnClick"></Button>
         <DataGrid ItemsSource="{Binding AutoCommands, UpdateSourceTrigger=PropertyChanged}" KeyDown="UIElement_OnKeyDown"/>
         <Button Content="Save Config" Click="SaveConfig_OnClick"/>
+        <Label Content="Stop all entities on server start"/>
+        <CheckBox IsChecked="{Binding StopShipsOnStart, Mode=TwoWay}"/>
     </StackPanel>
 </UserControl>

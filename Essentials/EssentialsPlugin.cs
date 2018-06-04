@@ -23,6 +23,7 @@ using Torch.Session;
 using VRage.Game;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
+using VRageMath;
 
 namespace Essentials
 {
@@ -65,11 +66,21 @@ namespace Essentials
                 case TorchSessionState.Loaded:
                     mpMan.PlayerLeft += ResetMotdOnce;
                     MyEntities.OnEntityAdd += MotdOnce;
+                    if(Config.StopShipsOnStart)
+                        StopShips();
                     break;
                 case TorchSessionState.Unloading:
                     mpMan.PlayerLeft -= ResetMotdOnce;
                     MyEntities.OnEntityAdd -= MotdOnce;
                     break;
+            }
+        }
+
+        private void StopShips()
+        {
+            foreach (var e in MyEntities.GetEntities())
+            {
+                e.Physics?.SetSpeeds(Vector3.Zero, Vector3.Zero);
             }
         }
 
