@@ -19,6 +19,8 @@ using Torch.API.Plugins;
 using Torch.API.Session;
 using Torch.Commands;
 using Torch.Managers;
+using Torch.Mod;
+using Torch.Mod.Messages;
 using Torch.Session;
 using VRage.Game;
 using VRage.Game.Entity;
@@ -125,11 +127,14 @@ namespace Essentials
                 else
                     MyVisualScriptLogicProvider.OpenSteamOverlay($"https://steamcommunity.com/linkfilter/?url={Config.MotdUrl}", playerId);
             }
-                
+
             if (!string.IsNullOrEmpty(Config.Motd))
-                if (MySession.Static.Players.TryGetPlayerId(playerId, out MyPlayer.PlayerId info))
-                    Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()
-                        .SendMessageAsOther("MOTD", Config.Motd, MyFontEnum.Blue, info.SteamId);
+            {
+                var id = MySession.Static.Players.TryGetSteamId(playerId);
+                if(id <= 0) //can't remember if this returns 0 or -1 on error.
+                    return;
+                ModCommunication.SendMessageTo(new DialogMessage(MySession.Static.Name, "Message Of The Day", Config.Motd), id);
+            }
         }
 
         /// <inheritdoc />
