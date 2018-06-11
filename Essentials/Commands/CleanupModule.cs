@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows.Media.Media3D;
 using Sandbox.Game.Entities;
 using Sandbox.Game.World;
 using Torch.Commands;
@@ -10,6 +11,8 @@ using NLog;
 using Sandbox.Game.EntityComponents;
 using SpaceEngineers.Game.Entities.Blocks;
 using VRage.Game.Entity;
+using VRage.Game.ModAPI;
+using Vector3D = VRageMath.Vector3D;
 
 namespace Essentials.Commands
 {
@@ -88,6 +91,9 @@ namespace Essentials.Commands
                     case "haspower":
                         conditions.Add(g => HasPower(g));
                         break;
+                    case "insideplanet":
+                        conditions.Add(g => InsidePlanet(g));
+                        break;
                     default:
                         Context.Respond($"Unknown argument '{arg}'");
                         yield break;
@@ -133,6 +139,29 @@ namespace Essentials.Commands
                     continue;
 
                 if (c.HasCapacityRemainingByType(MyResourceDistributorComponent.ElectricityId) && c.ProductionEnabledByType(MyResourceDistributorComponent.ElectricityId))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private bool InsidePlanet(MyCubeGrid grid)
+        {
+            var s = grid.PositionComp.WorldVolume;
+            var voxels = new List<MyVoxelBase>();
+            MyGamePruningStructure.GetAllVoxelMapsInSphere(ref s, voxels);
+
+            if (!voxels.Any())
+                return false;
+
+            foreach (var v in voxels)
+            {
+                var planet = v as MyPlanet;
+                if (planet == null)
+                    continue;
+
+                var dist2center = Vector3D.DistanceSquared(s.Center, planet.PositionComp.WorldVolume.Center);
+                if (dist2center <= (planet.MaximumRadius * planet.MaximumRadius) / 2)
                     return true;
             }
 
