@@ -142,7 +142,6 @@
     <Compile Include="AutoCommand.cs" />
     <Compile Include="Commands\BlocksModule.cs" />
     <Compile Include="Commands\CleanupModule.cs" />
-    <Compile Include="Commands\UtilityModule.cs" />
     <Compile Include="Commands\VoxelModule.cs" />
     <Compile Include="Commands\WorldModule.cs" />
     <Compile Include="EssentialsConfig.cs" />
