@@ -18,6 +18,8 @@
         <DataGrid ItemsSource="{Binding AutoCommands, UpdateSourceTrigger=PropertyChanged}" KeyDown="UIElement_OnKeyDown"/>
         <Button Content="Save Config" Click="SaveConfig_OnClick"/>
         <Label Content="Stop all entities on server start"/>
-        <CheckBox IsChecked="{Binding StopShipsOnStart, Mode=TwoWay}"/>
+        <CheckBox IsChecked="{Binding StopShipsOnStart}"/>
+        <Label Content="Show grid position in grid list command"/>
+        <CheckBox IsChecked="{Binding UtilityShowPosition}"/>
     </StackPanel>
 </UserControl>

@@ -38,6 +38,8 @@ namespace Essentials
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
         private HashSet<ulong> _motdOnce = new HashSet<ulong>();
 
+        public static EssentialsPlugin Instance { get; private set; }
+
         /// <inheritdoc />
         public UserControl GetControl() => _control ?? (_control = new EssentialsControl(this));
 
@@ -56,6 +58,8 @@ namespace Essentials
                 _sessionManager.SessionStateChanged += SessionChanged;
             else
                 Log.Warn("No session manager.  MOTD won't work");
+
+            Instance = this;
         }
 
         private void SessionChanged(ITorchSession session, TorchSessionState state)

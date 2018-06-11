@@ -20,5 +20,12 @@ namespace Essentials
 
         private bool _stopShips;
         public bool StopShipsOnStart { get => _stopShips; set => SetValue(ref _stopShips, value); }
+
+        private bool _utilityShowPosition;
+        public bool UtilityShowPosition
+        {
+            get => _utilityShowPosition;
+            set => SetValue(ref _utilityShowPosition, value);
+        }
     }
 }
