@@ -37,7 +37,7 @@ namespace Essentials
 
         private EssentialsControl _control;
         private Persistent<EssentialsConfig> _config;
-        private static readonly Logger Log = LogManager.GetLogger("Essentials");
+        public static readonly Logger Log = LogManager.GetLogger("Essentials");
         private HashSet<ulong> _motdOnce = new HashSet<ulong>();
 
         public static EssentialsPlugin Instance { get; private set; }

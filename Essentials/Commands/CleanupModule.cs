@@ -40,11 +40,13 @@ namespace Essentials.Commands
             var count = 0;
             foreach (var grid in ScanConditions(Context.Args))
             {
+                EssentialsPlugin.Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}");
                 grid.Close();
                 count++;
             }
 
             Context.Respond($"Deleted {count} grids matching the given conditions.");
+            EssentialsPlugin.Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
         }
 
         private IEnumerable<MyCubeGrid> ScanConditions(IReadOnlyList<string> args)
