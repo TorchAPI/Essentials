@@ -11,6 +11,8 @@
     <StackPanel>
         <Label Content="Message of the Day"/>
         <TextBox Text="{Binding Motd}" AcceptsReturn="true" MinLines="5" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible"/>
+        <Label Content="Message of the Day (new users)"/>
+        <TextBox Text="{Binding NewUserMotd}" AcceptsReturn="true" MinLines="5" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible"/>
         <Label Content="MOTD URL (will open in steam overlay)"/>
         <TextBox Text="{Binding MotdUrl}"/>
         <Label Content="AutoCommands"></Label>

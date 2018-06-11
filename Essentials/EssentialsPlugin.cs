@@ -128,11 +128,20 @@ namespace Essentials
                     MyVisualScriptLogicProvider.OpenSteamOverlay($"https://steamcommunity.com/linkfilter/?url={Config.MotdUrl}", playerId);
             }
 
-            if (!string.IsNullOrEmpty(Config.Motd))
+            var id = MySession.Static.Players.TryGetSteamId(playerId);
+            if (id <= 0) //can't remember if this returns 0 or -1 on error.
+                return;
+
+            bool newUser = !Config.KnownSteamIds.Contains(id);
+            if (newUser)
+                Config.KnownSteamIds.Add(id);
+
+            if (newUser && !string.IsNullOrEmpty(Config.NewUserMotd))
             {
-                var id = MySession.Static.Players.TryGetSteamId(playerId);
-                if(id <= 0) //can't remember if this returns 0 or -1 on error.
-                    return;
+                ModCommunication.SendMessageTo(new DialogMessage(MySession.Static.Name, "New User Message Of The Day", Config.NewUserMotd), id);
+            }
+            else if (!string.IsNullOrEmpty(Config.Motd))
+            {
                 ModCommunication.SendMessageTo(new DialogMessage(MySession.Static.Name, "Message Of The Day", Config.Motd), id);
             }
         }
