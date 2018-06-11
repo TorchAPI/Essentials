@@ -75,7 +75,7 @@ namespace Essentials
         public void StaticLarge()
         {
             foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(g => g.GridSizeEnum == MyCubeSize.Large))
-                grid.ConvertToStatic();
+                grid.OnConvertedToStationRequest(); //Keen why do you do this to me?
         }
 
         [Command("list", "Lists all grids you own at least 50% of. Will give you positions if the server admin enables the option.")]
