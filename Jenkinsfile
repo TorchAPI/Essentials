@@ -62,7 +62,7 @@ node {
 	} else {
 		buildMode = "Debug"
 	}
-	result = test_with_torch("master")
+	result = test_with_torch("client-mod")
 	if (result) {
 		currentBuild.result = "SUCCESS"
 		stage('Archive') {
