@@ -22,6 +22,7 @@ using Torch.Managers;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using Torch.Session;
+using Torch.Views;
 using VRage.Game;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
@@ -35,7 +36,7 @@ namespace Essentials
 
         private TorchSessionManager _sessionManager;
 
-        private EssentialsControl _control;
+        private UserControl _control;
         private Persistent<EssentialsConfig> _config;
         public static readonly Logger Log = LogManager.GetLogger("Essentials");
         private HashSet<ulong> _motdOnce = new HashSet<ulong>();
@@ -43,7 +44,7 @@ namespace Essentials
         public static EssentialsPlugin Instance { get; private set; }
 
         /// <inheritdoc />
-        public UserControl GetControl() => _control ?? (_control = new EssentialsControl(this));
+        public UserControl GetControl() => _control ?? (_control = new PropertyGrid(){DataContext=Config, IsEnabled = false});
 
         public void Save()
         {
@@ -74,6 +75,11 @@ namespace Essentials
                     MyEntities.OnEntityAdd += MotdOnce;
                     if(Config.StopShipsOnStart)
                         StopShips();
+                    _control.Dispatcher.Invoke(() =>
+                                               {
+                                                   _control.IsEnabled = true;
+                                                   _control.DataContext = Config;
+                                               });
                     break;
                 case TorchSessionState.Unloading:
                     mpMan.PlayerLeft -= ResetMotdOnce;

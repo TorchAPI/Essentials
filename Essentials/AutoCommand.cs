@@ -9,6 +9,7 @@ using Torch.API;
 using Torch.Commands;
 using Torch.API.Managers;
 using Torch.Server;
+using Torch.Views;
 
 namespace Essentials
 {
@@ -20,27 +21,40 @@ namespace Essentials
         public bool Enabled { get => _enabled; set { _enabled = value; OnTimerChanged(); OnPropertyChanged(); } }
         private string _command;
         public string Command { get => _command; set { _command = value; OnTimerChanged(); OnPropertyChanged(); } }
-        private int _dueTime;
-        public int DueTime { get => _dueTime / 1000; set { _dueTime = value * 1000; OnTimerChanged(); OnPropertyChanged(); } }
-        private int _period;
-        public int Period { get => _period / 1000; set { _period = value * 1000; OnTimerChanged(); OnPropertyChanged(); } }
+        private TimeSpan _initialDelay;
+
+        [Display(Name = "Initial Delay", Description = "Sets the initial delay after server start before this command is run.")]
+        public string InitialDelay
+        {
+            get => _initialDelay.ToString();
+            set => _initialDelay = TimeSpan.Parse(value);
+        }
+
+        private TimeSpan _repeatInterval;
+
+        [Display(Name = "Repeat Interval", Description = "Sets the interval on which this command will be repeated after the first run.")]
+        public string RepeatInterval
+        {
+            get => _repeatInterval.ToString();
+            set => _repeatInterval = TimeSpan.Parse(value);
+        }
 
         private void OnTimerChanged()
         {
             _timer?.Dispose();
-            if (Enabled && Period > 0)
-                _timer = new Timer(RunCommand, this, _dueTime, _period);
+            if (Enabled && _repeatInterval.TotalMilliseconds > 0)
+                _timer = new Timer(RunCommand, this, _initialDelay, _repeatInterval);
         }
 
         private void RunCommand(object state)
         {
-            if (((TorchServer)TorchBase.Instance).State != ServerState.Running)
+            if (((TorchServer)EssentialsPlugin.Instance.Torch).State != ServerState.Running)
                 return;
 
             var autoCommand = (AutoCommand)state;
-            TorchBase.Instance.Invoke(() =>
+            EssentialsPlugin.Instance.Torch.Invoke(() =>
             {
-                var manager = TorchBase.Instance.CurrentSession.Managers.GetManager<CommandManager>();
+                var manager = EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<CommandManager>();
                 manager?.HandleCommandFromServer(autoCommand.Command);
             });
         }
