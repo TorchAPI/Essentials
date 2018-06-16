@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Media.Media3D;
@@ -9,7 +11,10 @@ using Sandbox.Game.World;
 using Torch.Commands;
 using NLog;
 using Sandbox.Game.EntityComponents;
+using Sandbox.Game.Multiplayer;
 using SpaceEngineers.Game.Entities.Blocks;
+using Torch.Mod;
+using Torch.Mod.Messages;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using Vector3D = VRageMath.Vector3D;
@@ -49,6 +54,65 @@ namespace Essentials.Commands
             EssentialsPlugin.Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
         }
 
+        [Command("help", "Lists all cleanup conditions.")]
+        public void Help()
+        {
+            var sb = new StringBuilder();
+            foreach (var c in _conditionLookup)
+            {
+                sb.AppendLine($"{c.Command}{(string.IsNullOrEmpty(c.InvertCommand) ? string.Empty : $" ({c.InvertCommand})")}:");
+                sb.AppendLine($"   {c.HelpText}");
+            }
+
+            if(!Context.SentBySelf)
+            ModCommunication.SendMessageTo(new DialogMessage("Cleanup help", null, sb.ToString()), Context.Player.SteamUserId);
+            else
+                Context.Respond(sb.ToString());
+        }
+
+        public CleanupModule()
+        {
+            var methods = typeof(CleanupModule).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance);
+            _conditionLookup = new List<Condition>(methods.Length);
+            foreach (var m in methods)
+            {
+                var a = m.GetCustomAttribute<ConditionAttribute>();
+                if (a == null)
+                    continue;
+
+                if (m.ReturnType != typeof(bool))
+                {
+                    EssentialsPlugin.Log.Warn($"Command {a.Command} does not return a bool! Skipping!");
+                    continue;
+                }
+                var p = m.GetParameters();
+                if (p.Length == 0 || p[0].ParameterType != typeof(MyCubeGrid))
+                {
+                    EssentialsPlugin.Log.Warn($"Command {a.Command} does not accept MyCubeGrid as first parameter! Skipping!");
+                    continue;
+                }
+
+                Func<MyCubeGrid, string, bool> func;
+
+                if (p.Length == 1)
+                    func = (grid, s) => (bool)m.Invoke(this, new object[] {grid});
+                else if (p.Length > 1 && p[1].ParameterType == typeof(string))
+                    func = (grid, s) => (bool)m.Invoke(this, new object[] {grid, s});
+                else
+                    throw new InvalidBranchException();
+
+                var c = new Condition();
+                c.Command = a.Command;
+                c.InvertCommand = a.InvertCommand;
+                c.HelpText = a.HelpText;
+                c.Action = func;
+
+                _conditionLookup.Add(c);
+            }
+        }
+
+        private List<Condition> _conditionLookup;
+
         private IEnumerable<MyCubeGrid> ScanConditions(IReadOnlyList<string> args)
         {
             var conditions = new List<Func<MyCubeGrid, bool>>();
@@ -61,44 +125,17 @@ namespace Essentials.Commands
                 var arg = args[i];
                 var parameter = args[i + 1];
 
-                switch (arg)
+                foreach (var condition in _conditionLookup)
                 {
-                    case "hastype":
-                        conditions.Add(g => g.HasBlockType(parameter));
-                        break;
-                    case "notype":
-                        conditions.Add(g => !g.HasBlockType(parameter));
-                        break;
-                    case "hassubtype":
-                        conditions.Add(g => g.HasBlockSubtype(parameter));
-                        break;
-                    case "nosubtype":
-                        conditions.Add(g => !g.HasBlockSubtype(parameter));
-                        break;
-                    case "blockslessthan":
-                        conditions.Add(g => BlocksLessThan(g, parameter));
-                        break;
-                    case "blocksgreaterthan":
-                        conditions.Add(g => BlocksGreaterThan(g, parameter));
-                        break;
-                    case "ownedby":
-                        conditions.Add(g => OwnedBy(g, parameter));
-                        break;
-                    case "name":
-                        conditions.Add(g => NameMatches(g, parameter));
-                        break;
-                    case "nopower":
-                        conditions.Add(g=>!HasPower(g));
-                        break;
-                    case "haspower":
-                        conditions.Add(g => HasPower(g));
-                        break;
-                    case "insideplanet":
-                        conditions.Add(g => InsidePlanet(g));
-                        break;
-                    default:
+                    if (condition.Command.Equals(arg))
+                        conditions.Add(g => condition.Action(g, parameter));
+                    else if (condition.InvertCommand.Equals(arg))
+                        conditions.Add(g => !condition.Action(g, parameter));
+                    else
+                    {
                         Context.Respond($"Unknown argument '{arg}'");
                         yield break;
+                    }
                 }
             }
 
@@ -110,12 +147,17 @@ namespace Essentials.Commands
             }
         }
 
+        [Condition("name", helpText: "Finds grids with a matching name. Accepts regex format.")]
         private bool NameMatches(MyCubeGrid grid, string str)
         {
+            if (string.IsNullOrEmpty(grid.DisplayName))
+                return false;
+
             var regex = new Regex(str);
-            return regex.IsMatch(grid.DisplayName ?? "");
+            return regex.IsMatch(grid.DisplayName);
         }
 
+        [Condition("blockslessthan", helpText: "Finds grids with less than the given number of blocks.")]
         private bool BlocksLessThan(MyCubeGrid grid, string str)
         {
             if (int.TryParse(str, out int count))
@@ -124,6 +166,7 @@ namespace Essentials.Commands
             return false;
         }
 
+        [Condition("blocksgreaterthan", helpText: "Finds grids with more than the given number of blocks.")]
         private bool BlocksGreaterThan(MyCubeGrid grid, string str)
         {
             if (int.TryParse(str, out int count))
@@ -132,6 +175,7 @@ namespace Essentials.Commands
             return false;
         }
 
+        [Condition("haspower", "nopower", "Finds grids with, or without power.")]
         private bool HasPower(MyCubeGrid grid)
         {
             foreach (var b in grid.GetFatBlocks())
@@ -147,6 +191,7 @@ namespace Essentials.Commands
             return false;
         }
 
+        [Condition("insideplanet", helpText: "Finds grids that are trapped inside planets.")]
         private bool InsidePlanet(MyCubeGrid grid)
         {
             var s = grid.PositionComp.WorldVolume;
@@ -170,6 +215,25 @@ namespace Essentials.Commands
             return false;
         }
 
+        [Condition("playerdistancelessthan", "playerdistancegreaterthan", "Finds grids that are further than the given distance from players.")]
+        private bool PlayerDistanceLessThan(MyCubeGrid grid, string str)
+        {
+            double dist;
+            if (!double.TryParse(str, out dist))
+            {
+                Context.Respond("Couldn't parse distance");
+                return false;
+            }
+            dist *= dist;
+            foreach (var player in MySession.Static.Players.GetOnlinePlayers())
+            {
+                if (Vector3D.DistanceSquared(player.GetPosition(), grid.PositionComp.GetPosition()) < dist)
+                    return true;
+            }
+            return false;
+        }
+
+        [Condition("ownedby", helpText: "Finds grids owned by the given player. Can specify player name, IdentityId, 'nobody', or 'pirates'.")]
         private bool OwnedBy(MyCubeGrid grid, string str)
         {
             long identityId;
@@ -193,6 +257,29 @@ namespace Essentials.Commands
             }
 
             return grid.BigOwners.Contains(identityId);
+        }
+
+        private class Condition
+        {
+            public string Command;
+            public string InvertCommand;
+            public string HelpText;
+            public Func<MyCubeGrid, string, bool> Action;
+        }
+
+        [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+        private sealed class ConditionAttribute : Attribute
+        {
+            public string Command;
+            public string InvertCommand;
+            public string HelpText;
+
+            public ConditionAttribute(string command, string invertCommand = null, string helpText = null)
+            {
+                Command = command;
+                InvertCommand = invertCommand;
+                HelpText = helpText;
+            }
         }
     }
 }
