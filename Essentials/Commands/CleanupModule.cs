@@ -80,32 +80,7 @@ namespace Essentials.Commands
                 if (a == null)
                     continue;
 
-                if (m.ReturnType != typeof(bool))
-                {
-                    EssentialsPlugin.Log.Warn($"Command {a.Command} does not return a bool! Skipping!");
-                    continue;
-                }
-                var p = m.GetParameters();
-                if (p.Length == 0 || p[0].ParameterType != typeof(MyCubeGrid))
-                {
-                    EssentialsPlugin.Log.Warn($"Command {a.Command} does not accept MyCubeGrid as first parameter! Skipping!");
-                    continue;
-                }
-
-                Func<MyCubeGrid, string, bool> func;
-
-                if (p.Length == 1)
-                    func = (grid, s) => (bool)m.Invoke(this, new object[] {grid});
-                else if (p.Length > 1 && p[1].ParameterType == typeof(string))
-                    func = (grid, s) => (bool)m.Invoke(this, new object[] {grid, s});
-                else
-                    throw new InvalidBranchException();
-
-                var c = new Condition();
-                c.Command = a.Command;
-                c.InvertCommand = a.InvertCommand;
-                c.HelpText = a.HelpText;
-                c.Action = func;
+                var c = new Condition(m, a);
 
                 _conditionLookup.Add(c);
             }
@@ -115,35 +90,73 @@ namespace Essentials.Commands
 
         private IEnumerable<MyCubeGrid> ScanConditions(IReadOnlyList<string> args)
         {
-            var conditions = new List<Func<MyCubeGrid, bool>>();
-
-            for (var i = 0; i < args.Count; i += 2)
+            var conditions = new List<Func<MyCubeGrid, bool?>>();
+            
+            for (var i = 0; i < args.Count; i ++)
             {
-                if (i + 1 > args.Count)
-                    break;
+                string parameter;
+                if (i + 1 >= args.Count)
+                {
+                    parameter = null;
+                }
+                else
+                {
+                    parameter = args[i + 1];
+                }
 
                 var arg = args[i];
-                var parameter = args[i + 1];
+                
+
+                if (parameter != null)
+                {
+                    //parameter is the name of a command. Assume this command requires no parameters
+                    if (_conditionLookup.Any(c => parameter.Equals(c.Command, StringComparison.CurrentCultureIgnoreCase) || parameter.Equals(c.InvertCommand, StringComparison.CurrentCultureIgnoreCase)))
+                    {
+                        parameter = null;
+                    }
+                    //next string is a parameter, so pass it to the condition and skip it next loop
+                    else
+                        i++;
+                }
+
+                bool found = false;
 
                 foreach (var condition in _conditionLookup)
                 {
-                    if (condition.Command.Equals(arg))
-                        conditions.Add(g => condition.Action(g, parameter));
-                    else if (condition.InvertCommand.Equals(arg))
-                        conditions.Add(g => !condition.Action(g, parameter));
-                    else
+                    if (arg.Equals(condition.Command, StringComparison.CurrentCultureIgnoreCase))
                     {
-                        Context.Respond($"Unknown argument '{arg}'");
-                        yield break;
+                        conditions.Add(g => condition.Evaluate(g, parameter, false, this));
+                        found = true;
+                        break;
                     }
+                    else if (arg.Equals(condition.InvertCommand, StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        conditions.Add(g => condition.Evaluate(g, parameter, true, this));
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    Context.Respond($"Unknown argument '{arg}'");
+                    yield break;
                 }
             }
 
             foreach (var group in MyCubeGridGroups.Static.Logical.Groups)
             {
-                if (group.Nodes.All(grid => conditions.TrueForAll(func => func(grid.NodeData))))
-                    foreach (var grid in group.Nodes)
-                        yield return grid.NodeData;
+                //if (group.Nodes.All(grid => conditions.TrueForAll(func => func(grid.NodeData))))
+                foreach (var node in group.Nodes)
+                {
+                    foreach (var c in conditions)
+                    {
+                        bool? r = c.Invoke(node.NodeData);
+                        if (r == false || r == null)
+                            yield break;
+                    }
+                }
+                foreach (var grid in group.Nodes)
+                    yield return grid.NodeData;
             }
         }
 
@@ -158,21 +171,15 @@ namespace Essentials.Commands
         }
 
         [Condition("blockslessthan", helpText: "Finds grids with less than the given number of blocks.")]
-        private bool BlocksLessThan(MyCubeGrid grid, string str)
+        private bool BlocksLessThan(MyCubeGrid grid, int count)
         {
-            if (int.TryParse(str, out int count))
-                return grid.BlocksCount < count;
-
-            return false;
+            return grid.BlocksCount < count;
         }
 
         [Condition("blocksgreaterthan", helpText: "Finds grids with more than the given number of blocks.")]
-        private bool BlocksGreaterThan(MyCubeGrid grid, string str)
+        private bool BlocksGreaterThan(MyCubeGrid grid, int count)
         {
-            if (int.TryParse(str, out int count))
-                return grid.BlocksCount > count;
-
-            return false;
+            return grid.BlocksCount > count;
         }
 
         [Condition("haspower", "nopower", "Finds grids with, or without power.")]
@@ -216,14 +223,8 @@ namespace Essentials.Commands
         }
 
         [Condition("playerdistancelessthan", "playerdistancegreaterthan", "Finds grids that are further than the given distance from players.")]
-        private bool PlayerDistanceLessThan(MyCubeGrid grid, string str)
+        private bool PlayerDistanceLessThan(MyCubeGrid grid, double dist)
         {
-            double dist;
-            if (!double.TryParse(str, out dist))
-            {
-                Context.Respond("Couldn't parse distance");
-                return false;
-            }
             dist *= dist;
             foreach (var player in MySession.Static.Players.GetOnlinePlayers())
             {
@@ -264,7 +265,60 @@ namespace Essentials.Commands
             public string Command;
             public string InvertCommand;
             public string HelpText;
-            public Func<MyCubeGrid, string, bool> Action;
+            private MethodInfo _method;
+            public readonly ParameterInfo Parameter;
+
+            public Condition(MethodInfo evalMethod, ConditionAttribute attribute)
+            {
+                Command = attribute.Command;
+                InvertCommand = attribute.InvertCommand;
+                HelpText = attribute.HelpText;
+                _method = evalMethod;
+                if(_method.ReturnType!= typeof(bool))
+                    throw new TypeLoadException("Condition does not return a bool!");
+                var p = _method.GetParameters();
+                if (p.Length < 1 || p[0].ParameterType != typeof(MyCubeGrid))
+                    throw new TypeLoadException("Condition does not accept MyCubeGrid as first parameter");
+                if (p.Length > 2)
+                    throw new TypeLoadException("Condition can only have two parameters");
+                if (p.Length == 1)
+                    Parameter = null;
+                else
+                    Parameter = p[1];
+
+            }
+
+            public bool? Evaluate(MyCubeGrid grid, string arg, bool invert, CleanupModule module)
+            {
+                var context = module.Context;
+                bool result;
+                if (!string.IsNullOrEmpty(arg) && Parameter == null)
+                {
+                    context.Respond($"Condition does not accept an argument. Cannot continue!");
+                    return null;
+                }
+                if (string.IsNullOrEmpty(arg) && Parameter != null && !Parameter.HasDefaultValue)
+                {
+                    context.Respond($"Condition requires an argument! {Parameter.ParameterType.Name}: {Parameter.Name} Not supplied, cannot continue!");
+                    return null;
+                }
+                if (Parameter != null && !string.IsNullOrEmpty(arg))
+                {
+                    if (!arg.TryConvert(Parameter.ParameterType, out object val))
+                    {
+                        context.Respond($"Could not parse argument!");
+                        return null;
+                    }
+
+                    result = (bool)_method.Invoke(module, new[] {grid, val});
+                }
+                else
+                {
+                    result = (bool)_method.Invoke(module, new object[] {grid});
+                }
+                
+                return result != invert;
+            }
         }
 
         [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
