@@ -24,14 +24,15 @@ namespace Essentials.Commands
     [Category("cleanup")]
     public class CleanupModule : CommandModule
     {
-        [Command("scan", "Find grids matching the given conditions: hastype, notype, hassubtype, nosubtype, blockslessthan, blocksgreaterthan, ownedby")]
+        private static readonly Logger Log = LogManager.GetLogger("Essentials");
+        [Command("scan", "Find grids matching the given conditions")]
         public void Scan()
         {
             var count = ScanConditions(Context.Args).Count();
             Context.Respond($"Found {count} grids matching the given conditions.");
         }
 
-        [Command("list", "Lists grids matching the given conditions: hastype, notype, hassubtype, nosubtype, blockslessthan, blocksgreaterthan, ownedby")]
+        [Command("list", "Lists grids matching the given conditions")]
         public void List()
         {
             var grids = ScanConditions(Context.Args).OrderBy(g => g.DisplayName).ToList();
@@ -45,13 +46,13 @@ namespace Essentials.Commands
             var count = 0;
             foreach (var grid in ScanConditions(Context.Args))
             {
-                EssentialsPlugin.Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}");
+                Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}");
                 grid.Close();
                 count++;
             }
 
             Context.Respond($"Deleted {count} grids matching the given conditions.");
-            EssentialsPlugin.Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
+            Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
         }
 
         [Command("help", "Lists all cleanup conditions.")]
