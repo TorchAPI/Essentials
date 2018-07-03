@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Torch;
@@ -11,11 +12,14 @@ namespace Essentials
 {
     public class EssentialsConfig : ViewModel
     {
-        public ObservableCollection<AutoCommand> AutoCommands
+        public EssentialsConfig()
         {
-            get { return _autoCommands; }
-            set { SetValue(ref _autoCommands, value); }
+            AutoCommands.CollectionChanged += (sender, args) => OnPropertyChanged();
+            KnownSteamIds.CollectionChanged += (sender, args) => OnPropertyChanged();
         }
+
+        [Display(EditorType = typeof(EmbeddedCollectionEditor))]
+        public ObservableCollection<AutoCommand> AutoCommands { get; } = new ObservableCollection<AutoCommand>();
 
         private string _motd;
         public string Motd { get => _motd; set => SetValue(ref _motd, value); }
@@ -32,7 +36,6 @@ namespace Essentials
         public bool StopShipsOnStart { get => _stopShips; set => SetValue(ref _stopShips, value); }
 
         private bool _utilityShowPosition;
-        private ObservableCollection<AutoCommand> _autoCommands = new ObservableCollection<AutoCommand>();
 
         [Display(Name = "Grid list show position",Description = "Show users the position of all grids they own in the grids list command.")]
         public bool UtilityShowPosition
@@ -43,5 +46,10 @@ namespace Essentials
 
         [Display(Visible=false)]
         public ObservableCollection<ulong> KnownSteamIds { get; } = new ObservableCollection<ulong>();
+
+        internal void NotifyPropertyChanged([CallerMemberName] string propName = "")
+        {
+            OnPropertyChanged(propName);
+        }
     }
 }

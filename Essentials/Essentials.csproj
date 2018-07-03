@@ -140,6 +140,8 @@
       <Link>Properties\AssemblyVersion.cs</Link>
     </Compile>
     <Compile Include="AutoCommand.cs" />
+    <Compile Include="AutoCommands.cs" />
+    <Compile Include="Commands\AdminModule.cs" />
     <Compile Include="Commands\BlocksModule.cs" />
     <Compile Include="Commands\CleanupModule.cs" />
     <Compile Include="Commands\VoxelModule.cs" />

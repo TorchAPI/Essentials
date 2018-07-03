@@ -55,7 +55,9 @@ namespace Essentials
         public override void Init(ITorchBase torch)
         {
             base.Init(torch);
-            _config = Persistent<EssentialsConfig>.Load(Path.Combine(StoragePath, "Essentials.cfg"));
+            string path = Path.Combine(StoragePath, "Essentials.cfg");
+            Log.Info($"Attempting to load config from {path}");
+            _config = Persistent<EssentialsConfig>.Load(path);
             _sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged += SessionChanged;
@@ -80,6 +82,7 @@ namespace Essentials
                                                    _control.IsEnabled = true;
                                                    _control.DataContext = Config;
                                                });
+                    AutoCommands.Instance.Start();
                     break;
                 case TorchSessionState.Unloading:
                     mpMan.PlayerLeft -= ResetMotdOnce;

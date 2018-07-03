@@ -1,80 +1,181 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Collections.ObjectModel;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Torch;
+using NLog;
 using Torch.API;
-using Torch.Commands;
 using Torch.API.Managers;
+using Torch.Commands;
 using Torch.Server;
 using Torch.Views;
 
 namespace Essentials
 {
-    public class AutoCommand : ViewModel, IDisposable
+    public class AutoCommand
     {
-        private Timer _timer;
-
+        private TimeSpan _scheduledTime = TimeSpan.Zero;
+        private static readonly Logger Log = LogManager.GetLogger("Essentials");
+        private TimeSpan _interval = TimeSpan.Zero;
+        private DateTime _nextRun = DateTime.MinValue;
+        private int _currentStep;
+        private string _name;
         private bool _enabled;
-        public bool Enabled { get => _enabled; set { _enabled = value; OnTimerChanged(); OnPropertyChanged(); } }
-        private string _command;
-        public string Command { get => _command; set { _command = value; OnTimerChanged(); OnPropertyChanged(); } }
-        private TimeSpan _initialDelay;
 
-        [Display(Name = "Initial Delay", Description = "Sets the initial delay after server start before this command is run.")]
-        public string InitialDelay
+        [Display(Description = "Enables or disables this command. NOTE: !admin runauto does NOT respect this setting!")]
+        public bool Enabled
         {
-            get => _initialDelay.ToString();
-            set => _initialDelay = TimeSpan.Parse(value);
+            get => _enabled;
+            set
+            {
+                _enabled = value;
+                NotifyPropertyChanged();
+            }
         }
 
-        private TimeSpan _repeatInterval;
-
-        [Display(Name = "Repeat Interval", Description = "Sets the interval on which this command will be repeated after the first run.")]
-        public string RepeatInterval
+        [Display(Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to triger the command from ingame or from other auto commands.")]
+        public string Name
         {
-            get => _repeatInterval.ToString();
-            set => _repeatInterval = TimeSpan.Parse(value);
+            get => _name;
+            set
+            {
+                _name = value;
+                NotifyPropertyChanged();
+            }
         }
 
-        private void OnTimerChanged()
+        [Display(Name = "Scheduled Time", Description = "Sets a time of day for this command to be run. Format is HH:MM:SS. MUST use 24 hour format! Will be reset to zero if Interval is set.")]
+        public string ScheduledTime
         {
-            _timer?.Dispose();
-            if (Enabled && _repeatInterval.TotalMilliseconds > 0)
-                _timer = new Timer(RunCommand, this, _initialDelay, _repeatInterval);
+            get => _scheduledTime.ToString();
+            set
+            {
+                _scheduledTime = TimeSpan.Parse(value);
+                NotifyPropertyChanged();
+                if (_scheduledTime != TimeSpan.Zero)
+                {
+                    Interval = TimeSpan.Zero.ToString();
+                    _nextRun = DateTime.Now.Date + _scheduledTime;
+                    if (_nextRun < DateTime.Now)
+                        _nextRun += TimeSpan.FromDays(1);
+                }
+            }
         }
 
-        private void RunCommand(object state)
+        [Display(Description = "Sets an interval for this command to be repeated. Format is HH:MM:SS. Will be reset to zero if Scheduled Time is set!")]
+        public string Interval
         {
-            if (((TorchServer)EssentialsPlugin.Instance.Torch).State != ServerState.Running)
+            get => _interval.ToString();
+            set
+            {
+                _interval = TimeSpan.Parse(value);
+                NotifyPropertyChanged();
+                if (_interval != TimeSpan.Zero)
+                {
+                    ScheduledTime = TimeSpan.Zero.ToString(); //I hate myself for this
+                    _nextRun = DateTime.Now + _interval;
+                }
+            }
+        }
+
+        [Display(Description = "Sub-command steps that will be iterated through once the Interval or Scheduled time is reached.")]
+        public ObservableCollection<CommandStep> Steps { get; } = new ObservableCollection<CommandStep>();
+
+        public AutoCommand()
+        {
+            Steps.CollectionChanged+= (sender, args) => NotifyPropertyChanged();
+        }
+
+        public void Update()
+        {
+            if (DateTime.Now < _nextRun)
                 return;
 
-            var autoCommand = (AutoCommand)state;
-            EssentialsPlugin.Instance.Torch.Invoke(() =>
-            {
-                var manager = EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<CommandManager>();
-                manager?.HandleCommandFromServer(autoCommand.Command);
-            });
-        }
+            var step = Steps[_currentStep];
 
-        ~AutoCommand()
-        {
-            try
+            step.RunStep();
+            _currentStep++;
+            _nextRun += step.DelaySpan;
+
+            if (_currentStep >= Steps.Count)
             {
-                Dispose();
-            }
-            catch
-            {
-                // ignored
+                _currentStep = 0;
+                if (_scheduledTime != TimeSpan.Zero)
+                    _nextRun = DateTime.Now.Date + _scheduledTime + TimeSpan.FromDays(1);
+                else
+                    _nextRun = DateTime.Now + _interval;
             }
         }
 
-        /// <inheritdoc />
-        public void Dispose()
+        public class CommandStep
         {
-            _timer?.Dispose();
+            internal TimeSpan DelaySpan;
+            private string _command;
+
+            [Display(Description = "Delay AFTER this step and BEFORE the next step. Format is HH:MM:SS.")]
+            public string Delay
+            {
+                get => DelaySpan.ToString();
+                set
+                {
+                    DelaySpan = TimeSpan.Parse(value);
+                    NotifyPropertyChanged();
+                }
+            }
+
+            [Display(Description = "Command to be run as the server.")]
+            public string Command
+            {
+                get => _command;
+                set
+                {
+                    _command = value;
+                    NotifyPropertyChanged();
+                }
+            }
+
+            public void RunStep()
+            {
+                if (((TorchServer)EssentialsPlugin.Instance.Torch).State != ServerState.Running)
+                    return;
+
+                EssentialsPlugin.Instance.Torch.Invoke(() =>
+                                                       {
+                                                           var manager = EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<CommandManager>();
+                                                           manager?.HandleCommandFromServer(Command);
+                                                       });
+            }
+
+            public override string ToString()
+            {
+                return Command;
+            }
+        }
+
+
+        /// <summary>
+        /// Runs the command and all steps immediately, in a new thread
+        /// </summary>
+        internal void RunNow()
+        {
+            Task.Run(() =>
+                     {
+                         foreach (var step in Steps)
+                         {
+                             step.RunStep();
+                             Thread.Sleep(step.DelaySpan);
+                         }
+                     });
+        }
+
+        public override string ToString()
+        {
+            return $"{Name} : {(Enabled ? "Enabled" : "Disabled")} : {Steps.Count}";
+        }
+
+        private static void NotifyPropertyChanged([CallerMemberName] string propName = "")
+        {
+            EssentialsPlugin.Instance?.Config?.NotifyPropertyChanged(propName);
         }
     }
 }
