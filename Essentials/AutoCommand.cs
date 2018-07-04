@@ -33,7 +33,7 @@ namespace Essentials
             }
         }
 
-        [Display(Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to triger the command from ingame or from other auto commands.")]
+        [Display(Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to trigger the command from ingame or from other auto commands.")]
         public string Name
         {
             get => _name;
