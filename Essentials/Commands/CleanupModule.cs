@@ -36,8 +36,16 @@ namespace Essentials.Commands
         public void List()
         {
             var grids = ScanConditions(Context.Args).OrderBy(g => g.DisplayName).ToList();
-            Context.Respond(String.Join("\n", grids.Select((g, i) => $"{i + 1}. {grids[i].DisplayName} ({grids[i].BlocksCount} block(s))")));
-            Context.Respond($"Found {grids.Count} grids matching the given conditions.");
+            if (Context.SentBySelf)
+            {
+                Context.Respond(String.Join("\n", grids.Select((g, i) => $"{i + 1}. {grids[i].DisplayName} ({grids[i].BlocksCount} block(s))")));
+                Context.Respond($"Found {grids.Count} grids matching the given conditions.");
+            }
+            else
+            {
+                var m = new DialogMessage("Cleanup", null, $"Found {grids.Count} matching", String.Join("\n", grids.Select((g, i) => $"{i + 1}. {grids[i].DisplayName} ({grids[i].BlocksCount} block(s))")));
+                ModCommunication.SendMessageTo(m, Context.Player.SteamUserId);
+            }
         }
 
         [Command("delete", "Delete grids matching the given conditions")]
@@ -259,6 +267,18 @@ namespace Essentials.Commands
             }
 
             return grid.BigOwners.Contains(identityId);
+        }
+
+        [Condition("hastype", "notype", "Finds grids containing blocks of the given type.")]
+        private bool BlockType(MyCubeGrid grid, string str)
+        {
+            return grid.HasBlockType(str);
+        }
+
+        [Condition("hassubtype", "nosubtype", "Finds grids containing blocks of the given subtype.")]
+        private bool BlockSubType(MyCubeGrid grid, string str)
+        {
+            return grid.HasBlockSubtype(str);
         }
 
         private class Condition
