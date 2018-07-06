@@ -154,6 +154,8 @@
     <Compile Include="EssentialsPlugin.cs" />
     <Compile Include="Commands\GridModule.cs" />
     <Compile Include="Commands\PlayerModule.cs" />
+    <Compile Include="InfoCommand.cs" />
+    <Compile Include="Commands\InfoModule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utilities.cs" />
   </ItemGroup>

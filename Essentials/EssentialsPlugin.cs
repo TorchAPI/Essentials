@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
+using Essentials.Commands;
 using NLog;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Game;
@@ -83,6 +84,7 @@ namespace Essentials
                                                    _control.DataContext = Config;
                                                });
                     AutoCommands.Instance.Start();
+                    InfoModule.Init();
                     break;
                 case TorchSessionState.Unloading:
                     mpMan.PlayerLeft -= ResetMotdOnce;

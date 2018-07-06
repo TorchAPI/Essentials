@@ -16,10 +16,14 @@ namespace Essentials
         {
             AutoCommands.CollectionChanged += (sender, args) => OnPropertyChanged();
             KnownSteamIds.CollectionChanged += (sender, args) => OnPropertyChanged();
+            InfoCommands.CollectionChanged += (sender, args) => OnPropertyChanged();
         }
 
         [Display(EditorType = typeof(EmbeddedCollectionEditor))]
         public ObservableCollection<AutoCommand> AutoCommands { get; } = new ObservableCollection<AutoCommand>();
+
+        [Display(EditorType = typeof(EmbeddedCollectionEditor))]
+        public ObservableCollection<InfoCommand> InfoCommands { get; } = new ObservableCollection<InfoCommand>();
 
         private string _motd;
         public string Motd { get => _motd; set => SetValue(ref _motd, value); }
