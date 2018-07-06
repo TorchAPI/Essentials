@@ -91,6 +91,9 @@ namespace Essentials
             if (DateTime.Now < _nextRun)
                 return;
 
+            if (Steps.Count <= 0)
+                return;
+
             var step = Steps[_currentStep];
 
             step.RunStep();
@@ -137,6 +140,9 @@ namespace Essentials
             public void RunStep()
             {
                 if (((TorchServer)EssentialsPlugin.Instance.Torch).State != ServerState.Running)
+                    return;
+
+                if (string.IsNullOrEmpty(Command))
                     return;
 
                 EssentialsPlugin.Instance.Torch.Invoke(() =>
