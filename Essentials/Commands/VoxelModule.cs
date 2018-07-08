@@ -82,5 +82,34 @@ namespace Essentials.Commands
 
             Context.Respond($"Reset {resetIds.Count} voxel maps.");
         }
+
+        [Command("reset planets", "Resets all planets.")]
+        public void ResetPlanets()
+        {
+            var voxelMaps = MyEntities.GetEntities().OfType<MyPlanet>();
+
+            var resetIds = new List<long>();
+
+            Parallel.ForEach(voxelMaps, map =>
+                                        {
+                                            try
+                                            {
+                                                if (map.StorageName == null || map.Storage.DataProvider == null)
+                                                    return;
+
+                                                map.Storage.Reset(MyStorageDataTypeFlags.All);
+                                                lock (resetIds)
+                                                    resetIds.Add(map.EntityId);
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                Console.WriteLine($"{e.Message}\n{e.StackTrace}");
+                                            }
+                                        });
+
+            ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
+
+            Context.Respond($"Reset {resetIds.Count} voxel maps.");
+        }
     }
 }
