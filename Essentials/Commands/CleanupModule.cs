@@ -170,7 +170,7 @@ namespace Essentials.Commands
         }
 
         [Condition("name", helpText: "Finds grids with a matching name. Accepts regex format.")]
-        private bool NameMatches(MyCubeGrid grid, string str)
+        public bool NameMatches(MyCubeGrid grid, string str)
         {
             if (string.IsNullOrEmpty(grid.DisplayName))
                 return false;
@@ -180,19 +180,19 @@ namespace Essentials.Commands
         }
 
         [Condition("blockslessthan", helpText: "Finds grids with less than the given number of blocks.")]
-        private bool BlocksLessThan(MyCubeGrid grid, int count)
+        public bool BlocksLessThan(MyCubeGrid grid, int count)
         {
             return grid.BlocksCount < count;
         }
 
         [Condition("blocksgreaterthan", helpText: "Finds grids with more than the given number of blocks.")]
-        private bool BlocksGreaterThan(MyCubeGrid grid, int count)
+        public bool BlocksGreaterThan(MyCubeGrid grid, int count)
         {
             return grid.BlocksCount > count;
         }
 
         [Condition("haspower", "nopower", "Finds grids with, or without power.")]
-        private bool HasPower(MyCubeGrid grid)
+        public bool HasPower(MyCubeGrid grid)
         {
             foreach (var b in grid.GetFatBlocks())
             {
@@ -208,7 +208,7 @@ namespace Essentials.Commands
         }
 
         [Condition("insideplanet", helpText: "Finds grids that are trapped inside planets.")]
-        private bool InsidePlanet(MyCubeGrid grid)
+        public bool InsidePlanet(MyCubeGrid grid)
         {
             var s = grid.PositionComp.WorldVolume;
             var voxels = new List<MyVoxelBase>();
@@ -232,7 +232,7 @@ namespace Essentials.Commands
         }
 
         [Condition("playerdistancelessthan", "playerdistancegreaterthan", "Finds grids that are further than the given distance from players.")]
-        private bool PlayerDistanceLessThan(MyCubeGrid grid, double dist)
+        public bool PlayerDistanceLessThan(MyCubeGrid grid, double dist)
         {
             dist *= dist;
             foreach (var player in MySession.Static.Players.GetOnlinePlayers())
@@ -244,7 +244,7 @@ namespace Essentials.Commands
         }
 
         [Condition("ownedby", helpText: "Finds grids owned by the given player. Can specify player name, IdentityId, 'nobody', or 'pirates'.")]
-        private bool OwnedBy(MyCubeGrid grid, string str)
+        public bool OwnedBy(MyCubeGrid grid, string str)
         {
             long identityId;
 
@@ -270,13 +270,13 @@ namespace Essentials.Commands
         }
 
         [Condition("hastype", "notype", "Finds grids containing blocks of the given type.")]
-        private bool BlockType(MyCubeGrid grid, string str)
+        public bool BlockType(MyCubeGrid grid, string str)
         {
             return grid.HasBlockType(str);
         }
 
         [Condition("hassubtype", "nosubtype", "Finds grids containing blocks of the given subtype.")]
-        private bool BlockSubType(MyCubeGrid grid, string str)
+        public bool BlockSubType(MyCubeGrid grid, string str)
         {
             return grid.HasBlockSubtype(str);
         }
