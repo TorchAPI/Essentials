@@ -143,17 +143,20 @@ namespace Essentials
             if (id <= 0) //can't remember if this returns 0 or -1 on error.
                 return;
 
+            var player = MySession.Static.Players.TryGetIdentity(playerId);
+            string name = player?.DisplayName ?? "player";
+
             bool newUser = !Config.KnownSteamIds.Contains(id);
             if (newUser)
                 Config.KnownSteamIds.Add(id);
 
             if (newUser && !string.IsNullOrEmpty(Config.NewUserMotd))
             {
-                ModCommunication.SendMessageTo(new DialogMessage(MySession.Static.Name, "New User Message Of The Day", Config.NewUserMotd), id);
+                ModCommunication.SendMessageTo(new DialogMessage(MySession.Static.Name, "New User Message Of The Day", Config.NewUserMotd.Replace("%player%", name)), id);
             }
             else if (!string.IsNullOrEmpty(Config.Motd))
             {
-                ModCommunication.SendMessageTo(new DialogMessage(MySession.Static.Name, "Message Of The Day", Config.Motd), id);
+                ModCommunication.SendMessageTo(new DialogMessage(MySession.Static.Name, "Message Of The Day", Config.Motd.Replace("%player%", name)), id);
             }
         }
 
