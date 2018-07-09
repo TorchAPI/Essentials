@@ -18,6 +18,7 @@ namespace Essentials
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
         private TimeSpan _interval = TimeSpan.Zero;
         private DateTime _nextRun = DateTime.MinValue;
+        private DayOfWeek _day = DayOfWeek.All;
         private int _currentStep;
         private string _name;
         private bool _enabled;
@@ -44,7 +45,7 @@ namespace Essentials
             }
         }
 
-        [Display(Name = "Scheduled Time", Description = "Sets a time of day for this command to be run. Format is HH:MM:SS. MUST use 24 hour format! Will be reset to zero if Interval is set.")]
+        [Display(Name = "Scheduled Time", GroupName = "Schedule", Description = "Sets a time of day for this command to be run. Format is HH:MM:SS. MUST use 24 hour format! Will be reset to zero if Interval is set.")]
         public string ScheduledTime
         {
             get => _scheduledTime.ToString();
@@ -78,6 +79,17 @@ namespace Essentials
             }
         }
 
+        [Display(Name = "Day of week", GroupName = "Schedule", Description = "Combined with Scheduled Time, will run the command on the given day of the week at the set time.")]
+        public DayOfWeek DayOfWeek
+        {
+            get => _day;
+            set
+            {
+                _day = value;
+                NotifyPropertyChanged();
+            }
+        }
+
         [Display(Description = "Sub-command steps that will be iterated through once the Interval or Scheduled time is reached.")]
         public ObservableCollection<CommandStep> Steps { get; } = new ObservableCollection<CommandStep>();
 
@@ -90,6 +102,14 @@ namespace Essentials
         {
             if (DateTime.Now < _nextRun)
                 return;
+
+            //double cast here as I'm unsure how casting directly between enum types will work
+            if (DayOfWeek != DayOfWeek.All && DateTime.Now.DayOfWeek != (System.DayOfWeek)(int)DayOfWeek)
+            {
+                //adding one day because I can't be bothered to calculate exact interval
+                _nextRun += TimeSpan.FromDays(1);
+                return;
+            }
 
             if (Steps.Count <= 0)
                 return;
@@ -183,5 +203,17 @@ namespace Essentials
         {
             EssentialsPlugin.Instance?.Config?.NotifyPropertyChanged(propName);
         }
+    }
+
+    public enum DayOfWeek
+    {
+        All = -1,
+        Sunday = System.DayOfWeek.Sunday,
+        Monday = System.DayOfWeek.Monday,
+        Tuesday = System.DayOfWeek.Tuesday,
+        Wednesday = System.DayOfWeek.Wednesday,
+        Thursday = System.DayOfWeek.Thursday,
+        Friday = System.DayOfWeek.Friday,
+        Saturday = System.DayOfWeek.Saturday
     }
 }
