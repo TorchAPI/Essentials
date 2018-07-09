@@ -155,17 +155,27 @@ namespace Essentials.Commands
             foreach (var group in MyCubeGridGroups.Static.Logical.Groups)
             {
                 //if (group.Nodes.All(grid => conditions.TrueForAll(func => func(grid.NodeData))))
+                bool res = true;
                 foreach (var node in group.Nodes)
                 {
                     foreach (var c in conditions)
                     {
                         bool? r = c.Invoke(node.NodeData);
-                        if (r == false || r == null)
+                        if (r == null)
                             yield break;
+                        if (r == true)
+                            continue;
+
+                        res = false;
+                        break;
                     }
+                    if (!res)
+                        break;
                 }
-                foreach (var grid in group.Nodes)
-                    yield return grid.NodeData;
+
+                if(res)
+                    foreach (var grid in group.Nodes)
+                        yield return grid.NodeData;
             }
         }
 
