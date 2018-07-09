@@ -210,6 +210,10 @@ namespace Essentials.Commands
                 if (c == null)
                     continue;
 
+                //some sources don't have electricity and Keen apparently doesn't know what TryGetValue is
+                if (!c.ResourceTypes.Contains(MyResourceDistributorComponent.ElectricityId))
+                    continue;
+
                 if (c.HasCapacityRemainingByType(MyResourceDistributorComponent.ElectricityId) && c.ProductionEnabledByType(MyResourceDistributorComponent.ElectricityId))
                     return true;
             }
