@@ -50,10 +50,5 @@ namespace Essentials
 
         [Display(Visible=false)]
         public ObservableCollection<ulong> KnownSteamIds { get; } = new ObservableCollection<ulong>();
-
-        internal void NotifyPropertyChanged([CallerMemberName] string propName = "")
-        {
-            OnPropertyChanged(propName);
-        }
     }
 }

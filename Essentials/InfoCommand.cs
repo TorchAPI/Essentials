@@ -1,8 +1,9 @@
 ﻿using System.Runtime.CompilerServices;
+using Torch;
 
 namespace Essentials
 {
-    public class InfoCommand
+    public class InfoCommand : ViewModel
     {
         private string _command;
         private string _chatResponse;
@@ -11,38 +12,21 @@ namespace Essentials
         public string Command
         {
             get => _command;
-            set
-            {
-                _command = value;
-                NotifyPropertyChanged();
-            }
+            set => SetValue(ref _command, value);
         }
 
         public string ChatResponse
         {
             get => _chatResponse;
-            set
-            {
-                _chatResponse = value;
-                NotifyPropertyChanged();
-            }
+            set =>SetValue(ref _chatResponse, value);
         }
 
         public string DialogResponse
         {
             get => _dialogResponse;
-            set
-            {
-                _dialogResponse = value;
-                NotifyPropertyChanged();
-            }
+            set => SetValue(ref _dialogResponse, value);
         }
-
-        private static void NotifyPropertyChanged([CallerMemberName] string propName = "")
-        {
-            EssentialsPlugin.Instance?.Config?.NotifyPropertyChanged(propName);
-        }
-
+        
         public override string ToString()
         {
             return Command;

@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using NLog;
+using Torch;
 using Torch.API;
 using Torch.API.Managers;
 using Torch.Commands;
@@ -12,7 +13,7 @@ using Torch.Views;
 
 namespace Essentials
 {
-    public class AutoCommand
+    public class AutoCommand : ViewModel
     {
         private TimeSpan _scheduledTime = TimeSpan.Zero;
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
@@ -27,22 +28,14 @@ namespace Essentials
         public bool Enabled
         {
             get => _enabled;
-            set
-            {
-                _enabled = value;
-                NotifyPropertyChanged();
-            }
+            set => SetValue(ref _enabled, value);
         }
 
         [Display(Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to trigger the command from ingame or from other auto commands.")]
         public string Name
         {
             get => _name;
-            set
-            {
-                _name = value;
-                NotifyPropertyChanged();
-            }
+            set => SetValue(ref _name, value);
         }
 
         [Display(Name = "Scheduled Time", GroupName = "Schedule", Description = "Sets a time of day for this command to be run. Format is HH:MM:SS. MUST use 24 hour format! Will be reset to zero if Interval is set.")]
@@ -52,7 +45,7 @@ namespace Essentials
             set
             {
                 _scheduledTime = TimeSpan.Parse(value);
-                NotifyPropertyChanged();
+                OnPropertyChanged();
                 if (_scheduledTime != TimeSpan.Zero)
                 {
                     Interval = TimeSpan.Zero.ToString();
@@ -70,7 +63,7 @@ namespace Essentials
             set
             {
                 _interval = TimeSpan.Parse(value);
-                NotifyPropertyChanged();
+                OnPropertyChanged();
                 if (_interval != TimeSpan.Zero)
                 {
                     ScheduledTime = TimeSpan.Zero.ToString(); //I hate myself for this
@@ -83,11 +76,7 @@ namespace Essentials
         public DayOfWeek DayOfWeek
         {
             get => _day;
-            set
-            {
-                _day = value;
-                NotifyPropertyChanged();
-            }
+            set => SetValue(ref _day, value);
         }
 
         [Display(Description = "Sub-command steps that will be iterated through once the Interval or Scheduled time is reached.")]
@@ -95,7 +84,7 @@ namespace Essentials
 
         public AutoCommand()
         {
-            Steps.CollectionChanged+= (sender, args) => NotifyPropertyChanged();
+            Steps.CollectionChanged += (sender, args) => OnPropertyChanged();
         }
 
         public void Update()
@@ -130,7 +119,7 @@ namespace Essentials
             }
         }
 
-        public class CommandStep
+        public class CommandStep : ViewModel
         {
             internal TimeSpan DelaySpan;
             private string _command;
@@ -139,22 +128,14 @@ namespace Essentials
             public string Delay
             {
                 get => DelaySpan.ToString();
-                set
-                {
-                    DelaySpan = TimeSpan.Parse(value);
-                    NotifyPropertyChanged();
-                }
+                set => SetValue(ref DelaySpan, TimeSpan.Parse(value));
             }
 
             [Display(Description = "Command to be run as the server.")]
             public string Command
             {
                 get => _command;
-                set
-                {
-                    _command = value;
-                    NotifyPropertyChanged();
-                }
+                set => SetValue(ref _command, value);
             }
 
             public void RunStep()
@@ -197,11 +178,6 @@ namespace Essentials
         public override string ToString()
         {
             return $"{Name} : {(Enabled ? "Enabled" : "Disabled")} : {Steps.Count}";
-        }
-
-        private static void NotifyPropertyChanged([CallerMemberName] string propName = "")
-        {
-            EssentialsPlugin.Instance?.Config?.NotifyPropertyChanged(propName);
         }
     }
 
