@@ -55,6 +55,7 @@ namespace Essentials.Commands
             foreach (var grid in ScanConditions(Context.Args))
             {
                 Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}");
+                EjectPilots(grid);
                 grid.Close();
                 count++;
             }
@@ -151,6 +152,10 @@ namespace Essentials.Commands
                     yield break;
                 }
             }
+
+            //default scan to find grids without pilots
+            if(!args.Contains("haspilot", StringComparer.CurrentCultureIgnoreCase))
+                conditions.Add(g => !Piloted(g));
 
             foreach (var group in MyCubeGridGroups.Static.Logical.Groups)
             {
@@ -293,6 +298,26 @@ namespace Essentials.Commands
         public bool BlockSubType(MyCubeGrid grid, string str)
         {
             return grid.HasBlockSubtype(str);
+        }
+
+        [Condition("haspilot", "Finds grids with pilots")]
+        public bool Piloted(MyCubeGrid grid)
+        {
+            return grid.GetFatBlocks().OfType<MyCockpit>().Any(b => b.Pilot != null);
+        }
+
+        /// <summary>
+        /// Removes pilots from grid before deleting, 
+        /// so the character doesn't also get deleted and break everything
+        /// </summary>
+        /// <param name="grid"></param>
+        public void EjectPilots(MyCubeGrid grid)
+        {
+            var b = grid.GetFatBlocks<MyCockpit>();
+            foreach (var c in b)
+            {
+                c.RemovePilot();
+            }
         }
 
         private class Condition
