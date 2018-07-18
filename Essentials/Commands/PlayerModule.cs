@@ -159,7 +159,7 @@ namespace Essentials
         [Permission(MyPromoteLevel.None)]
         public void Motd()
         {
-            Plugin.SendMotd(Context.Player.IdentityId);
+            Plugin.SendMotd((MyPlayer)Context.Player);
         }
     }
 }

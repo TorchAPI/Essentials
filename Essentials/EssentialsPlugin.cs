@@ -74,8 +74,8 @@ namespace Essentials
             switch (state)
             {
                 case TorchSessionState.Loaded:
+                    mpMan.PlayerJoined += MotdOnce;
                     mpMan.PlayerLeft += ResetMotdOnce;
-                    MyEntities.OnEntityAdd += MotdOnce;
                     if(Config.StopShipsOnStart)
                         StopShips();
                     _control.Dispatcher.Invoke(() =>
@@ -88,7 +88,7 @@ namespace Essentials
                     break;
                 case TorchSessionState.Unloading:
                     mpMan.PlayerLeft -= ResetMotdOnce;
-                    MyEntities.OnEntityAdd -= MotdOnce;
+                    mpMan.PlayerJoined += MotdOnce;
                     break;
             }
         }
@@ -106,31 +106,39 @@ namespace Essentials
             _motdOnce.Remove(player.SteamId);
         }
 
-        private void MotdOnce(MyEntity obj)
+        private void MotdOnce(IPlayer player)
         {
-            if (obj is MyCharacter character)
-            {
-                Task.Run(() =>
-                {
-                    Thread.Sleep(1000);
-                    Torch.Invoke(() =>
-                    {
-                        if (_motdOnce.Contains(character.ControlSteamId))
-                            return;
-                        
-                        var id = character.ControllerInfo?.ControllingIdentityId;
-                        if (!id.HasValue)
-                            return;
-                        
-                        SendMotd(id.Value);
-                        _motdOnce.Add(character.ControlSteamId);
-                    });
-                });
-            }
+            //TODO: REMOVE ALL THIS TRASH!
+            //implement a PlayerSpawned event in Torch. This will work for now.
+            Task.Run(() =>
+                     {
+                         var start = DateTime.Now;
+                         var timeout = TimeSpan.FromMinutes(5);
+                         var pid = new MyPlayer.PlayerId(player.SteamId, 0);
+                         while (DateTime.Now - start <= timeout)
+                         {
+                             if (!MySession.Static.Players.TryGetPlayerById(pid, out MyPlayer p) || p.Character == null)
+                             {
+                                 Thread.Sleep(1000);
+                                 continue;
+                             }
+
+                             Torch.Invoke(() =>
+                                          {
+                                              if (_motdOnce.Contains(player.SteamId))
+                                                  return;
+
+                                              SendMotd(p);
+                                              _motdOnce.Add(player.SteamId);
+                                          });
+                             break;
+                         }
+                     });
         }
 
-        public void SendMotd(long playerId = 0)
+        public void SendMotd(MyPlayer player)
         {
+            long playerId = player.Identity.IdentityId;
             if (!string.IsNullOrEmpty(Config.MotdUrl))
             {
                 if (MyGuiSandbox.IsUrlWhitelisted(Config.MotdUrl))
@@ -139,12 +147,11 @@ namespace Essentials
                     MyVisualScriptLogicProvider.OpenSteamOverlay($"https://steamcommunity.com/linkfilter/?url={Config.MotdUrl}", playerId);
             }
 
-            var id = MySession.Static.Players.TryGetSteamId(playerId);
+            var id = player.Client.SteamUserId;
             if (id <= 0) //can't remember if this returns 0 or -1 on error.
                 return;
-
-            var player = MySession.Static.Players.TryGetIdentity(playerId);
-            string name = player?.DisplayName ?? "player";
+            
+            string name = player.Identity?.DisplayName ?? "player";
 
             bool newUser = !Config.KnownSteamIds.Contains(id);
             if (newUser)
