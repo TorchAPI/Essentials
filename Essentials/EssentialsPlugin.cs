@@ -88,7 +88,7 @@ namespace Essentials
                     break;
                 case TorchSessionState.Unloading:
                     mpMan.PlayerLeft -= ResetMotdOnce;
-                    mpMan.PlayerJoined += MotdOnce;
+                    mpMan.PlayerJoined -= MotdOnce;
                     break;
             }
         }
