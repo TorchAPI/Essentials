@@ -30,12 +30,12 @@ namespace Essentials
         [ReflectedGetter(Name = "m_clientStates")]
         private static Func<MyReplicationServer, IDictionary> _clientStates;
 
-        private const string CLIENT_DATA_TYPE_NAME = "VRage.Network.MyReplicationServer+MyClient, VRage";
+        private const string CLIENT_DATA_TYPE_NAME = "VRage.Network.MyClient, VRage";
         [ReflectedGetter(TypeName = CLIENT_DATA_TYPE_NAME, Name = "Replicables")]
         private static Func<object, MyConcurrentDictionary<IMyReplicable, MyReplicableClientData>> _replicables;
 
-        [ReflectedMethod(Name = "RemoveForClient", OverrideTypeNames = new[] { null, null, CLIENT_DATA_TYPE_NAME, null })]
-        private static Action<MyReplicationServer, IMyReplicable, Endpoint, object, bool> _removeForClient;
+        [ReflectedMethod(Name = "RemoveForClient", OverrideTypeNames = new[] { null, CLIENT_DATA_TYPE_NAME, null })]
+        private static Action<MyReplicationServer, IMyReplicable, object, bool> _removeForClient;
 
         [ReflectedMethod(Name = "ForceReplicable")]
         private static Action<MyReplicationServer, IMyReplicable, Endpoint> _forceReplicable;
@@ -69,7 +69,7 @@ namespace Essentials
 
             foreach (var replicable in replicableList)
             {
-                _removeForClient.Invoke(replicationServer, replicable, playerEndpoint, clientData, true);
+                _removeForClient.Invoke(replicationServer, replicable, clientData, true);
                 _forceReplicable.Invoke(replicationServer, replicable, playerEndpoint);
             }
 
