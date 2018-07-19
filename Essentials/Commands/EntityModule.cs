@@ -30,7 +30,7 @@ namespace Essentials
         [ReflectedGetter(Name = "m_clientStates")]
         private static Func<MyReplicationServer, IDictionary> _clientStates;
 
-        private const string CLIENT_DATA_TYPE_NAME = "VRage.Network.MyReplicationServer+ClientData, VRage";
+        private const string CLIENT_DATA_TYPE_NAME = "VRage.Network.MyReplicationServer+MyClient, VRage";
         [ReflectedGetter(TypeName = CLIENT_DATA_TYPE_NAME, Name = "Replicables")]
         private static Func<object, MyConcurrentDictionary<IMyReplicable, MyReplicableClientData>> _replicables;
 
