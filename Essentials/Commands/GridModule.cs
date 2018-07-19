@@ -10,6 +10,8 @@ using Sandbox.ModAPI;
 using Torch.API.Managers;
 using Torch.Commands;
 using Torch.Commands.Permissions;
+using Torch.Mod;
+using Torch.Mod.Messages;
 using Valve.VR;
 using VRage;
 using VRage.Game.Entity.EntityComponents;
@@ -73,20 +75,29 @@ namespace Essentials
         public void StaticLarge()
         {
             foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(g => g.GridSizeEnum == MyCubeSize.Large))
-                grid.ConvertToStatic();
+                grid.OnConvertedToStationRequest(); //Keen why do you do this to me?
         }
 
-        [Command("list", "List all grids owned by you.")]
+        [Command("list", "Lists all grids you own at least 50% of. Will give you positions if the server admin enables the option.")]
         [Permission(MyPromoteLevel.None)]
         public void List()
         {
-            var sb = new StringBuilder("Grids:\n");
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+            var id = Context.Player?.IdentityId ?? 0;
+            StringBuilder sb = new StringBuilder();
+
+            foreach (var entity in MyEntities.GetEntities())
             {
-                if (grid.BigOwners.Contains(Context.Player?.IdentityId ?? 0))
-                    sb.AppendLine($"{grid.DisplayName}: {grid.PositionComp.GetPosition().ToString("N")}");
+                var grid = entity as MyCubeGrid;
+                if (grid == null)
+                    continue;
+
+                if (grid.BigOwners.Contains(id))
+                {
+                    sb.AppendLine($"{grid.DisplayName} - {grid.GridSizeEnum} - {grid.BlocksCount} blocks - Position {(EssentialsPlugin.Instance.Config.UtilityShowPosition ? grid.PositionComp.GetPosition().ToString() : "Unknown")}");
+                }
             }
-            Context.Respond(sb.ToString());
+
+            ModCommunication.SendMessageTo(new DialogMessage("Grids List", $"Ships/Stations owned by {Context.Player.DisplayName}", sb.ToString()), Context.Player.SteamUserId);
         }
 
         private readonly string ExportPath = "ExportedGrids\\{0}.xml";

@@ -140,6 +140,8 @@
       <Link>Properties\AssemblyVersion.cs</Link>
     </Compile>
     <Compile Include="AutoCommand.cs" />
+    <Compile Include="AutoCommands.cs" />
+    <Compile Include="Commands\AdminModule.cs" />
     <Compile Include="Commands\BlocksModule.cs" />
     <Compile Include="Commands\CleanupModule.cs" />
     <Compile Include="Commands\VoxelModule.cs" />
@@ -152,6 +154,8 @@
     <Compile Include="EssentialsPlugin.cs" />
     <Compile Include="Commands\GridModule.cs" />
     <Compile Include="Commands\PlayerModule.cs" />
+    <Compile Include="InfoCommand.cs" />
+    <Compile Include="Commands\InfoModule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utilities.cs" />
   </ItemGroup>
