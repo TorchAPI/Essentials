@@ -78,7 +78,7 @@ namespace Essentials
                     mpMan.PlayerLeft += ResetMotdOnce;
                     if(Config.StopShipsOnStart)
                         StopShips();
-                    _control.Dispatcher.Invoke(() =>
+                    _control?.Dispatcher.Invoke(() =>
                                                {
                                                    _control.IsEnabled = true;
                                                    _control.DataContext = Config;
