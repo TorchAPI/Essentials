@@ -76,6 +76,7 @@ namespace Essentials
                 case TorchSessionState.Loaded:
                     mpMan.PlayerJoined += MotdOnce;
                     mpMan.PlayerLeft += ResetMotdOnce;
+                    MyEntities.OnEntityAdd += EntityAdded;
                     if(Config.StopShipsOnStart)
                         StopShips();
                     _control?.Dispatcher.Invoke(() =>
@@ -89,8 +90,77 @@ namespace Essentials
                 case TorchSessionState.Unloading:
                     mpMan.PlayerLeft -= ResetMotdOnce;
                     mpMan.PlayerJoined -= MotdOnce;
+                    MyEntities.OnEntityAdd -= EntityAdded;
+                    _bagTracker.Clear();
+                    _removalTracker.Clear();
                     break;
             }
+        }
+
+        private Dictionary<long, List<MyInventoryBagEntity>> _bagTracker = new Dictionary<long, List<MyInventoryBagEntity>>();
+        private Queue<Tuple<MyInventoryBagEntity, DateTime>> _removalTracker = new Queue<Tuple<MyInventoryBagEntity, DateTime>>();
+
+        private void EntityAdded(MyEntity myEntity)
+        {
+            if (Config.BackpackLimit < 0)
+                return;
+
+            var b = myEntity as MyInventoryBagEntity;
+            if(b == null)
+                return;
+            
+            if (Config.BackpackLimit == 0)
+            { 
+                _removalTracker.Enqueue(new Tuple<MyInventoryBagEntity, DateTime>(b, DateTime.Now + TimeSpan.FromSeconds(30)));
+                return;
+            }
+
+            if (!_bagTracker.TryGetValue(b.OwnerIdentityId, out List<MyInventoryBagEntity> bags))
+            {
+                bags = new List<MyInventoryBagEntity>(Config.BackpackLimit);
+                _bagTracker.Add(b.OwnerIdentityId, bags);
+            }
+
+            bags.Add(b);
+        }
+
+        private void ProcessBags()
+        { 
+            //bags don't have inventory in the Add event, so we wait until the next tick. I hate everything.
+            foreach (var bags in _bagTracker.Values)
+            {
+                //iterate backwards so we can remove while we iterate
+                for (int i = bags.Count - 1; i > 0; i--)
+                {
+                    var b = bags[i];
+                    if (b.GetInventory().GetItemsCount() == 0)
+                    {
+                        _removalTracker.Enqueue(new Tuple<MyInventoryBagEntity, DateTime>(b, DateTime.Now + TimeSpan.FromSeconds(30)));
+                        bags.RemoveAt(i);
+                    }
+                }
+                //lazy
+                while (bags.Count > Config.BackpackLimit)
+                {
+                    var rm = bags[0];
+                    bags.RemoveAt(0);
+                    _removalTracker.Enqueue(new Tuple<MyInventoryBagEntity, DateTime>(rm, DateTime.Now + TimeSpan.FromSeconds(30)));
+                }
+            }
+            if (_removalTracker.Count > 0)
+            {
+                var b = _removalTracker.Peek();
+                if (DateTime.Now >= b.Item2)
+                {
+                    _removalTracker.Dequeue();
+                    b.Item1.Close();
+                }
+            }
+        }
+
+        public override void Update()
+        {
+            ProcessBags();
         }
 
         private void StopShips()
