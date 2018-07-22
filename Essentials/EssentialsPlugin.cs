@@ -133,11 +133,11 @@ namespace Essentials
                 for (int i = bags.Count - 1; i > 0; i--)
                 {
                     var b = bags[i];
-                    if (b.GetInventory().GetItemsCount() == 0)
-                    {
-                        _removalTracker.Enqueue(new Tuple<MyInventoryBagEntity, DateTime>(b, DateTime.Now + TimeSpan.FromSeconds(30)));
-                        bags.RemoveAt(i);
-                    }
+                    if (b.GetInventory()?.GetItemsCount() > 0)
+                        continue;
+
+                    _removalTracker.Enqueue(new Tuple<MyInventoryBagEntity, DateTime>(b, DateTime.Now + TimeSpan.FromSeconds(30)));
+                    bags.RemoveAt(i);
                 }
                 //lazy
                 while (bags.Count > Config.BackpackLimit)
