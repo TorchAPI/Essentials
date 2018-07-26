@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NLog;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
@@ -19,13 +20,16 @@ namespace Essentials.Commands
     [Category("voxels")]
     public class VoxelModule : CommandModule
     {
+        private Logger _log = LogManager.GetCurrentClassLogger();
+
         [Command("reset all", "Resets all voxel maps.")]
         public void ResetAll()
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelBase>();
             
             var resetIds = new List<long>();
-            Parallel.ForEach(voxelMaps, map =>
+            //Parallel.ForEach(voxelMaps, map =>
+            foreach(var map in voxelMaps)
                                         {
                                             try
                                             {
@@ -38,9 +42,9 @@ namespace Essentials.Commands
                                             }
                                             catch (Exception e)
                                             {
-                                                Console.WriteLine($"{e.Message}\n{e.StackTrace}");
+                                                _log.Error($"{e.Message}\n{e.StackTrace}");
                                             }
-                                        });
+                                        }//, blocking:true);
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
             Context.Respond($"Reset {resetIds.Count} voxel maps.");
@@ -53,7 +57,8 @@ namespace Essentials.Commands
 
             var resetIds = new List<long>();
 
-            Parallel.ForEach(voxelMaps, map =>
+            //Parallel.ForEach(voxelMaps, map =>
+            foreach(var map in voxelMaps)
                                         {
                                             try
                                             {
@@ -74,9 +79,9 @@ namespace Essentials.Commands
                                             }
                                             catch (Exception e)
                                             {
-                                                Console.WriteLine($"{e.Message}\n{e.StackTrace}");
+                                                _log.Error($"{e.Message}\n{e.StackTrace}");
                                             }
-                                        });
+                                        }//);
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
@@ -90,7 +95,8 @@ namespace Essentials.Commands
 
             var resetIds = new List<long>();
 
-            Parallel.ForEach(voxelMaps, map =>
+            //Parallel.ForEach(voxelMaps, map =>
+            foreach(var map in voxelMaps)
                                         {
                                             try
                                             {
@@ -103,9 +109,9 @@ namespace Essentials.Commands
                                             }
                                             catch (Exception e)
                                             {
-                                                Console.WriteLine($"{e.Message}\n{e.StackTrace}");
+                                                _log.Error($"{e.Message}\n{e.StackTrace}");
                                             }
-                                        });
+                                        }//);
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
