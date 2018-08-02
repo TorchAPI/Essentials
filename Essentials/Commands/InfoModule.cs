@@ -25,7 +25,11 @@ namespace Essentials.Commands
 
         private static void MessageProcessing(Torch.API.Managers.TorchChatMessage msg, ref bool consumed)
         {
-            var c = EssentialsPlugin.Instance.Config.InfoCommands.FirstOrDefault(i => i.Command.Equals(msg.Message));
+            var infoCommands = EssentialsPlugin.Instance.Config.InfoCommands;
+            if (infoCommands == null)
+                return;
+                
+            var c = infoCommands.FirstOrDefault(i => i.Command.Equals(msg.Message));
             if (c == null)
                 return;
             
