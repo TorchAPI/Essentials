@@ -266,6 +266,17 @@ namespace Essentials.Commands
         public bool OwnedBy(MyCubeGrid grid, string str)
         {
             long identityId;
+            
+            String digitsOnly = @"\d+";
+            
+            if (Regex.IsMatch(str, digitsOnly)){
+                try
+                {
+                    public static long tryID = ToInt64(str);
+                    if (grid.BigOwners.Contains(tryID)) return grid.BigOwners.Contains(tryID);
+                } 
+                catch {}
+            }
 
             if (string.Compare(str, "nobody", StringComparison.InvariantCultureIgnoreCase) == 0)
             {
