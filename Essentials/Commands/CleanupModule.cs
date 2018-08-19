@@ -273,7 +273,7 @@ namespace Essentials.Commands
             {
                 if (Regex.IsMatch(str, digitsOnly) == true)
                 {
-                    long tryID = ToInt64(str);
+                    long tryID = Convert.ToInt64(str);
                     if (grid.BigOwners.Contains(tryID) == true) return grid.BigOwners.Contains(tryID);
                 }
             }
