@@ -7,6 +7,7 @@ using NLog;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
+using Sandbox.Game.World;
 using Torch.Commands;
 using Torch.Mod;
 using Torch.Mod.Messages;
@@ -34,7 +35,7 @@ namespace Essentials.Commands
                                             try
                                             {
                                                 if (map.StorageName == null || map.Storage.DataProvider == null)
-                                                    return;
+                                                    continue;
 
                                                 map.Storage.Reset(MyStorageDataTypeFlags.All);
                                                 lock (resetIds)
@@ -63,7 +64,7 @@ namespace Essentials.Commands
                                             try
                                             {
                                                 if (map.StorageName == null || map.Storage.DataProvider == null)
-                                                    return;
+                                                    continue;
 
                                                 var s = map.PositionComp.WorldVolume;
                                                 var nearEntities = new List<MyEntity>();
@@ -71,7 +72,7 @@ namespace Essentials.Commands
                                                 MyGamePruningStructure.GetAllTopMostEntitiesInSphere(ref s, nearEntities);
 
                                                 if(nearEntities.Any(e => e is MyCubeGrid || e is MyCharacter))
-                                                    return;
+                                                    continue;
 
                                                 map.Storage.Reset(MyStorageDataTypeFlags.All);
                                                 lock(resetIds)
@@ -101,7 +102,7 @@ namespace Essentials.Commands
                                             try
                                             {
                                                 if (map.StorageName == null || map.Storage.DataProvider == null)
-                                                    return;
+                                                    continue;
 
                                                 map.Storage.Reset(MyStorageDataTypeFlags.All);
                                                 lock (resetIds)
