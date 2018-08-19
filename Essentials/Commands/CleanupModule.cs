@@ -269,14 +269,15 @@ namespace Essentials.Commands
             
             String digitsOnly = @"\d+";
             
-            if (Regex.IsMatch(str, digitsOnly)){
-                try
+            try
+            {
+                if (Regex.IsMatch(str, digitsOnly) == true)
                 {
-                    public static long tryID = ToInt64(str);
-                    if (grid.BigOwners.Contains(tryID)) return grid.BigOwners.Contains(tryID);
-                } 
-                catch {}
+                    long tryID = ToInt64(str);
+                    if (grid.BigOwners.Contains(tryID) == true) return grid.BigOwners.Contains(tryID);
+                }
             }
+            catch {}
 
             if (string.Compare(str, "nobody", StringComparison.InvariantCultureIgnoreCase) == 0)
             {
