@@ -20,7 +20,7 @@ namespace Essentials.Commands
         [Command("list", "Lists all available info commands.")]
         public void List()
         {
-            Context.Respond(string.Join(", ", EssentialsPlugin.Instance.Config.InfoCommands.Select(i => i.Command)));
+            Context.Respond(string.Join(", ", EssentialsPlugin.Instance.Config.InfoCommands.Select(i => i.Command).Where(c => !string.IsNullOrEmpty(c))));
         }
 
         private static void MessageProcessing(Torch.API.Managers.TorchChatMessage msg, ref bool consumed)
@@ -29,7 +29,7 @@ namespace Essentials.Commands
             if (infoCommands == null)
                 return;
                 
-            var c = infoCommands.FirstOrDefault(i => i.Command.Equals(msg.Message));
+            var c = infoCommands.FirstOrDefault(i => i.Command?.Equals(msg.Message) == true);
             if (c == null)
                 return;
             
