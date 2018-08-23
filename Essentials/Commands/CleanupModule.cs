@@ -280,9 +280,15 @@ namespace Essentials.Commands
             {
                 var player = Utilities.GetPlayerByNameOrId(str);
                 if (player == null)
-                    return false;
-
+                {
+                    if(MySession.Static.Players.IdentityIsNpc(identityId))
+                    {
+                        return grid.BigOwners.Contains(identityId);
+                    }
+                    else return false;
+                    
                 identityId = player.IdentityId;
+                }
             }
 
             return grid.BigOwners.Contains(identityId);
