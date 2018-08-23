@@ -288,10 +288,7 @@ namespace Essentials.Commands
                             return grid.BigOwners.Contains(NPCId);
                         }
                     }
-                    else 
-                    {
                     return false;
-                    }
                 }
                 identityId = player.IdentityId;
             }
