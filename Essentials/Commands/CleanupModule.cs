@@ -265,7 +265,7 @@ namespace Essentials.Commands
         [Condition("ownedby", helpText: "Finds grids owned by the given player. Can specify player name, IdentityId, 'nobody', or 'pirates'.")]
         public bool OwnedBy(MyCubeGrid grid, string str)
         {
-            long identityId;
+            long identityId = null;
 
             if (string.Compare(str, "nobody", StringComparison.InvariantCultureIgnoreCase) == 0)
             {
@@ -291,7 +291,7 @@ namespace Essentials.Commands
                     return false;
                     }
                     
-                identityId = player.IdentityId;
+                    identityId = player.IdentityId;
                 }
             }
 
