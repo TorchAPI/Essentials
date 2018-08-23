@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -266,6 +266,18 @@ namespace Essentials.Commands
         public bool OwnedBy(MyCubeGrid grid, string str)
         {
             long identityId;
+            
+            String digitsOnly = @"\d+";
+            
+            try
+            {
+                if (Regex.IsMatch(str, digitsOnly) == true)
+                {
+                    long tryID = Convert.ToInt64(str);
+                    if (grid.BigOwners.Contains(tryID) == true) return grid.BigOwners.Contains(tryID);
+                }
+            }
+            catch {}
 
             if (string.Compare(str, "nobody", StringComparison.InvariantCultureIgnoreCase) == 0)
             {
