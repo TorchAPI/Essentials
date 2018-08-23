@@ -281,11 +281,15 @@ namespace Essentials.Commands
                 var player = Utilities.GetPlayerByNameOrId(str);
                 if (player == null)
                 {
-                    if(MySession.Static.Players.IdentityIsNpc(identityId))
+                    if(long.TryParse(str, out long NPCId))
                     {
-                        return grid.BigOwners.Contains(identityId);
+                        if(MySession.Static.Players.IdentityIsNpc(NPCId))
+                            return grid.BigOwners.Contains(NPCId);
                     }
-                    else return false;
+                    else 
+                    {
+                    return false;
+                    }
                     
                 identityId = player.IdentityId;
                 }
