@@ -130,7 +130,7 @@ namespace Essentials
             foreach (var bags in _bagTracker.Values)
             {
                 //iterate backwards so we can remove while we iterate
-                for (int i = bags.Count - 1; i > 0; i--)
+                for (int i = bags.Count - 1; i >= 0; i--)
                 {
                     var b = bags[i];
                     if (b.GetInventory()?.GetItemsCount() > 0)
