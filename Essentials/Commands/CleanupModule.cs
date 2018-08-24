@@ -280,8 +280,16 @@ namespace Essentials.Commands
             {
                 var player = Utilities.GetPlayerByNameOrId(str);
                 if (player == null)
+                {
+                    if(long.TryParse(str, out long NPCId))
+                    {
+                        if(MySession.Static.Players.IdentityIsNpc(NPCId))
+                        {
+                            return grid.BigOwners.Contains(NPCId);
+                        }
+                    }
                     return false;
-
+                }
                 identityId = player.IdentityId;
             }
 
