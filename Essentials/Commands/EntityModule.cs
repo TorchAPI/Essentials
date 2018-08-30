@@ -41,12 +41,33 @@ namespace Essentials
         private static Action<MyReplicationServer, IMyReplicable, Endpoint> _forceReplicable;
 #pragma warning restore 649
 
+        private static Dictionary<ulong,DateTime> _commandtimeout = new Dictionary<ulong,DateTime>();
+
         [Command("refresh", "Resyncs all entities for the player running the command.")]
         [Permission(MyPromoteLevel.None)]
         public void Refresh()
         {
             if (Context.Player == null)
                 return;
+
+            var steamid = Context.Player.SteamUserId;
+            if (_commandtimeout.TryGetValue(steamid, out DateTime lastcommand))
+            {
+                TimeSpan difference = DateTime.Now - lastcommand;
+                if (difference.TotalMinutes < 1)
+                {
+                   Context.Respond($"Cooldown active. You can use this command again in {difference.TotalSeconds:N0} seconds");                      
+                   return;
+                }
+                else
+                {
+                     _commandtimeout[steamid] = DateTime.Now;
+                }
+            }
+            else
+            {                
+                _commandtimeout.Add(steamid, DateTime.Now);
+            }
 
             var playerEndpoint = new Endpoint(Context.Player.SteamUserId, 0);
             var replicationServer = (MyReplicationServer)MyMultiplayer.ReplicationLayer;
