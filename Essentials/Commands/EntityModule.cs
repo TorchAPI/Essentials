@@ -56,7 +56,7 @@ namespace Essentials
                 TimeSpan difference = DateTime.Now - lastcommand;
                 if (difference.TotalMinutes < 1)
                 {
-                   Context.Respond($"Cooldown! You must wait 1 minute.");                      
+                   Context.Respond($"Cooldown active. You can use this command again in {difference.TotalSeconds:N0} seconds");                      
                    return;
                 }
                 else
