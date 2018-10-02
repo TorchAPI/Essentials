@@ -6,9 +6,13 @@ using System.Text;
 using System.Threading.Tasks;
 using NLog;
 using Sandbox.Game.Entities;
+using Sandbox.Game.Entities.Character;
 using Sandbox.Game.Gui;
 using Sandbox.Game.Multiplayer;
+using Sandbox.Game.Screens.Helpers;
 using Sandbox.Game.World;
+using Sandbox.Game.World.Generator;
+using Sandbox.ModAPI;
 using SpaceEngineers.Game.GUI;
 using Torch.Commands;
 using Torch.Commands.Permissions;
@@ -17,6 +21,7 @@ using Torch.Utils;
 using Torch.API.Managers;
 using Torch.API.Plugins;
 using Torch.API.Session;
+using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.Network;
 
@@ -37,7 +42,8 @@ namespace Essentials.Commands
             {
                 if (identity.LastLoginTime < cutoff)
                 {
-                    MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
+                    //MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
+                    RemoveFromFaction_Internal(identity);
                     MySession.Static.Players.RemoveIdentity(identity.IdentityId);
                     count++;
                 }
@@ -60,7 +66,8 @@ namespace Essentials.Commands
             {
                 if (identity.LastLoginTime < cutoff)
                 {
-                    MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
+                    //MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
+                    RemoveFromFaction_Internal(identity);
                     MySession.Static.Players.RemoveIdentity(identity.IdentityId);
                     count++;
                     foreach (var grid in grids)
@@ -81,28 +88,53 @@ namespace Essentials.Commands
         [Command("faction clean", "Removes factions with fewer than the given number of players.")]
         public void CleanFactions(int memberCount = 1)
         {
-            int count = 0;
-            foreach(var faction in MySession.Static.Factions.ToList())
-            {
-                if (faction.Value.Members.Count < memberCount)
-                {
-                    count++;
-                    RemoveFaction(faction.Value);
-                }
-            }
+            int count = CleanFaction_Internal(memberCount);
 
             Context.Respond($"Removed {count} factions with fewer than {memberCount} members.");
         }
 
-        private void RemoveEmptyFactions()
+        private static void RemoveEmptyFactions()
         {
+            CleanFaction_Internal(1);
+        }
+
+        private static int CleanFaction_Internal(int memberCount = 1)
+        {
+            int result = 0;
+
             foreach (var faction in MySession.Static.Factions.ToList())
             {
-                if (faction.Value.Members.Count == 0)
+                int validmembers = 0;
+
+                //O(2n)
+                foreach (var member in faction.Value.Members)
                 {
-                    RemoveFaction(faction.Value);
+                    if (!MySession.Static.Players.HasIdentity(member.Key) && !MySession.Static.Players.IdentityIsNpc(member.Key))
+                        continue;
+
+                    validmembers++;
+
+                    if (validmembers >= memberCount)
+                        break;
                 }
+
+                if (validmembers >= memberCount)
+                    continue;
+
+                RemoveFaction(faction.Value);
+                result++;
             }
+
+            return result;
+        }
+
+        private static bool RemoveFromFaction_Internal(MyIdentity identity)
+        {
+            var fac = MySession.Static.Factions.GetPlayerFaction(identity.IdentityId);
+            if (fac == null)
+                return false;
+            fac.KickMember(identity.IdentityId);
+            return true;
         }
 
         //Equinox told me you can use delegates for ReflectedMethods.
