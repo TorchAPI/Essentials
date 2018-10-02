@@ -69,7 +69,7 @@ namespace Essentials.Patches
 
         public static MyObjectBuilder_World GetClientWorld(EndpointId sender)
         {
-            MyLog.Default.WriteLineAndConsole($"Preparing world for {sender.Value}...");
+            Log.Info($"Preparing world for {sender.Value}...");
 
             var ob = new MyObjectBuilder_World()
                      {
@@ -87,7 +87,7 @@ namespace Essentials.Patches
         
         private static MyObjectBuilder_Checkpoint GetClientCheckpoint(ulong steamId)
         {
-            MyLog.Default.WriteLineAndConsole($"Saving checkpoint...");
+            Log.Info($"Saving checkpoint...");
             var cpid = new MyObjectBuilder_Checkpoint.PlayerId(steamId);
             var ppid = new MyPlayer.PlayerId(steamId);
 
@@ -301,9 +301,10 @@ namespace Essentials.Patches
         private static MyObjectBuilder_Sector GetClientSector(ulong steamId)
         {
             var ob = MySession.Static.GetSector(false);
-
+            
             if (EssentialsPlugin.Instance.Config.PackRespawn)
             {
+                ob.SectorObjects = new List<MyObjectBuilder_EntityBase>();
                 var grids = new HashSet<MyCubeGrid>();
                 foreach (var room in MyMedicalRoomsSystem.GetMedicalRoomsInScene())
                 {
