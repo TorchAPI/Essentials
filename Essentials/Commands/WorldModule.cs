@@ -184,6 +184,12 @@ namespace Essentials.Commands
                     continue;
                 validIdentities.UnionWith(grid.SmallOwners);
             }
+
+            foreach (var online in MySession.Static.Players.GetOnlinePlayers())
+            {
+                validIdentities.Add(online.Identity.IdentityId);
+            }
+
             //might not be necessary, but just in case
             validIdentities.Remove(0);
 
