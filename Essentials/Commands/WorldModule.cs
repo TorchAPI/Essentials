@@ -50,6 +50,7 @@ namespace Essentials.Commands
             }
             
             RemoveEmptyFactions();
+            FixBlockOwnership();
             Context.Respond($"Removed {count} old identities");
         }
 
@@ -82,6 +83,7 @@ namespace Essentials.Commands
             }
             
             RemoveEmptyFactions();
+            FixBlockOwnership();
             Context.Respond($"Removed {count} old identities and {count2} grids owned by them.");
         }
 
@@ -104,6 +106,9 @@ namespace Essentials.Commands
 
             foreach (var faction in MySession.Static.Factions.ToList())
             {
+                if (faction.Value.IsEveryoneNpc() || !faction.Value.AcceptHumans)
+                    continue;
+
                 int validmembers = 0;
 
                 //O(2n)
@@ -160,6 +165,26 @@ namespace Essentials.Commands
             n.RaiseStaticEvent(_factionChangeSuccessInfo, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
         }
 
+        private static int FixBlockOwnership()
+        {
+            int count = 0;
+            foreach (var entity in MyEntities.GetEntities())
+            {
+                var grid = entity as MyCubeGrid;
+                if (grid == null)
+                    continue;
+                foreach (var block in grid.GetFatBlocks())
+                {
+                    if (block.OwnerId == 0 || MySession.Static.Players.HasIdentity(block.OwnerId))
+                        continue;
+                    
+                    block.ChangeOwner(0, MyOwnershipShareModeEnum.All);
+                    count++;
+                }
+            }
+            return count;
+        }
+
         private static readonly FieldInfo GpssField = typeof(MySession).GetField("Gpss", BindingFlags.NonPublic | BindingFlags.Instance);
         private static readonly FieldInfo GpsDicField = GpssField.FieldType.GetField("m_playerGpss", BindingFlags.NonPublic | BindingFlags.Instance);
         private static readonly FieldInfo SeedParamField = typeof(MyProceduralWorldGenerator).GetField("m_existingObjectsSeeds", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -174,7 +199,6 @@ namespace Essentials.Commands
             int count = 0;
             var validIdentities = new HashSet<long>();
             var idCache = new HashSet<long>();
-            var allSteamId = new HashSet<ulong>();
 
             //find all identities owning a block
             foreach (var entity in MyEntities.GetEntities())
@@ -196,14 +220,15 @@ namespace Essentials.Commands
             //clean identities that don't own any blocks, or don't have a steam ID for whatever reason
             foreach (var identity in MySession.Static.Players.GetAllIdentities().ToList())
             {
+                if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                {
+                    validIdentities.Add(identity.IdentityId);
+                    continue;
+                }
+
                 if (validIdentities.Contains(identity.IdentityId))
                 {
-                    var steam = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
-                    if (steam != 0)
-                    {
-                        allSteamId.Add(steam);
-                        continue;
-                    }
+                    continue;
                 }
 
                 RemoveFromFaction_Internal(identity);
@@ -211,6 +236,9 @@ namespace Essentials.Commands
                 validIdentities.Remove(identity.IdentityId);
                 count++;
             }
+
+            //reset ownership of blocks belonging to deleted identities
+            count += FixBlockOwnership();
 
             //clean up empty factions
             count += CleanFaction_Internal();
