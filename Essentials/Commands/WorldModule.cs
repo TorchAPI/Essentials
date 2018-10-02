@@ -171,6 +171,7 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void CleanSandbox()
         {
+            int count = 0;
             var validIdentities = new HashSet<long>();
             var idCache = new HashSet<long>();
             var allSteamId = new HashSet<ulong>();
@@ -202,28 +203,32 @@ namespace Essentials.Commands
                 RemoveFromFaction_Internal(identity);
                 MySession.Static.Players.RemoveIdentity(identity.IdentityId);
                 validIdentities.Remove(identity.IdentityId);
+                count++;
             }
 
             //clean up empty factions
-            CleanFaction_Internal();
+            count += CleanFaction_Internal();
 
             //Keen, for the love of god why is everything about GPS internal.
             var playerGpss = GpsDicField.GetValue(GpssField.GetValue(MySession.Static)) as Dictionary<long, Dictionary<int, MyGps>>;
 
             foreach (var id in playerGpss.Keys)
             {
-                if (!MySession.Static.Players.HasIdentity(id))
+                if (!validIdentities.Contains(id))
                     idCache.Add(id);
             }
 
             foreach (var id in idCache)
                 playerGpss.Remove(id);
 
+            count += idCache.Count;
+            idCache.Clear();
+
             var g = MySession.Static.GetComponent<MyProceduralWorldGenerator>();
             var f = SeedParamField.GetValue(g) as HashSet<MyObjectSeedParams>;
+            count += f.Count;
             f.Clear();
 
-            idCache.Clear();
             foreach (var history in MySession.Static.ChatHistory)
             {
                 if (!validIdentities.Contains(history.Key))
@@ -234,6 +239,7 @@ namespace Essentials.Commands
             {
                 MySession.Static.ChatHistory.Remove(id);
             }
+            count += idCache.Count;
             idCache.Clear();
             
             //delete chat history for deleted factions
@@ -242,12 +248,16 @@ namespace Essentials.Commands
                 var history = MySession.Static.FactionChatHistory[i];
                 if (MySession.Static.Factions.TryGetFactionById(history.FactionId1) == null || MySession.Static.Factions.TryGetFactionById(history.FactionId2) == null)
                 {
+                    count++;
                     MySession.Static.FactionChatHistory.RemoveAtFast(i);
                 }
             }
 
             var cf = AllCamerasField.GetValue(CamerasField.GetValue(MySession.Static)) as Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>>;
+            count += cf.Count;
             cf.Clear();
+
+            Context.Respond($"Removed {count} unnecessary elements.");
         }
     }
 }
