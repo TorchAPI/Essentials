@@ -315,7 +315,7 @@ namespace Essentials.Patches
 
                 foreach (var spawngrid in grids)
                 {
-                    if(spawngrid.BlocksCount > EssentialsPlugin.Instance.Config.MaxPackedRespawnSize)
+                    if(EssentialsPlugin.Instance.Config.MaxPackedRespawnSize > 0 && spawngrid.BlocksCount > EssentialsPlugin.Instance.Config.MaxPackedRespawnSize)
                         continue;
 
                     ob.SectorObjects.Add(spawngrid.GetObjectBuilder());
