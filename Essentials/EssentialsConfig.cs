@@ -58,5 +58,29 @@ namespace Essentials
 
         [Display(Visible=false)]
         public ObservableCollection<ulong> KnownSteamIds { get; } = new ObservableCollection<ulong>();
+
+        private bool _packRespawn;
+        [Display(Name = "Pack Respawn", GroupName = "Client Join Tweaks", Description = "Packs ships which the client could respawn at into the initial world send. Will significantly decrease time waiting for ships to sync from the respawn menu, at the cost of slightly increased server load during client join.")]
+        public bool PackRespawn
+        {
+            get => _packRespawn;
+            set => SetValue(ref _packRespawn, value);
+        }
+
+        private int _maxRespawnSize;
+        [Display(Name = "Max Packed Respawn Size", GroupName = "Client Join Tweaks", Description = "Maximum size, in total block count, of ships that can be packed into the world send. Useful if your players often have very large grids. Will slightly lower performance impact of Pack Respawn option, by forcing clients to wait for very large grids the old way.")]
+        public int MaxPackedRespawnSize
+        {
+            get => _maxRespawnSize;
+            set => SetValue(ref _maxRespawnSize, value);
+        }
+
+        private string _loadingText;
+        [Display(Name = "Loading Text", GroupName = "Client Join Tweaks", Description = "Text displayed on the loading screen while the client is joining.")]
+        public string LoadingText
+        {
+            get => _loadingText;
+            set => SetValue(ref _loadingText, string.IsNullOrEmpty(value) ? null : value);
+        }
     }
 }

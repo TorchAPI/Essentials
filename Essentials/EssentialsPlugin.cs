@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using Essentials.Commands;
+using Essentials.Patches;
 using NLog;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Game;
@@ -20,6 +21,7 @@ using Torch.API.Plugins;
 using Torch.API.Session;
 using Torch.Commands;
 using Torch.Managers;
+using Torch.Managers.PatchManager;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using Torch.Session;
@@ -41,11 +43,13 @@ namespace Essentials
         private Persistent<EssentialsConfig> _config;
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
         private HashSet<ulong> _motdOnce = new HashSet<ulong>();
+        private PatchManager _pm;
+        private PatchContext _context;
 
         public static EssentialsPlugin Instance { get; private set; }
 
         /// <inheritdoc />
-        public UserControl GetControl() => _control ?? (_control = new PropertyGrid(){DataContext=Config, IsEnabled = false});
+        public UserControl GetControl() => _control ?? (_control = new PropertyGrid(){DataContext=Config/*, IsEnabled = false*/});
 
         public void Save()
         {
@@ -66,6 +70,9 @@ namespace Essentials
                 Log.Warn("No session manager.  MOTD won't work");
 
             Instance = this;
+            _pm = torch.Managers.GetManager<PatchManager>();
+            _context = _pm.AcquireContext();
+            SessionDownloadPatch.Patch(_context);
         }
 
         private void SessionChanged(ITorchSession session, TorchSessionState state)
