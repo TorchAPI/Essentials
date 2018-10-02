@@ -159,5 +159,95 @@ namespace Essentials.Commands
             //send remove message to clients
             n.RaiseStaticEvent(_factionChangeSuccessInfo, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
         }
+
+        private static readonly FieldInfo GpssField = typeof(MySession).GetField("Gpss", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo GpsDicField = GpssField.FieldType.GetField("m_playerGpss", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo SeedParamField = typeof(MyProceduralWorldGenerator).GetField("m_existingObjectsSeeds", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        private static readonly FieldInfo CamerasField = typeof(MySession).GetField("Cameras", BindingFlags.NonPublic|BindingFlags.Instance);
+        private static readonly FieldInfo AllCamerasField = CamerasField.FieldType.GetField("m_entityCameraSettings", BindingFlags.NonPublic|BindingFlags.Instance);
+
+        [Command("sandbox clean", "Cleans up junk data from the sandbox file")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void CleanSandbox()
+        {
+            var validIdentities = new HashSet<long>();
+            var idCache = new HashSet<long>();
+            var allSteamId = new HashSet<ulong>();
+
+            //find all identities owning a block
+            foreach (var entity in MyEntities.GetEntities())
+            {
+                var grid = entity as MyCubeGrid;
+                if (grid == null)
+                    continue;
+                validIdentities.UnionWith(grid.SmallOwners);
+            }
+            //might not be necessary, but just in case
+            validIdentities.Remove(0);
+
+            //clean identities that don't own any blocks, or don't have a steam ID for whatever reason
+            foreach (var identity in MySession.Static.Players.GetAllIdentities().ToList())
+            {
+                if (validIdentities.Contains(identity.IdentityId))
+                {
+                    var steam = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
+                    if (steam != 0)
+                    {
+                        allSteamId.Add(steam);
+                        continue;
+                    }
+                }
+
+                RemoveFromFaction_Internal(identity);
+                MySession.Static.Players.RemoveIdentity(identity.IdentityId);
+                validIdentities.Remove(identity.IdentityId);
+            }
+
+            //clean up empty factions
+            CleanFaction_Internal();
+
+            //Keen, for the love of god why is everything about GPS internal.
+            var playerGpss = GpsDicField.GetValue(GpssField.GetValue(MySession.Static)) as Dictionary<long, Dictionary<int, MyGps>>;
+
+            foreach (var id in playerGpss.Keys)
+            {
+                if (!MySession.Static.Players.HasIdentity(id))
+                    idCache.Add(id);
+            }
+
+            foreach (var id in idCache)
+                playerGpss.Remove(id);
+
+            var g = MySession.Static.GetComponent<MyProceduralWorldGenerator>();
+            var f = SeedParamField.GetValue(g) as HashSet<MyObjectSeedParams>;
+            f.Clear();
+
+            idCache.Clear();
+            foreach (var history in MySession.Static.ChatHistory)
+            {
+                if (!validIdentities.Contains(history.Key))
+                    idCache.Add(history.Key);
+            }
+
+            foreach (var id in idCache)
+            {
+                MySession.Static.ChatHistory.Remove(id);
+            }
+            idCache.Clear();
+            
+            //delete chat history for deleted factions
+            for(int i = MySession.Static.FactionChatHistory.Count -1; i >=0; i--)
+            {
+                var history = MySession.Static.FactionChatHistory[i];
+                if (MySession.Static.Factions.TryGetFactionById(history.FactionId1) == null || MySession.Static.Factions.TryGetFactionById(history.FactionId2) == null)
+                {
+                    MySession.Static.FactionChatHistory.RemoveAtFast(i);
+                }
+            }
+
+            var cf = AllCamerasField.GetValue(CamerasField.GetValue(MySession.Static)) as Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>>;
+            cf.Clear();
+        }
     }
 }
