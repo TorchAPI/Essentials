@@ -75,9 +75,6 @@ node {
 			bat "IF EXIST ${packageDir} RMDIR /S /Q ${packageDir}"
 
 			bat "xcopy bin\\x64\\${buildMode} ${packageDir}"
-			if (buildMode == "Release") {
-				bat "del ${packageDir}*.pdb"
-			}
 			powershell "(Get-Content manifest.xml).Replace('\${VERSION}', [System.Diagnostics.FileVersionInfo]::GetVersionInfo(\"\$PWD\\${packageDir}Essentials.dll\").ProductVersion) | Set-Content \"${packageDir}/manifest.xml\""
 			powershell "Add-Type -Assembly System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::CreateFromDirectory(\"\$PWD\\${packageDir}\", \"\$PWD\\${zipFile}\")"
 			archiveArtifacts artifacts: zipFile, caseSensitive: false, onlyIfSuccessful: true
