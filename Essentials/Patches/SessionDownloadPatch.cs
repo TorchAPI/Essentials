@@ -449,8 +449,14 @@ namespace Essentials.Patches
                                     fb.Text = fc.Text;
                                     fb.IdentityIdUniqueNumber = MyEntityIdentifier.GetIdUniqueNumber(fc.IdentityId);
                                     fb.TimestampMs = (long)fc.Timestamp.TotalMilliseconds;
-                                    fb.PlayersToSendToUniqueNumber.Clear();
-                                    fb.IsAlreadySentTo.Clear();
+                                    if (fb.PlayersToSendToUniqueNumber != null)
+                                        fb.PlayersToSendToUniqueNumber.Clear();
+                                    else
+                                        fb.PlayersToSendToUniqueNumber = new List<long>();
+                                    if (fb.IsAlreadySentTo != null)
+                                        fb.IsAlreadySentTo.Clear();
+                                    else
+                                        fb.IsAlreadySentTo = new List<bool>();
                                     foreach (var pair in fc.PlayersToSendTo)
                                     {
                                         fb.PlayersToSendToUniqueNumber.Add(MyEntityIdentifier.GetIdUniqueNumber(pair.Key));
