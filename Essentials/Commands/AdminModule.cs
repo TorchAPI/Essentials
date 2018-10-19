@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Sandbox.Engine.Multiplayer;
+using Sandbox.Game.World;
 using Torch.Commands;
 using Torch.Commands.Permissions;
 using Torch.Mod;
@@ -57,6 +58,27 @@ namespace Essentials.Commands
             }
 
             command.RunNow();
+        }
+
+        [Command("set toolbar", "Makes your current toolbar the new default toolbar for new players.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void SetToolbar()
+        {
+            if (Context.Player == null)
+            {
+                Context.Respond("Command not available from console.");
+                return;
+            }
+
+            var toolbar = MySession.Static.Toolbars.TryGetPlayerToolbar(new MyPlayer.PlayerId(Context.Player.SteamUserId));
+            if (toolbar == null)
+            {
+                Context.Respond("Couldn't find your toolbar :( Blame rexxar.");
+                return;
+            }
+
+            EssentialsPlugin.Instance.Config.DefaultToolbar = toolbar.GetObjectBuilder();
+            Context.Respond("Successfully set new default toolbar.");
         }
     }
 }

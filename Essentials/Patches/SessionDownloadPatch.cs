@@ -69,6 +69,11 @@ namespace Essentials.Patches
 
         public static MyObjectBuilder_World GetClientWorld(EndpointId sender)
         {
+            if (!EssentialsPlugin.Instance.Config.EnableClientTweaks)
+            {
+                return MySession.Static.GetWorld(false);
+            }
+
             Log.Info($"Preparing world for {sender.Value}...");
 
             var ob = new MyObjectBuilder_World
@@ -147,6 +152,7 @@ namespace Essentials.Patches
                 _checkpoint.Identities = new List<MyObjectBuilder_Identity>();
                 _checkpoint.Clients = new List<MyObjectBuilder_Client>();
                 _checkpoint.NonPlayerIdentities = new List<long>();
+                _checkpoint.CharacterToolbar = null;
             }
             
             _checkpoint.CreativeTools.Clear();
@@ -176,9 +182,7 @@ namespace Essentials.Patches
             _checkpoint.WorkshopId = MySession.Static.WorkshopId;
             _checkpoint.ElapsedGameTime = MySession.Static.ElapsedGameTime.Ticks;
             _checkpoint.InGameTime = MySession.Static.InGameTime;
-            //TODO
             //checkpoint.CharacterToolbar = MyToolbarComponent.CharacterToolbar.GetObjectBuilder();
-            _checkpoint.CharacterToolbar = null;
             //TODO
             _checkpoint.CustomLoadingScreenImage = MySession.Static.CustomLoadingScreenImage;
             _checkpoint.CustomLoadingScreenText = EssentialsPlugin.Instance.Config.LoadingText ?? MySession.Static.CustomLoadingScreenText;
@@ -251,8 +255,9 @@ namespace Essentials.Patches
                 //Toolbars.SaveToolbars(checkpoint);
                 MyToolbar toolbar = MySession.Static.Toolbars.TryGetPlayerToolbar(ppid);
                 if (toolbar != null)
-                    //one class allocation plus <=81 struct allocations. Meh.
                     player.Toolbar = toolbar.GetObjectBuilder();
+                else if (EssentialsPlugin.Instance.Config.EnableToolbarOverride)
+                    player.Toolbar = EssentialsPlugin.Instance.Config.DefaultToolbar;
 
                 //MySession.Static.Cameras.SaveCameraCollection(checkpoint);
                 player.EntityCameraData = _cameraSettings;
