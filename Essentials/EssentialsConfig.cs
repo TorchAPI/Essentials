@@ -102,23 +102,26 @@ namespace Essentials
             set => SetValue(ref _enableToolbarOverride, value);
         }
 
-        private MyObjectBuilder_Toolbar _vanillaDefaultToolbar = new MyToolbar(MyToolbarType.Character,9,9).GetObjectBuilder();
+        private MyObjectBuilder_Toolbar _vanillaBacking;
+
+        private MyObjectBuilder_Toolbar VanillaDefaultToolbar => _vanillaBacking ?? (_vanillaBacking = new MyToolbar(MyToolbarType.Character, 9, 9).GetObjectBuilder());
+
         private MyObjectBuilder_Toolbar _defaultToolbar;
 
         [Display(Visible=false)]
         public MyObjectBuilder_Toolbar DefaultToolbar
         {
-            get => _defaultToolbar ?? _vanillaDefaultToolbar;
+            get => _defaultToolbar ?? VanillaDefaultToolbar;
             set
             {
                 bool valueChanged = false;
 
-                if (value.Slots.Count == _vanillaDefaultToolbar.Slots.Count)
+                if (value.Slots.Count == VanillaDefaultToolbar.Slots.Count)
                 {
                     for (int i = 0; i < value.Slots.Count; i++)
                     {
                         var val = value.Slots[i];
-                        var van = _vanillaDefaultToolbar.Slots[i];
+                        var van = VanillaDefaultToolbar.Slots[i];
                         if (val.Index != van.Index || val.Data.SubtypeId != van.Data.SubtypeId)
                         {
                             valueChanged = true;
