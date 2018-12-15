@@ -28,7 +28,10 @@ namespace Essentials.Commands
             sb.AppendLine("Timing:");
             Stats.Timing.WriteTo(sb);
 
-            ModCommunication.SendMessageTo(new DialogMessage("Statistics", null, sb.ToString()) , Context.Player.SteamUserId);
+            if (Context?.Player?.SteamUserId > 0)
+                ModCommunication.SendMessageTo(new DialogMessage("Statistics", null, sb.ToString()) , Context.Player.SteamUserId);
+            else
+                Context.Respond(sb.ToString());
         }
 
         [Command("playercount", "Gets or sets the max number of players on the server")]
