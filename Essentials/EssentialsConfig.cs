@@ -5,8 +5,10 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Sandbox.Game.Screens.Helpers;
 using Torch;
 using Torch.Views;
+using VRage.Game;
 
 namespace Essentials
 {
@@ -58,5 +60,81 @@ namespace Essentials
 
         [Display(Visible=false)]
         public ObservableCollection<ulong> KnownSteamIds { get; } = new ObservableCollection<ulong>();
+
+        private bool _packRespawn;
+        [Display(Name = "Pack Respawn", GroupName = "Client Join Tweaks", Order = 1, Description = "Packs ships which the client could respawn at into the initial world send. Will significantly decrease time waiting for ships to sync from the respawn menu, at the cost of slightly increased server load during client join.")]
+        public bool PackRespawn
+        {
+            get => _packRespawn;
+            set => SetValue(ref _packRespawn, value);
+        }
+
+        private int _maxRespawnSize;
+        [Display(Name = "Max Packed Respawn Size", GroupName = "Client Join Tweaks", Order = 2, Description = "Maximum size, in total block count, of ships that can be packed into the world send. Useful if your players often have very large grids. Will slightly lower performance impact of Pack Respawn option, by forcing clients to wait for very large grids the old way.")]
+        public int MaxPackedRespawnSize
+        {
+            get => _maxRespawnSize;
+            set => SetValue(ref _maxRespawnSize, value);
+        }
+
+        private string _loadingText;
+        [Display(Name = "Loading Text", GroupName = "Client Join Tweaks", Order = 3, Description = "Text displayed on the loading screen while the client is joining.")]
+        public string LoadingText
+        {
+            get => _loadingText;
+            set => SetValue(ref _loadingText, string.IsNullOrEmpty(value) ? null : value);
+        }
+
+        private bool _enableClientTweaks = true;
+
+        [Display(Name = "Enable", GroupName = "Client Join Tweaks", Order = 0, Description = "Enables the client join tweak system. None of the options in this section will work if this is unchecked.")]
+        public bool EnableClientTweaks
+        {
+            get => _enableClientTweaks;
+            set => SetValue(ref _enableClientTweaks, value);
+        }
+
+        private bool _enableToolbarOverride;
+        [Display(Name = "Override Default Toolbar", GroupName = "Client Join Tweaks", Order = 4, Description = "Allows you to set a default toolbar for new players on the server. You can set the toolbar ingame with the !admin set toolbar command. This will make your current toolbar the new default.")]
+        public bool EnableToolbarOverride
+        {
+            get => _enableToolbarOverride;
+            set => SetValue(ref _enableToolbarOverride, value);
+        }
+
+        private MyObjectBuilder_Toolbar _vanillaBacking;
+
+        private MyObjectBuilder_Toolbar VanillaDefaultToolbar => _vanillaBacking ?? (_vanillaBacking = new MyToolbar(MyToolbarType.Character, 9, 9).GetObjectBuilder());
+
+        private MyObjectBuilder_Toolbar _defaultToolbar;
+
+        [Display(Visible=false)]
+        public MyObjectBuilder_Toolbar DefaultToolbar
+        {
+            get => _defaultToolbar ?? VanillaDefaultToolbar;
+            set
+            {
+                bool valueChanged = false;
+
+                if (value.Slots.Count == VanillaDefaultToolbar.Slots.Count)
+                {
+                    for (int i = 0; i < value.Slots.Count; i++)
+                    {
+                        var val = value.Slots[i];
+                        var van = VanillaDefaultToolbar.Slots[i];
+                        if (val.Index != van.Index || val.Data.SubtypeId != van.Data.SubtypeId)
+                        {
+                            valueChanged = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (valueChanged)
+                    SetValue(ref _defaultToolbar, value);
+            }
+        }
+        
+
     }
 }

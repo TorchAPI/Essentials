@@ -118,5 +118,33 @@ namespace Essentials.Commands
 
             Context.Respond($"Reset {resetIds.Count} voxel maps.");
         }
+
+        [Command("reset planet", "Resets the planet with a given name.")]
+        public void ResetPlanet(string planetName)
+        {
+            var maps = new List<MyPlanet>(2);
+            foreach (MyPlanet map in MyEntities.GetEntities().OfType<MyPlanet>())
+            {
+                if( map.StorageName.Contains(planetName, StringComparison.CurrentCultureIgnoreCase))
+                    maps.Add(map);
+            }
+
+            switch (maps.Count)
+            {
+                case 0:
+                    Context.Respond($"Couldn't find planet with name {planetName}");
+                    return;
+                case 1:
+                    var map = maps[0];
+                    map.Storage.Reset(MyStorageDataTypeFlags.All);
+                    ModCommunication.SendMessageToClients(new VoxelResetMessage(new long[]{map.EntityId}));
+                    Context.Respond($"Reset planet {map.Name}");
+                    return;
+                default:
+                    Context.Respond($"Found {maps.Count} planets matching '{planetName}'. Please select from list:");
+                    Context.Respond(string.Join("\r\n", maps.Select(m => m.StorageName)));
+                    return;
+            }
+        }
     }
 }

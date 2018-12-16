@@ -6,9 +6,13 @@ using System.Text;
 using System.Threading.Tasks;
 using NLog;
 using Sandbox.Game.Entities;
+using Sandbox.Game.Entities.Character;
 using Sandbox.Game.Gui;
 using Sandbox.Game.Multiplayer;
+using Sandbox.Game.Screens.Helpers;
 using Sandbox.Game.World;
+using Sandbox.Game.World.Generator;
+using Sandbox.ModAPI;
 using SpaceEngineers.Game.GUI;
 using Torch.Commands;
 using Torch.Commands.Permissions;
@@ -17,6 +21,7 @@ using Torch.Utils;
 using Torch.API.Managers;
 using Torch.API.Plugins;
 using Torch.API.Session;
+using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.Network;
 
@@ -37,13 +42,15 @@ namespace Essentials.Commands
             {
                 if (identity.LastLoginTime < cutoff)
                 {
-                    MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
+                    //MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
+                    RemoveFromFaction_Internal(identity);
                     MySession.Static.Players.RemoveIdentity(identity.IdentityId);
                     count++;
                 }
             }
             
             RemoveEmptyFactions();
+            FixBlockOwnership();
             Context.Respond($"Removed {count} old identities");
         }
 
@@ -60,7 +67,8 @@ namespace Essentials.Commands
             {
                 if (identity.LastLoginTime < cutoff)
                 {
-                    MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
+                    //MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
+                    RemoveFromFaction_Internal(identity);
                     MySession.Static.Players.RemoveIdentity(identity.IdentityId);
                     count++;
                     foreach (var grid in grids)
@@ -75,34 +83,63 @@ namespace Essentials.Commands
             }
             
             RemoveEmptyFactions();
+            FixBlockOwnership();
             Context.Respond($"Removed {count} old identities and {count2} grids owned by them.");
         }
 
         [Command("faction clean", "Removes factions with fewer than the given number of players.")]
         public void CleanFactions(int memberCount = 1)
         {
-            int count = 0;
-            foreach(var faction in MySession.Static.Factions.ToList())
-            {
-                if (faction.Value.Members.Count < memberCount)
-                {
-                    count++;
-                    RemoveFaction(faction.Value);
-                }
-            }
+            int count = CleanFaction_Internal(memberCount);
 
             Context.Respond($"Removed {count} factions with fewer than {memberCount} members.");
         }
 
-        private void RemoveEmptyFactions()
+        private static void RemoveEmptyFactions()
         {
+            CleanFaction_Internal(1);
+        }
+
+        private static int CleanFaction_Internal(int memberCount = 1)
+        {
+            int result = 0;
+
             foreach (var faction in MySession.Static.Factions.ToList())
             {
-                if (faction.Value.Members.Count == 0)
+                if (faction.Value.IsEveryoneNpc() || !faction.Value.AcceptHumans)
+                    continue;
+
+                int validmembers = 0;
+
+                //O(2n)
+                foreach (var member in faction.Value.Members)
                 {
-                    RemoveFaction(faction.Value);
+                    if (!MySession.Static.Players.HasIdentity(member.Key) && !MySession.Static.Players.IdentityIsNpc(member.Key))
+                        continue;
+
+                    validmembers++;
+
+                    if (validmembers >= memberCount)
+                        break;
                 }
+
+                if (validmembers >= memberCount)
+                    continue;
+
+                RemoveFaction(faction.Value);
+                result++;
             }
+
+            return result;
+        }
+
+        private static bool RemoveFromFaction_Internal(MyIdentity identity)
+        {
+            var fac = MySession.Static.Factions.GetPlayerFaction(identity.IdentityId);
+            if (fac == null)
+                return false;
+            fac.KickMember(identity.IdentityId);
+            return true;
         }
 
         //Equinox told me you can use delegates for ReflectedMethods.
@@ -126,6 +163,135 @@ namespace Essentials.Commands
             var n = EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<NetworkManager>();
             //send remove message to clients
             n.RaiseStaticEvent(_factionChangeSuccessInfo, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
+        }
+
+        private static int FixBlockOwnership()
+        {
+            int count = 0;
+            foreach (var entity in MyEntities.GetEntities())
+            {
+                var grid = entity as MyCubeGrid;
+                if (grid == null)
+                    continue;
+                foreach (var block in grid.GetFatBlocks())
+                {
+                    if (block.OwnerId == 0 || MySession.Static.Players.HasIdentity(block.OwnerId))
+                        continue;
+                    
+                    block.ChangeOwner(0, MyOwnershipShareModeEnum.All);
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        private static readonly FieldInfo GpssField = typeof(MySession).GetField("Gpss", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo GpsDicField = GpssField.FieldType.GetField("m_playerGpss", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo SeedParamField = typeof(MyProceduralWorldGenerator).GetField("m_existingObjectsSeeds", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        private static readonly FieldInfo CamerasField = typeof(MySession).GetField("Cameras", BindingFlags.NonPublic|BindingFlags.Instance);
+        private static readonly FieldInfo AllCamerasField = CamerasField.FieldType.GetField("m_entityCameraSettings", BindingFlags.NonPublic|BindingFlags.Instance);
+
+        [Command("sandbox clean", "Cleans up junk data from the sandbox file")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void CleanSandbox()
+        {
+            int count = 0;
+            var validIdentities = new HashSet<long>();
+            var idCache = new HashSet<long>();
+
+            //find all identities owning a block
+            foreach (var entity in MyEntities.GetEntities())
+            {
+                var grid = entity as MyCubeGrid;
+                if (grid == null)
+                    continue;
+                validIdentities.UnionWith(grid.SmallOwners);
+            }
+
+            foreach (var online in MySession.Static.Players.GetOnlinePlayers())
+            {
+                validIdentities.Add(online.Identity.IdentityId);
+            }
+
+            //might not be necessary, but just in case
+            validIdentities.Remove(0);
+
+            //clean identities that don't own any blocks, or don't have a steam ID for whatever reason
+            foreach (var identity in MySession.Static.Players.GetAllIdentities().ToList())
+            {
+                if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                {
+                    validIdentities.Add(identity.IdentityId);
+                    continue;
+                }
+
+                if (validIdentities.Contains(identity.IdentityId))
+                {
+                    continue;
+                }
+
+                RemoveFromFaction_Internal(identity);
+                MySession.Static.Players.RemoveIdentity(identity.IdentityId);
+                validIdentities.Remove(identity.IdentityId);
+                count++;
+            }
+
+            //reset ownership of blocks belonging to deleted identities
+            count += FixBlockOwnership();
+
+            //clean up empty factions
+            count += CleanFaction_Internal();
+
+            //Keen, for the love of god why is everything about GPS internal.
+            var playerGpss = GpsDicField.GetValue(GpssField.GetValue(MySession.Static)) as Dictionary<long, Dictionary<int, MyGps>>;
+
+            foreach (var id in playerGpss.Keys)
+            {
+                if (!validIdentities.Contains(id))
+                    idCache.Add(id);
+            }
+
+            foreach (var id in idCache)
+                playerGpss.Remove(id);
+
+            count += idCache.Count;
+            idCache.Clear();
+
+            var g = MySession.Static.GetComponent<MyProceduralWorldGenerator>();
+            var f = SeedParamField.GetValue(g) as HashSet<MyObjectSeedParams>;
+            count += f.Count;
+            f.Clear();
+
+            foreach (var history in MySession.Static.ChatHistory)
+            {
+                if (!validIdentities.Contains(history.Key))
+                    idCache.Add(history.Key);
+            }
+
+            foreach (var id in idCache)
+            {
+                MySession.Static.ChatHistory.Remove(id);
+            }
+            count += idCache.Count;
+            idCache.Clear();
+            
+            //delete chat history for deleted factions
+            for(int i = MySession.Static.FactionChatHistory.Count -1; i >=0; i--)
+            {
+                var history = MySession.Static.FactionChatHistory[i];
+                if (MySession.Static.Factions.TryGetFactionById(history.FactionId1) == null || MySession.Static.Factions.TryGetFactionById(history.FactionId2) == null)
+                {
+                    count++;
+                    MySession.Static.FactionChatHistory.RemoveAtFast(i);
+                }
+            }
+
+            var cf = AllCamerasField.GetValue(CamerasField.GetValue(MySession.Static)) as Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>>;
+            count += cf.Count;
+            cf.Clear();
+
+            Context.Respond($"Removed {count} unnecessary elements.");
         }
     }
 }
