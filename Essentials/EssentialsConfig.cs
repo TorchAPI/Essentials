@@ -136,7 +136,10 @@ namespace Essentials
                     SetValue(ref _defaultToolbar, value);
             }
         }
-        
 
+        public bool ShouldSerializeDefaultToolbar()
+        {
+            return _defaultToolbar != null;
+        }
     }
 }
