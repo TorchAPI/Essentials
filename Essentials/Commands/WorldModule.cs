@@ -159,7 +159,7 @@ namespace Essentials.Commands
         private static void RemoveFaction(MyFaction faction)
         {
             //bypass the check that says the server doesn't have permission to delete factions
-            _applyFactionState(MySession.Static.Factions, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0, 0);
+            _applyFactionState(MySession.Static.Factions, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
             var n = EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<NetworkManager>();
             //send remove message to clients
             n.RaiseStaticEvent(_factionChangeSuccessInfo, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);

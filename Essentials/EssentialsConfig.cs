@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 using Sandbox.Game.Screens.Helpers;
 using Torch;
 using Torch.Views;
@@ -104,6 +105,7 @@ namespace Essentials
 
         private MyObjectBuilder_Toolbar _vanillaBacking;
 
+        [XmlIgnore]
         private MyObjectBuilder_Toolbar VanillaDefaultToolbar => _vanillaBacking ?? (_vanillaBacking = new MyToolbar(MyToolbarType.Character, 9, 9).GetObjectBuilder());
 
         private MyObjectBuilder_Toolbar _defaultToolbar;

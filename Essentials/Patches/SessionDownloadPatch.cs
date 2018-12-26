@@ -20,6 +20,7 @@ using Sandbox.ModAPI;
 using SpaceEngineers.Game.Entities.Blocks;
 using Torch.Managers.PatchManager;
 using Torch.Managers.PatchManager.MSIL;
+using Torch.Mod;
 using Torch.Utils;
 using VRage;
 using VRage.Collections;
@@ -133,7 +134,9 @@ namespace Essentials.Patches
                 _checkpoint.PromotedUsers = new SerializableDictionary<ulong, MyPromoteLevel>(MySession.Static.PromotedUsers);
                 _checkpoint.CreativeTools = new HashSet<ulong>();
                 _checkpoint.Settings = settings;
-                _checkpoint.Mods = MySession.Static.Mods;
+                //We're replacing the call to MySession.GetWorld, so Torch can't inject the torch mod. Do it here instead
+                _checkpoint.Mods = MySession.Static.Mods.ToList();
+                _checkpoint.Mods.Add(new MyObjectBuilder_Checkpoint.ModItem(TorchModCore.MOD_ID));
                 _checkpoint.Scenario = MySession.Static.Scenario.Id;
                 _checkpoint.WorldBoundaries = MySession.Static.WorldBoundaries;
                 _checkpoint.PreviousEnvironmentHostility = MySession.Static.PreviousEnvironmentHostility;
