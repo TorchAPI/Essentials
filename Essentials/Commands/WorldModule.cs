@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using NLog;
+using Sandbox.Engine.Multiplayer;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.Gui;
@@ -150,7 +151,7 @@ namespace Essentials.Commands
         private static Action<MyFactionCollection, MyFactionStateChange, long, long, long, long> _applyFactionState;
 
         private static MethodInfo _factionChangeSuccessInfo = typeof(MyFactionCollection).GetMethod("FactionStateChangeSuccess", BindingFlags.NonPublic|BindingFlags.Static);
-
+        private static readonly MethodInfo _factionStateChangeReq = typeof(MyFactionCollection).GetMethod("FactionStateChangeRequest", BindingFlags.Static | BindingFlags.NonPublic);
         //TODO: This should probably be moved into Torch base, but I honestly cannot be bothered
         /// <summary>
         /// Removes a faction from the server and all clients because Keen fucked up their own system.
@@ -159,10 +160,10 @@ namespace Essentials.Commands
         private static void RemoveFaction(MyFaction faction)
         {
             //bypass the check that says the server doesn't have permission to delete factions
-            _applyFactionState(MySession.Static.Factions, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
-            var n = EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<NetworkManager>();
-            //send remove message to clients
-            n.RaiseStaticEvent(_factionChangeSuccessInfo, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
+            //_applyFactionState(MySession.Static.Factions, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
+            MyMultiplayer.RaiseStaticEvent(s =>
+                    (Action<MyFactionStateChange, long, long, long, long>) Delegate.CreateDelegate(typeof(Action<MyFactionStateChange, long, long, long, long>), _factionStateChangeReq),
+                MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, faction.FounderId, faction.FounderId);
         }
 
         private static int FixBlockOwnership()
@@ -173,12 +174,14 @@ namespace Essentials.Commands
                 var grid = entity as MyCubeGrid;
                 if (grid == null)
                     continue;
+                var owner = grid.BigOwners.FirstOrDefault();
+                var share = owner == 0 ? MyOwnershipShareModeEnum.All : MyOwnershipShareModeEnum.Faction;
                 foreach (var block in grid.GetFatBlocks())
                 {
                     if (block.OwnerId == 0 || MySession.Static.Players.HasIdentity(block.OwnerId))
                         continue;
                     
-                    block.ChangeOwner(0, MyOwnershipShareModeEnum.All);
+                    block.ChangeOwner(owner, share);
                     count++;
                 }
             }
