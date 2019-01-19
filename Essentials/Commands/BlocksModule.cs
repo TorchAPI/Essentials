@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Sandbox.Common.ObjectBuilders;
 using Sandbox.Game.Entities;
+using VRage.Game.ModAPI;
 using Sandbox.Game.Entities.Cube;
 using Sandbox.ModAPI;
 using Torch.Commands;
@@ -135,6 +137,125 @@ namespace Essentials.Commands
 
 
             Context.Respond($"Disabled {count} blocks of subtype {subtype}.");
+        }
+
+        [Command("on general", "Turn on all blocks of the specified general")]
+        public void OnGeneral(string general)
+        {
+            var count = 0;
+            string status = "?";
+            foreach (var entity in MyEntities.GetEntities().OfType<MyCubeGrid>())
+            {
+                IMyCubeGrid grid = entity as MyCubeGrid;
+                if (general.Contains("pow"))
+                {
+                    status = "Power";
+                    var blocks = new List<IMySlimBlock>();
+                    grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
+                    && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Reactor) ||
+                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
+                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_SolarPanel)));
+                    var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => !f.Enabled).ToArray();
+                    foreach (var item in list)
+                    {
+                        item.Enabled = true;
+                    }
+                    count++;
+                }
+                if (general.Contains("prod"))
+                {
+                    status = "Production";
+                    var blocks = new List<IMySlimBlock>();
+                    grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
+                    && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Refinery) ||
+                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Assembler) ||
+                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_OxygenGenerator)));
+                    var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => !f.Enabled).ToArray();
+                    foreach (var item in list)
+                    {
+                        item.Enabled = true;
+                    }
+                    count++;
+
+                }
+                if (general.Contains("wea"))
+                {
+                    status = "Weapon";
+                    var blocks = new List<IMySlimBlock>();
+                    grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
+                    && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_InteriorTurret) ||
+                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_TurretBase) ||
+                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_LargeMissileTurret)));
+                    var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => !f.Enabled).ToArray();
+                    foreach (var item in list)
+                    {
+                        item.Enabled = true;
+                    }
+                    count++;
+
+                }
+            }
+
+            Context.Respond($"Enabled {count} {status} blocks.");
+        }
+        [Command("off general", "Turn off all blocks of the specified general")]
+        public void OffGeneral(string general)
+        {
+            var count = 0;
+            string status = "?";
+            foreach (var entity in MyEntities.GetEntities().OfType<MyCubeGrid>())
+            {
+                IMyCubeGrid grid = entity as MyCubeGrid;
+                if (general.Contains("pow"))
+                {
+                    status = "Power";
+                    var blocks = new List<IMySlimBlock>();
+                    grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
+                    && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Reactor) ||
+                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
+                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_SolarPanel)));
+                    var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => f.Enabled).ToArray();
+                    foreach (var item in list)
+                    {
+                        item.Enabled = false;
+                    }
+                    count++;
+                }
+                if (general.Contains("prod"))
+                {
+                    status = "Production";
+                    var blocks = new List<IMySlimBlock>();
+                    grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
+                    && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Refinery) ||
+                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Assembler) ||
+                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_OxygenGenerator)));
+                    var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => f.Enabled).ToArray();
+                    foreach (var item in list)
+                    {
+                        item.Enabled = false;
+                    }
+                    count++;
+
+                }
+                if (general.Contains("wea"))
+                {
+                    status = "Weapon";
+                    var blocks = new List<IMySlimBlock>();
+                    grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
+                    && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_InteriorTurret) ||
+                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_TurretBase) ||
+                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_LargeMissileTurret)));
+                    var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => f.Enabled).ToArray();
+                    foreach (var item in list)
+                    {
+                        item.Enabled = false;
+                    }
+                    count++;
+
+                }
+            }
+
+            Context.Respond($"Disabled {count} {status} blocks.");
         }
     }
 }

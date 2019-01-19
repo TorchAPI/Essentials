@@ -2,24 +2,24 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
-using Sandbox;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Game.Entities;
-using Sandbox.Game.World;
+using Sandbox.Common.ObjectBuilders;
 using Sandbox.ModAPI;
 using Torch.Commands;
 using Torch.Commands.Permissions;
 using Torch.Utils;
+using Torch.API.Managers;
 using VRage.Collections;
-using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
+using VRage.Game;
 using VRage.Network;
 using VRage.Replication;
-using VRageMath;
+using IMyDestroyableObject = VRage.Game.ModAPI.Interfaces.IMyDestroyableObject;
+
+
 
 namespace Essentials
 {
@@ -41,7 +41,7 @@ namespace Essentials
         private static Action<MyReplicationServer, IMyReplicable, Endpoint> _forceReplicable;
 #pragma warning restore 649
 
-        private static Dictionary<ulong,DateTime> _commandtimeout = new Dictionary<ulong,DateTime>();
+        private static Dictionary<ulong, DateTime> _commandtimeout = new Dictionary<ulong, DateTime>();
 
         [Command("refresh", "Resyncs all entities for the player running the command.")]
         [Permission(MyPromoteLevel.None)]
@@ -56,16 +56,16 @@ namespace Essentials
                 TimeSpan difference = DateTime.Now - lastcommand;
                 if (difference.TotalMinutes < 1)
                 {
-                   Context.Respond($"Cooldown active. You can use this command again in {difference.TotalSeconds:N0} seconds");                      
-                   return;
+                    Context.Respond($"Cooldown active. You can use this command again in {difference.TotalSeconds:N0} seconds");
+                    return;
                 }
                 else
                 {
-                     _commandtimeout[steamid] = DateTime.Now;
+                    _commandtimeout[steamid] = DateTime.Now;
                 }
             }
             else
-            {                
+            {
                 _commandtimeout.Add(steamid, DateTime.Now);
             }
 
@@ -135,6 +135,29 @@ namespace Essentials
             Context.Respond($"Entity '{entity.DisplayName}' deleted");
         }
 
+        [Command("kill", "kill a player.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void Kill(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return;
+
+            if (!Utilities.TryGetEntityByNameOrId(name, out IMyEntity entity))
+            {
+                Context.Respond($"Entity '{name}' not found.");
+                return;
+            }
+
+            if (entity is IMyCharacter)
+            {
+                var destroyable = entity as IMyDestroyableObject;
+                destroyable.DoDamage(1000f, MyDamageType.Radioactivity, true);
+                Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf
+                    ($"{entity.DisplayName} was killed by an admin");
+            }
+        }
+
+
         [Command("find", "Find entities with the given text in their name.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Find(string name)
@@ -153,6 +176,74 @@ namespace Essentials
             }
 
             Context.Respond(sb.ToString());
+        }
+
+        [Command("poweroff", "Power off entities with the given text in their name.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void PowerOff(string name)
+        {
+
+            if (string.IsNullOrEmpty(name))
+                return;
+
+            if (!Utilities.TryGetEntityByNameOrId(name, out IMyEntity entity))
+            {
+                Context.Respond($"Entity '{name}' not found.");
+                return;
+            }
+
+            if (entity is IMyCharacter)
+            {
+                Context.Respond("Command do not work on characters.");
+                return;
+            }
+            IMyCubeGrid grid = entity as MyCubeGrid;
+            var blocks = new List<IMySlimBlock>();
+            grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
+            && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Reactor) ||
+            f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
+            f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_SolarPanel)));
+            var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => f.Enabled).ToArray();
+            foreach (var item in list)
+            {
+                item.Enabled = false;
+            }
+            Context.Respond($"Entity '{entity.DisplayName}' powered off");
+
+        }
+
+        [Command("poweron", "Power on entities with the given text in their name.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void PowerOn(string name)
+        {
+
+            if (string.IsNullOrEmpty(name))
+                return;
+
+            if (!Utilities.TryGetEntityByNameOrId(name, out IMyEntity entity))
+            {
+                Context.Respond($"Entity '{name}' not found.");
+                return;
+            }
+
+            if (entity is IMyCharacter)
+            {
+                Context.Respond("Command do not work on characters.");
+                return;
+            }
+            IMyCubeGrid grid = entity as MyCubeGrid;
+            var blocks = new List<IMySlimBlock>();
+            grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
+            && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Reactor) ||
+            f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
+            f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_SolarPanel)));
+            var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => !f.Enabled).ToArray();
+            foreach (var item in list)
+            {
+                item.Enabled = true;
+            }
+            Context.Respond($"Entity '{entity.DisplayName}' powered on");
+
         }
     }
 }
