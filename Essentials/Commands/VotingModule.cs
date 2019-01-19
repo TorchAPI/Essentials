@@ -55,11 +55,6 @@ namespace Essentials.Commands
                 Context.Respond($"{name} is not set for voting.");
                 return;
             }
-            if (_voteDuration.TotalSeconds == 0)
-            {
-                Context.Respond($"{name} has no duration for voting. That's a no go boss");
-                return;
-            }
             voteInProgress = name;
             _voteInProgress = true;
             Task.Run(() =>
@@ -163,6 +158,7 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void VoteCount()
         {
+            Context.Respond($"{voteInProgress} is currently active with");
             Context.Respond($"vote count: {_votecount} / Vote percent: {votePercent}");
 
         }
@@ -178,21 +174,15 @@ namespace Essentials.Commands
                 {
                     _voteInProgress = false;
                     _cancelVote = false;
+                    Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
+                        .SendMessageAsSelf($"Vote for {voteInProgress} cancelled");
                     voteInProgress = "";
                     _votecount = 0;
                     votePercent = 0;
                     _voteReg.Clear();
-                    Context.Respond($"vote cancelled");
                     yield break;
                 }
                 votePercent = (_votecount / playerCount) * 100;
-                if (((_votecount / playerCount) * 100) >= command.Percentage && TimeSpan.Parse(command.VoteDuration).TotalSeconds == 0)
-                {
-                    Context.Respond($"Vote for {voteInProgress} is successful");
-                    command.RunNow();
-                    _voteInProgress = false;
-                    _cancelVote = false;
-                }
 
                 if (i >= 60 && i % 60 == 0)
                 {
@@ -212,7 +202,8 @@ namespace Essentials.Commands
                 {
                     if (((_votecount / playerCount) * 100) >= command.Percentage)
                     {
-                        Context.Respond($"Vote for {voteInProgress} is successful");
+                        Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
+                            .SendMessageAsSelf($"Vote for {voteInProgress} is successful");
                         command.RunNow();
                         _voteInProgress = false;
                         _cancelVote = false;
@@ -221,13 +212,12 @@ namespace Essentials.Commands
                     {
                         _voteInProgress = false;
                         _cancelVote = false;
+                        Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
+                            .SendMessageAsSelf($"Vote for {voteInProgress} failed");
                         voteInProgress = "";
                         _votecount = 0;
                         votePercent = 0;
                         _voteReg.Clear();
-                        Context.Respond($"vote cancelled");
-                        Context.Respond($"Vote for {voteInProgress} failed");
-
                     }
                     yield break;
                 }
