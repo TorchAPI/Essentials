@@ -35,6 +35,12 @@ namespace Essentials.Commands
         {
             var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(name));
 
+            if (_voteInProgress)
+            {
+                Context.Respond($"vote for {voteInProgress} is currently active. Use !yes to vote");
+                return;
+            }
+
             if (command == null)
             {
                 Context.Respond($"Couldn't find an auto command with the name {name}");
@@ -44,18 +50,11 @@ namespace Essentials.Commands
             if (Context.Player == null)
                 return;
 
-            if (_voteInProgress)
-            {
-                Context.Respond($"vote for {voteInProgress} is currently active. Use !yes to vote");
-                return;
-            }
-
             if (!command.Votable)
             {
                 Context.Respond($"{name} is not set for voting.");
                 return;
             }
-            TimeSpan _voteDuration = TimeSpan.Parse(command.VoteDuration);
             var steamid = Context.Player.SteamUserId;
             
             // Rexxar's spam blocker
@@ -65,7 +64,7 @@ namespace Essentials.Commands
                 TimeSpan difference = DateTime.Now - lastcommand;
                 if (difference.TotalMinutes < 5)
                 {
-                    Context.Respond($"Cooldown active. You can use this command again in {difference.TotalMinutes:N0} minutes : {difference.Seconds:N0} seconds");
+                    Context.Respond($"Cooldown active. You can use this command again in {4 - difference.Minutes:N0} minutes : {60 - difference.Seconds:N0} seconds");
                     return;
                 }
                 else
@@ -78,14 +77,14 @@ namespace Essentials.Commands
             else _votetimeout.Add(steamid, DateTime.Now);
 
             // voting registration filter
-
+            TimeSpan _voteDuration = TimeSpan.Parse(command.VoteDuration);
             if (_voteReg.TryGetValue(steamid, out DateTime lastvote))
             {
 
                 TimeSpan difference = DateTime.Now - lastvote;
                 if (difference.TotalSeconds < _voteDuration.TotalSeconds)
                 {
-                    Context.Respond($"Your vote has already been submitted. No take backs neither");
+                    Context.Respond($"Your vote has already been submitted. use '!no' to retract your vote");
                     return;
                 }
                 else
@@ -104,7 +103,7 @@ namespace Essentials.Commands
             if (_voteDuration.TotalSeconds > 10)
             {
                 Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf($"Voting started for {name}. " +
-                    $"use '!yes' to vote and '!no' to retract your vote" +
+                    $"use '!yes' to vote and '!no' to retract your vote " +
                     $"voting ends in {_voteDuration.Minutes:N0} minutes : {_voteDuration.Seconds:N0} seconds. ");
             }
 
@@ -170,7 +169,7 @@ namespace Essentials.Commands
                 TimeSpan _voteDuration = TimeSpan.Parse(command.VoteDuration);
                 if (difference.TotalHours < _voteDuration.TotalHours)
                 {
-                    Context.Respond($"Your vote has already been submitted. No take backs neither");
+                    Context.Respond($"Your vote has already been submitted.");
                     return;
                 }
                 else
@@ -192,9 +191,9 @@ namespace Essentials.Commands
         {
             votePercent = (_voteReg.Count / playerCount) * 100;
 
-            Context.Respond($"{voteInProgress} is currently active with");
+            Context.Respond($"Current vote: {voteInProgress}");
             Context.Respond($"vote cancellation is {_cancelVote}");
-            Context.Respond($"vote in progress is {_voteInProgress}");
+            Context.Respond($"vote status is {_voteInProgress}");
             Context.Respond($"vote count: {_voteReg.Count} / vote percent: {votePercent}");
 
         }
@@ -212,7 +211,6 @@ namespace Essentials.Commands
                 {
                     _voteInProgress = false;
                     _cancelVote = false;
-                    voteInProgress = null;
                     Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                         .SendMessageAsSelf($"Vote for {voteInProgress} cancelled");
                     voteInProgress = null;
@@ -223,7 +221,7 @@ namespace Essentials.Commands
                 if (i >= 60 && i % 60 == 0)
                 {
                     Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
-                        .SendMessageAsSelf($"Voting ends in {i / 60} minute{Pluralize(i / 60)}.");
+                        .SendMessageAsSelf($"Voting for {voteInProgress} ends in {i / 60} minute{Pluralize(i / 60)}.");
                     yield return null;
                 }
 
@@ -231,7 +229,7 @@ namespace Essentials.Commands
                 {
                     if (i < 11)
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
-                            .SendMessageAsSelf($"Voting ends in {i} second{Pluralize(i)}.");
+                            .SendMessageAsSelf($"Voting {voteInProgress} ends in {i} second{Pluralize(i)}.");
                     yield return null;
                 }
                 else
