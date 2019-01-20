@@ -41,20 +41,15 @@ namespace Essentials.Commands
                 return;
             }
 
-            if (command == null)
+            if (command == null || !command.Votable)
             {
-                Context.Respond($"Couldn't find an auto command with the name {name}");
+                Context.Respond($"Couldn't find any votable command with the name '{name}'");
                 return;
             }
 
             if (Context.Player == null)
                 return;
 
-            if (!command.Votable)
-            {
-                Context.Respond($"{name} is not set for voting.");
-                return;
-            }
             var steamid = Context.Player.SteamUserId;
             
             // Rexxar's spam blocker
@@ -102,9 +97,8 @@ namespace Essentials.Commands
             _voteInProgress = true;
             if (_voteDuration.TotalSeconds > 10)
             {
-                Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf($"Voting started for {name}. " +
-                    $"use '!yes' to vote and '!no' to retract your vote " +
-                    $"voting ends in {_voteDuration.Minutes:N0} minutes : {_voteDuration.Seconds:N0} seconds. ");
+                Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf($"Voting started for {name} by {Context.Player.DisplayName}. " +
+                    $"Use '!yes' to vote and '!no' to retract your vote");
             }
 
             //vote countdown
