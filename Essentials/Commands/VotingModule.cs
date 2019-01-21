@@ -53,15 +53,15 @@ namespace Essentials.Commands
                 return;
 
             var steamid = Context.Player.SteamUserId;
-            
-            // Rexxar's spam blocker
 
-            if (_votetimeout.TryGetValue(steamid, out DateTime lastcommand))
+            // Rexxar's spam blocker but let Admins through
+
+            if (_votetimeout.TryGetValue(steamid, out DateTime lastcommand) || !Context.Player.PromoteLevel.Equals(MyPromoteLevel.Admin))
             {
                 TimeSpan difference = DateTime.Now - lastcommand;
-                if (difference.TotalSeconds < _cooldown)
+                if (difference.TotalSeconds < 10)
                 {
-                    Context.Respond($"Cooldown active. You can use this command again in {4 - difference.Minutes:N0} minutes : {60 - difference.Seconds:N0} seconds");
+                    Context.Respond($"Cooldown active. You can use this command again in {10 - difference.Minutes:N0} minutes : {60 - difference.Seconds:N0} seconds");
                     return;
                 }
                 else
@@ -197,9 +197,11 @@ namespace Essentials.Commands
         {
             var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(voteInProgress));
 
+            votePercent = ((_voteReg.Count / playerCount) * 100);
+
+
             for (var i = time.TotalSeconds; i >= 0; i--)
             {
-                votePercent = (_voteReg.Count / playerCount) * 100;
 
                 if (_cancelVote || _voteReg.Count < 1)
                 {
@@ -223,12 +225,12 @@ namespace Essentials.Commands
                 {
                     if (i < 11)
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
-                            .SendMessageAsSelf($"Voting {voteInProgress} ends in {i} second{Pluralize(i)}.");
+                            .SendMessageAsSelf($"Voting for {voteInProgress} ends in {i} second{Pluralize(i)}.");
                     yield return null;
                 }
                 else
                 {
-                    if (((_voteReg.Count / playerCount) * 100) >= command.Percentage)
+                    if (votePercent >= command.Percentage)
                     {
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                             .SendMessageAsSelf($"Vote for {voteInProgress} is successful");
