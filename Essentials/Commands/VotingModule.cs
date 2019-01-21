@@ -21,6 +21,7 @@ namespace Essentials.Commands
     public class VotingModule : CommandModule
     {
         private static int votePercent;
+        private static int _cooldown;
         private static readonly int playerCount = MyMultiplayer.Static.MemberCount - 1;
         private static bool _voteInProgress = false;
         private static bool _cancelVote = false;
@@ -33,13 +34,14 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.None)]
         public void Vote(string name)
         {
-            var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(name));
 
             if (_voteInProgress)
             {
                 Context.Respond($"vote for {voteInProgress} is currently active. Use !yes to vote");
                 return;
             }
+
+            var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(name));
 
             if (command == null || !command.Votable)
             {
@@ -57,7 +59,7 @@ namespace Essentials.Commands
             if (_votetimeout.TryGetValue(steamid, out DateTime lastcommand))
             {
                 TimeSpan difference = DateTime.Now - lastcommand;
-                if (difference.TotalMinutes < 5)
+                if (difference.TotalSeconds < _cooldown)
                 {
                     Context.Respond($"Cooldown active. You can use this command again in {4 - difference.Minutes:N0} minutes : {60 - difference.Seconds:N0} seconds");
                     return;
@@ -183,12 +185,10 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void VoteCount()
         {
-            votePercent = (_voteReg.Count / playerCount) * 100;
-
             Context.Respond($"Current vote: {voteInProgress}");
             Context.Respond($"vote cancellation is {_cancelVote}");
             Context.Respond($"vote status is {_voteInProgress}");
-            Context.Respond($"vote count: {_voteReg.Count} / vote percent: {votePercent}");
+            Context.Respond($"vote count: {_voteReg.Count} / vote percent: {(_voteReg.Count / playerCount) * 100}");
 
         }
 

@@ -52,18 +52,6 @@ namespace Essentials.Commands
         public void Delete()
         {
             var count = 0;
-            if (Context.Args.Contains("float"))
-            {
-                foreach (var floater in MyEntities.GetEntities().OfType<MyFloatingObject>())
-                {
-                    Log.Info($"Deleted floating object: {floater.DisplayName}");
-                    floater.Close();
-                    count++;
-                }
-                Context.Respond($"Deleted {count} floating objects.");
-                Log.Info($"Cleanup deleted {count} floating objects");
-                return;
-            }
             foreach (var grid in ScanConditions(Context.Args))
             {
                 Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}");
@@ -74,6 +62,21 @@ namespace Essentials.Commands
 
             Context.Respond($"Deleted {count} grids matching the given conditions.");
             Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
+        }
+
+        [Command("delete floatingobjects","deletes floating objects")]
+        public void FlObjDelete()
+        {
+            var count = 0;
+            foreach (var floater in MyEntities.GetEntities().OfType<MyFloatingObject>())
+            {
+                Log.Info($"Deleting floating object: {floater.DisplayName}");
+                floater.Close();
+                count++;
+            }
+            Context.Respond($"Deleted {count} floating objects.");
+            Log.Info($"Cleanup deleted {count} floating objects");
+
         }
 
         [Command("help", "Lists all cleanup conditions.")]

@@ -140,7 +140,10 @@ namespace Essentials
         public void Kill(string name)
         {
             if (string.IsNullOrEmpty(name))
+            {
+                Context.Respond($"you must specify a user to kill, you idiot");
                 return;
+            }
 
             if (!Utilities.TryGetEntityByNameOrId(name, out IMyEntity entity))
             {
