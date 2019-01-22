@@ -201,10 +201,6 @@ namespace Essentials.Commands
             for (var i = time.TotalSeconds; i >= 0; i--)
             {
 
-
-                votePercent = (int)Math.Round((double)100 * (_voteReg.Count / playerCount));
-
-
                 if (_cancelVote || _voteReg.Count < 1)
                 {
                     Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
@@ -229,6 +225,8 @@ namespace Essentials.Commands
                 }
                 else
                 {
+                    votePercent = (int)Math.Round((double)100 * (_voteReg.Count / playerCount));
+
                     if (votePercent >= command.Percentage)
                     {
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
