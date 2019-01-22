@@ -1,19 +1,15 @@
 ﻿using System;
+using System.Text;
 using System.Threading;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Sandbox.Engine.Multiplayer;
-using Sandbox.Game.World;
 using Torch.API.Managers;
 using Torch.Commands;
 using Torch.Commands.Permissions;
-using Torch.Mod;
-using Torch.Mod.Messages;
 using VRage.Game.ModAPI;
-using VRageRender.Utils;
 
 
 namespace Essentials.Commands
@@ -21,8 +17,8 @@ namespace Essentials.Commands
     public class VotingModule : CommandModule
     {
         private static int votePercent;
-        private static int _cooldown;
-        private static readonly int playerCount = MyMultiplayer.Static.MemberCount - 1;
+        private static int _cooldown = 5;
+        private int playerCount = MyMultiplayer.Static.MemberCount - 1;
         private static bool _voteInProgress = false;
         private static bool _cancelVote = false;
         private static string voteInProgress;
@@ -34,6 +30,8 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.None)]
         public void Vote(string name)
         {
+            if (Context.Player == null)
+                return;
 
             if (_voteInProgress)
             {
@@ -49,19 +47,15 @@ namespace Essentials.Commands
                 return;
             }
 
-            if (Context.Player == null)
-                return;
 
+            // Rexxar's spam blocker but let Admins through. Timing is random as fuck and unique to each player.
             var steamid = Context.Player.SteamUserId;
-
-            // Rexxar's spam blocker but let Admins through
-
-            if (_votetimeout.TryGetValue(steamid, out DateTime lastcommand) || !Context.Player.PromoteLevel.Equals(MyPromoteLevel.Admin))
+            if (_votetimeout.TryGetValue(steamid, out DateTime lastcommand))
             {
                 TimeSpan difference = DateTime.Now - lastcommand;
-                if (difference.TotalSeconds < 10)
+                if (difference.TotalMinutes < (_cooldown + 1))
                 {
-                    Context.Respond($"Cooldown active. You can use this command again in {10 - difference.Minutes:N0} minutes : {60 - difference.Seconds:N0} seconds");
+                    Context.Respond($"Cooldown active. You can use this command again in {_cooldown - difference.Minutes:N0} minutes : {60 - difference.Seconds:N0} seconds");
                     return;
                 }
                 else
@@ -138,18 +132,19 @@ namespace Essentials.Commands
                 Context.Respond($"no vote in progress");
                 return;
             }
+
             var steamid = Context.Player.SteamUserId;
+
             _voteReg.Remove(steamid);
             Context.Respond("your vote has been retracted");
-            if (_voteReg.Count < 1) VoteCancel();
-
 
         }
+
         [Command("yes", "Submit a yes vote")]
         [Permission(MyPromoteLevel.None)]
         public void VoteYes()
         {
-            var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(voteInProgress));
+
             if (Context.Player == null)
                 return;
 
@@ -158,12 +153,14 @@ namespace Essentials.Commands
                 Context.Respond($"no vote in progress");
                 return;
             }
+
+            var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(voteInProgress));
             var steamid = Context.Player.SteamUserId;
             if (_voteReg.TryGetValue(steamid, out DateTime lastcommand))
             {
                 TimeSpan difference = DateTime.Now - lastcommand;
                 TimeSpan _voteDuration = TimeSpan.Parse(command.VoteDuration);
-                if (difference.TotalHours < _voteDuration.TotalHours)
+                if (difference.TotalSeconds < _voteDuration.TotalSeconds)
                 {
                     Context.Respond($"Your vote has already been submitted.");
                     return;
@@ -185,10 +182,13 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void VoteCount()
         {
-            Context.Respond($"Current vote: {voteInProgress}");
-            Context.Respond($"vote cancellation is {_cancelVote}");
-            Context.Respond($"vote status is {_voteInProgress}");
-            Context.Respond($"vote count: {_voteReg.Count} / vote percent: {(_voteReg.Count / playerCount) * 100}");
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"Current vote: {voteInProgress}");
+            sb.AppendLine($"vote cancellation is {_cancelVote}");
+            sb.AppendLine($"vote status is {_voteInProgress}");
+            sb.AppendLine($"vote count: {_voteReg.Count} / player count: {playerCount}");
+            sb.AppendLine($"vote percent: {votePercent}");
+            Context.Respond(sb.ToString());
 
         }
 
@@ -197,20 +197,19 @@ namespace Essentials.Commands
         {
             var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(voteInProgress));
 
-            votePercent = ((_voteReg.Count / playerCount) * 100);
-
 
             for (var i = time.TotalSeconds; i >= 0; i--)
             {
 
+
+                votePercent = (int)Math.Round((double)100 * (_voteReg.Count / playerCount));
+
+
                 if (_cancelVote || _voteReg.Count < 1)
                 {
-                    _voteInProgress = false;
-                    _cancelVote = false;
                     Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                         .SendMessageAsSelf($"Vote for {voteInProgress} cancelled");
-                    voteInProgress = null;
-                    _voteReg.Clear();
+                    VoteReset();
                     yield break;
                 }
 
@@ -235,21 +234,33 @@ namespace Essentials.Commands
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                             .SendMessageAsSelf($"Vote for {voteInProgress} is successful");
                         command.RunNow();
-                        _voteInProgress = false;
-                        _voteReg.Clear();
                     }
                     else
                     {
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                             .SendMessageAsSelf($"Vote for {voteInProgress} failed");
-                        _voteInProgress = false;
-                        _voteReg.Clear();
                     }
+                    VoteReset();
                     yield break;
                 }
             }
         }
 
+        public void VoteReset()
+        {
+            //Let's have some fun with the cooldown
+            Random rnd = new Random();
+            _cooldown = rnd.Next(5, 30);
+           
+            //Make sure it's all good for next round
+            _voteInProgress = false;
+            _cancelVote = false;
+            votePercent = 0;
+            _voteInProgress = false;
+            voteInProgress = null;
+            _voteReg.Clear();
+        }
+            
         private string Pluralize(double num)
         {
             return num == 1 ? "" : "s";
