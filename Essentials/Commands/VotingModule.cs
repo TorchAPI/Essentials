@@ -174,6 +174,7 @@ namespace Essentials.Commands
             {
                 _voteReg.Add(steamid, DateTime.Now);
             }
+            Context.Respond($"Your vote has been submitted.");
 
         }
 
