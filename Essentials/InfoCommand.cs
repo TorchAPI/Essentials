@@ -8,6 +8,7 @@ namespace Essentials
         private string _command;
         private string _chatResponse;
         private string _dialogResponse;
+        private string _urlResponse;
 
         public string Command
         {
@@ -26,7 +27,13 @@ namespace Essentials
             get => _dialogResponse;
             set => SetValue(ref _dialogResponse, value);
         }
-        
+
+        public string URL
+        {
+            get => _urlResponse;
+            set => SetValue(ref _urlResponse, value);
+        }
+
         public override string ToString()
         {
             return Command;

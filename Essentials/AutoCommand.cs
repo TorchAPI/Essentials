@@ -94,7 +94,7 @@ namespace Essentials
         public int Percentage
         {
             get => _votepercentage;
-            set => SetValue(ref _votepercentage, value);
+            set => SetValue(ref _votepercentage, Math.Min(value, 100));
         }
 
         [Display(Name = "Day of week", GroupName = "Schedule", Description = "Combined with Scheduled Time, will run the command on the given day of the week at the set time.")]

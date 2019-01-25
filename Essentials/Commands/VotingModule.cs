@@ -101,7 +101,7 @@ namespace Essentials.Commands
             });
 
             Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf($"Voting started for {name} by {Context.Player.DisplayName}. " +
-    $"Use '!yes' to vote and '!no' to retract your vote");
+            $"Use '!yes' to vote and '!no' to retract your vote");
 
         }
 
