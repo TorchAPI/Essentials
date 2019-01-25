@@ -30,17 +30,19 @@ namespace Essentials.Commands
             var infoCommands = EssentialsPlugin.Instance.Config.InfoCommands;
             if (infoCommands == null)
                 return;
-                
+
             var c = infoCommands.FirstOrDefault(i => i.Command?.Equals(msg.Message) == true);
             if (c == null)
                 return;
-            
+
             consumed = true;
             if (!string.IsNullOrEmpty(c.ChatResponse))
                 EssentialsPlugin.Instance.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsOther("Server", c.ChatResponse, MyFontEnum.Blue, msg.AuthorSteamId.Value);
             if (!string.IsNullOrEmpty(c.DialogResponse))
                 ModCommunication.SendMessageTo(new DialogMessage(c.Command, content: c.DialogResponse), msg.AuthorSteamId.Value);
-            if (!string.IsNullOrEmpty(c.DialogResponse))
-                MyVisualScriptLogicProvider.OpenSteamOverlay($"https://steamcommunity.com/linkfilter/?url={c.URL}", playerId)        }
+            if (!string.IsNullOrEmpty(c.URL))
+                MyVisualScriptLogicProvider.OpenSteamOverlay($"https://steamcommunity.com/linkfilter/?url={c.URL}", playerId);
+
+        }
     }
 }
