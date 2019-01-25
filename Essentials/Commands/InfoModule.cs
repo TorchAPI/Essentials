@@ -4,6 +4,8 @@ using Torch.Managers.ChatManager;
 using Torch.API.Managers;
 using Torch.Mod;
 using Torch.Mod.Messages;
+using Sandbox.Game;
+using Sandbox.Game.World;
 using VRage.Game;
 
 namespace Essentials.Commands
@@ -25,6 +27,7 @@ namespace Essentials.Commands
 
         private static void MessageProcessing(Torch.API.Managers.TorchChatMessage msg, ref bool consumed)
         {
+            long playerId = MySession.Static.Players.TryGetIdentityId(msg.AuthorSteamId.Value);
             var infoCommands = EssentialsPlugin.Instance.Config.InfoCommands;
             if (infoCommands == null)
                 return;
@@ -38,6 +41,8 @@ namespace Essentials.Commands
                 EssentialsPlugin.Instance.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsOther("Server", c.ChatResponse, MyFontEnum.Blue, msg.AuthorSteamId.Value);
             if (!string.IsNullOrEmpty(c.DialogResponse))
                 ModCommunication.SendMessageTo(new DialogMessage(c.Command, content: c.DialogResponse), msg.AuthorSteamId.Value);
+            if (!string.IsNullOrEmpty(c.URL))
+                MyVisualScriptLogicProvider.OpenSteamOverlay($"https://steamcommunity.com/linkfilter/?url={c.URL}", playerId);
         }
     }
 }
