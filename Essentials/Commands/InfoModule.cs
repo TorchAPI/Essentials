@@ -26,7 +26,6 @@ namespace Essentials.Commands
 
         private static void MessageProcessing(TorchChatMessage msg, ref bool consumed)
         {
-            long playerId = MySession.Static.Players.TryGetIdentityId(msg.AuthorSteamId.Value);
             var infoCommands = EssentialsPlugin.Instance.Config.InfoCommands;
             if (infoCommands == null)
                 return;
@@ -36,6 +35,8 @@ namespace Essentials.Commands
                 return;
 
             consumed = true;
+            long playerId = MySession.Static.Players.TryGetIdentityId(msg.AuthorSteamId.Value);
+
             if (!string.IsNullOrEmpty(c.ChatResponse))
                 EssentialsPlugin.Instance.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsOther("Server", c.ChatResponse, MyFontEnum.Blue, msg.AuthorSteamId.Value);
             if (!string.IsNullOrEmpty(c.DialogResponse))
