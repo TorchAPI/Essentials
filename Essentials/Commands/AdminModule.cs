@@ -41,12 +41,12 @@ namespace Essentials.Commands
         {
             if (count == -1)
             {
-                Context.Respond($"Nax player count: {MyMultiplayer.Static.MemberLimit}. Current online players: {MyMultiplayer.Static.MemberCount - 1}");
+                Context.Respond($"Max player count: {MyMultiplayer.Static.MemberLimit}. Current online players: {MyMultiplayer.Static.MemberCount - 1}");
                 return;
             }
 
             MyMultiplayer.Static.MemberLimit = count;
-            Context.Respond($"Nax player count: {MyMultiplayer.Static.MemberLimit}. Current online players: {MyMultiplayer.Static.MemberCount - 1}");
+            Context.Respond($"Max player count: {MyMultiplayer.Static.MemberLimit}. Current online players: {MyMultiplayer.Static.MemberCount - 1}");
         }
 
         [Command("runauto", "Runs the auto command with the given name immediately")]
