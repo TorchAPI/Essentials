@@ -78,7 +78,7 @@ namespace Essentials.Commands
             Context.Respond($"Disabled {count} blocks of type {type}.");
         }
 
-        [Command("remove subtype", "Turn off all blocks of the given subtype.")]
+        [Command("remove subtype", "remove all blocks of the given subtype.")]
         public void RemoveSubtype(string subtype)
         {
             var toRemove = new List<MySlimBlock>();
@@ -97,7 +97,7 @@ namespace Essentials.Commands
             Context.Respond($"Removed {toRemove.Count} blocks of subtype {subtype}.");
         }
 
-        [Command("remove type", "Turn off all blocks of the given type.")]
+        [Command("remove type", "remove all blocks of the given type.")]
         public void RemoveType(string type)
         {
             var toRemove = new List<MySlimBlock>();
@@ -138,7 +138,7 @@ namespace Essentials.Commands
             Context.Respond($"Disabled {count} blocks of subtype {subtype}.");
         }
 
-        [Command("on general", "Turn on all blocks of the specified general")]
+        [Command("on general", "Turn on all blocks of the specified category")]
         public void OnGeneral(string category)
         {
             var count = 0;
@@ -171,7 +171,7 @@ namespace Essentials.Commands
         }
 
 
-        [Command("off general", "Turn off all blocks of the specified general")]
+        [Command("off general", "Turn off all blocks of the specified category")]
         public void OffGeneral(string category)
         {
             var count = 0;
