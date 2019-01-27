@@ -218,9 +218,9 @@ namespace Essentials.Commands
             block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_OxygenGenerator))
                 return category.Equals(BlockCategory.production);
 
-            if (block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_TurretBase) ||
-            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_SmallMissileLauncher) ||
-            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_SmallGatlingGun))
+            if (block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_InteriorTurret) ||
+            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_LargeGatlingTurret) ||
+            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_LargeMissileTurret))
                 return category.Equals(BlockCategory.weapons);
 
 
