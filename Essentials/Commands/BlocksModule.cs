@@ -161,7 +161,7 @@ namespace Essentials.Commands
             }
             else
             {
-                Context.Respond($"{category} is not part of the set. Use the following with this command: power, production, weapons ");
+                Context.Respond($"{category} is not part of the set. Use the following with this command: " + string.Join(", ", Enum.GetValues(typeof(BlockCategory))));
                 return;
             }
 
