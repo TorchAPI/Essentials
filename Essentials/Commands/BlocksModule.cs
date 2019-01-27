@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Sandbox.Common.ObjectBuilders;
 using Sandbox.Game.Entities;
 using VRage.Game.ModAPI;
@@ -12,6 +10,7 @@ using Torch.Commands;
 
 namespace Essentials.Commands
 {
+
     [Category("blocks")]
     public class BlocksModule : CommandModule
     {
@@ -142,71 +141,23 @@ namespace Essentials.Commands
         [Command("on general", "Turn on all blocks of the specified general")]
         public void OnGeneral(string category)
         {
-            blockcategory result;
             var count = 0;
-            if (Enum.TryParse(category, out result))
+            if (Enum.TryParse(category, out BlockCategory result))
             {
-                switch (result)
+                foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
                 {
-                    case blockcategory.power:
+                    foreach (var item in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
+                    {
+                        if (IsBlockTypeOf(item, result))
                         {
-                            foreach (var entity in MyEntities.GetEntities().OfType<MyCubeGrid>())
-                            {
-                                IMyCubeGrid grid = entity as MyCubeGrid;
-                                var blocks = new List<IMySlimBlock>();
-                                grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
-                                && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Reactor) ||
-                                f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
-                                f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_SolarPanel)));
-                                var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => !f.Enabled).ToArray();
-                                foreach (var item in list)
-                                {
-                                    item.Enabled = true;
-                                }
-                                count++;
-                            }
-                        }
-                        break;
-                    case blockcategory.production:
-                        {
-                            foreach (var entity in MyEntities.GetEntities().OfType<MyCubeGrid>())
-                            {
-                                IMyCubeGrid grid = entity as MyCubeGrid;
-                                var blocks = new List<IMySlimBlock>();
-                                grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
-                    && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Refinery) ||
-                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Assembler) ||
-                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_OxygenGenerator)));
-                                var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => !f.Enabled).ToArray();
-                                foreach (var item in list)
-                                {
-                                    item.Enabled = true;
-                                }
-                                count++;
-                            }
-                        }
-                        break;
-                    case blockcategory.weapons:
-                        {
-                            foreach (var entity in MyEntities.GetEntities().OfType<MyCubeGrid>())
-                            {
-                                IMyCubeGrid grid = entity as MyCubeGrid;
-                                var blocks = new List<IMySlimBlock>();
-                                grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
-                    && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_InteriorTurret) ||
-                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_TurretBase) ||
-                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_LargeMissileTurret)));
-                                var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => !f.Enabled).ToArray();
-                                foreach (var item in list)
-                                {
-                                    item.Enabled = true;
-                                }
-                                count++;
-                            }
-                        }
-                        break;
 
+                            item.Enabled = true;
+                            count++;
+                        }
+                    }
                 }
+
+
             }
             else
             {
@@ -223,75 +174,28 @@ namespace Essentials.Commands
         [Command("off general", "Turn off all blocks of the specified general")]
         public void OffGeneral(string category)
         {
-            blockcategory result;
             var count = 0;
-            if (Enum.TryParse(category, out result))
-            {
-                switch (result)
-                {
-                    case blockcategory.power:
-                        {
-                            foreach (var entity in MyEntities.GetEntities().OfType<MyCubeGrid>())
-                            {
-                                IMyCubeGrid grid = entity as MyCubeGrid;
-                                var blocks = new List<IMySlimBlock>();
-                                grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
-                                && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Reactor) ||
-                                f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
-                                f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_SolarPanel)));
-                                var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => f.Enabled).ToArray();
-                                foreach (var item in list)
-                                {
-                                    item.Enabled = false;
-                                }
-                                count++;
-                            }
-                        }
-                        break;
-                    case blockcategory.production:
-                        {
-                            foreach (var entity in MyEntities.GetEntities().OfType<MyCubeGrid>())
-                            {
-                                IMyCubeGrid grid = entity as MyCubeGrid;
-                                var blocks = new List<IMySlimBlock>();
-                                grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
-                    && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Refinery) ||
-                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_Assembler) ||
-                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_OxygenGenerator)));
-                                var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => f.Enabled).ToArray();
-                                foreach (var item in list)
-                                {
-                                    item.Enabled = false;
-                                }
-                                count++;
-                            }
-                        }
-                        break;
-                    case blockcategory.weapons:
-                        {
-                            foreach (var entity in MyEntities.GetEntities().OfType<MyCubeGrid>())
-                            {
-                                IMyCubeGrid grid = entity as MyCubeGrid;
-                                var blocks = new List<IMySlimBlock>();
-                                grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
-                    && (f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_InteriorTurret) ||
-                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_TurretBase) ||
-                    f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_LargeMissileTurret)));
-                                var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => f.Enabled).ToArray();
-                                foreach (var item in list)
-                                {
-                                    item.Enabled = false;
-                                }
-                                count++;
-                            }
-                        }
-                        break;
 
+            if (Enum.TryParse(category, out BlockCategory result))
+            {
+                foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+                {
+                    foreach (var item in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
+                    {
+                        if (IsBlockTypeOf(item, result))
+                        {
+
+                            item.Enabled = false;
+                            count++;
+                        }
+                    }
                 }
+
+
             }
             else
             {
-                Context.Respond($"{category} is not part of the set. Use the following with this command: power, production, weapons ");
+                Context.Respond($"{category} is not part of the set. Use the following with this command: " + string.Join(", ", Enum.GetValues(typeof(BlockCategory))));
                 return;
             }
 
@@ -301,8 +205,28 @@ namespace Essentials.Commands
         }
 
 
+        public bool IsBlockTypeOf(MyFunctionalBlock block, BlockCategory category)
+        {
+            if (block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Reactor) ||
+            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
+            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_SolarPanel))
+                return category.Equals(BlockCategory.power);
 
-        public enum blockcategory
+            if (block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Assembler) ||
+            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Refinery) ||
+            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_OxygenGenerator))
+                return category.Equals(BlockCategory.production);
+
+            if (block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_TurretBase) ||
+            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_SmallMissileLauncher) ||
+            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_SmallGatlingGun))
+                return category.Equals(BlockCategory.weapons);
+
+
+            return false;
+        }
+
+        public enum BlockCategory
         {
             power,
             production,
