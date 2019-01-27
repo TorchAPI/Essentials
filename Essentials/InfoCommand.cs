@@ -33,7 +33,7 @@ namespace Essentials
             get => _urlResponse;
             set => SetValue(ref _urlResponse, value);
         }
-
+        
         public override string ToString()
         {
             return Command;
