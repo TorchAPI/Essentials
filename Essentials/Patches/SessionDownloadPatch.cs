@@ -500,8 +500,9 @@ namespace Essentials.Patches
             foreach (KeyValuePair<Type, MySessionComponentBase> entry in compDic)
             {
                 //literally dozens of MB of duplicated garbage. Ignore all of it.
-                if (entry.Value is MyProceduralWorldGenerator)
-                    continue;
+                //TODO: Keen fixed the duplication but this shouldn't exist at all. Rexxar has a plan
+                //if (entry.Value is MyProceduralWorldGenerator)
+                //    continue;
 
                 MyObjectBuilder_SessionComponent ob = entry.Value.GetObjectBuilder();
                 if (ob != null)
