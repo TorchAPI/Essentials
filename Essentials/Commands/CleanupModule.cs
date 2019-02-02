@@ -64,6 +64,21 @@ namespace Essentials.Commands
             Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
         }
 
+        [Command("delete floatingobjects","deletes floating objects")]
+        public void FlObjDelete()
+        {
+            var count = 0;
+            foreach (var floater in MyEntities.GetEntities().OfType<MyFloatingObject>())
+            {
+                Log.Info($"Deleting floating object: {floater.DisplayName}");
+                floater.Close();
+                count++;
+            }
+            Context.Respond($"Deleted {count} floating objects.");
+            Log.Info($"Cleanup deleted {count} floating objects");
+
+        }
+
         [Command("help", "Lists all cleanup conditions.")]
         public void Help()
         {

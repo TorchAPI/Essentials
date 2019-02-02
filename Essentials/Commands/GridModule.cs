@@ -1,26 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Sandbox;
 using Sandbox.Game.Entities;
-using Sandbox.ModAPI;
 using Torch.API.Managers;
 using Torch.Commands;
 using Torch.Commands.Permissions;
 using Torch.Mod;
 using Torch.Mod.Messages;
-using Valve.VR;
 using VRage;
-using VRage.Game.Entity.EntityComponents;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
-using VRageMath;
 using VRage.Game;
-using VRage.Game.Entity;
 using VRage.ObjectBuilders;
+
+
 
 namespace Essentials
 {
@@ -76,6 +70,16 @@ namespace Essentials
         {
             foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(g => g.GridSizeEnum == MyCubeSize.Large))
                 grid.OnConvertedToStationRequest(); //Keen why do you do this to me?
+        }
+
+        [Command("stopall", "Stops all moving grids.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void StopAll()
+        {
+                foreach (var grid in MyEntities.GetEntities().OfType<IMyCubeGrid>())
+                {
+                    grid.Physics.ClearSpeed();
+                }
         }
 
         [Command("list", "Lists all grids you own at least 50% of. Will give you positions if the server admin enables the option.")]

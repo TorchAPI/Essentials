@@ -21,8 +21,11 @@ namespace Essentials
         private DateTime _nextRun = DateTime.MinValue;
         private DayOfWeek _day = DayOfWeek.All;
         private int _currentStep;
+        private int _votepercentage;
+        private TimeSpan _voteDuration = TimeSpan.Zero;
         private string _name;
         private bool _enabled;
+        private bool _votable;
 
         [Display(Description = "Enables or disables this command. NOTE: !admin runauto does NOT respect this setting!")]
         public bool Enabled
@@ -30,6 +33,7 @@ namespace Essentials
             get => _enabled;
             set => SetValue(ref _enabled, value);
         }
+
 
         [Display(Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to trigger the command from ingame or from other auto commands.")]
         public string Name
@@ -70,6 +74,27 @@ namespace Essentials
                     _nextRun = DateTime.Now + _interval;
                 }
             }
+        }
+
+        [Display(Description = "Adds voting option to this command.  NOTE: A successful vote will activate this command")]
+        public bool Votable
+        {
+            get => _votable;
+            set => SetValue(ref _votable, value);
+        }
+
+        [Display(Name = "Vote Duration", Description = "Sets the duration for the vote. NOTE: Make sure to check the votable box to activate. Format is HH:MM:SS.")]
+        public string VoteDuration
+        {
+            get => _voteDuration.ToString();
+            set => SetValue(ref _voteDuration, TimeSpan.Parse(value));
+        }
+
+        [Display(Name = "Vote Percentage", Description = "Sets the percentage Yes vote needed for the command to activate. NOTE: This only works if the votable box is checked")]
+        public int Percentage
+        {
+            get => _votepercentage;
+            set => SetValue(ref _votepercentage, Math.Min(value, 100));
         }
 
         [Display(Name = "Day of week", GroupName = "Schedule", Description = "Combined with Scheduled Time, will run the command on the given day of the week at the set time.")]
@@ -166,13 +191,13 @@ namespace Essentials
         internal void RunNow()
         {
             Task.Run(() =>
-                     {
-                         foreach (var step in Steps)
-                         {
-                             step.RunStep();
-                             Thread.Sleep(step.DelaySpan);
-                         }
-                     });
+            {
+                foreach (var step in Steps)
+                {
+                    step.RunStep();
+                    Thread.Sleep(step.DelaySpan);
+                }
+            });
         }
 
         public override string ToString()
