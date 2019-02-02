@@ -5,7 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Sandbox.Engine.Multiplayer;
+using Sandbox.Game.World;
 using Torch.API.Managers;
 using Torch.Commands;
 using Torch.Commands.Permissions;
@@ -183,7 +183,7 @@ namespace Essentials.Commands
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"Current vote: {voteInProgress}");
             sb.AppendLine($"vote Status: {VoteStatus.ToString()}");
-            sb.AppendLine($"vote count: {_voteReg.Count} / player count: {MyMultiplayer.Static.MemberCount - 1}");
+            sb.AppendLine($"vote count: {_voteReg.Count} / player count: {MySession.Static.Players.GetOnlinePlayerCount()}");
             sb.AppendLine($"vote percent: {votePercent}");
             Context.Respond(sb.ToString());
 
@@ -202,7 +202,7 @@ namespace Essentials.Commands
                 {
                     Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                         .SendMessageAsSelf($"Vote for {voteInProgress} cancelled");
-                    VoteReset();
+                    VoteClear();
                     yield break;
                 }
 
@@ -222,7 +222,7 @@ namespace Essentials.Commands
                 }
                 else
                 {
-                    votePercent = (int)Math.Round((double)100 * (_voteReg.Count / (MyMultiplayer.Static.MemberCount - 1)));
+                    votePercent = (int)Math.Round((double)100 * (_voteReg.Count / (MySession.Static.Players.GetOnlinePlayerCount())));
 
                     if (votePercent >= command.Percentage)
                     {
@@ -235,13 +235,28 @@ namespace Essentials.Commands
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                             .SendMessageAsSelf($"Vote for {voteInProgress} failed");
                     }
-                    VoteReset();
+                    VoteClear();
                     yield break;
                 }
             }
         }
 
+        [Command("vote reset", "Reset all vote logs")]
+        [Permission(MyPromoteLevel.Admin)]
         public void VoteReset()
+        {
+            if (VoteStatus == Status.VoteInProgress)
+            {
+                VoteCancel();
+            }
+            else
+                VoteClear();
+            VoteClear();
+            votePercent = 0;
+            _votetimeout.Clear();
+        }
+
+        public void VoteClear()
         {
             Random rnd = new Random();
             _cooldown = rnd.Next(5, 30);
