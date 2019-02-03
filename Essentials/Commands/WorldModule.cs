@@ -96,6 +96,34 @@ namespace Essentials.Commands
             Context.Respond($"Removed {count} factions with fewer than {memberCount} members.");
         }
 
+        [Command("faction delete", "Remove faction by designated tag.")]
+        public void DeleteFaction(string factionName)
+        {
+            foreach(var faction in MySession.Static.Factions.ToList())
+            {
+                if (faction.Value.Tag == factionName)
+                {
+                    RemoveFaction(faction.Value);
+                    Context.Respond($"{factionName} has been removed");
+                    return;
+                }
+
+            }
+            Context.Respond($"Could not find any faction with the tag, {factionName}");
+
+        }
+
+        [Command("faction list", "List all current factions")]
+        public void ListFactions()
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (var faction in MySession.Static.Factions.ToList())
+            {
+                sb.Append($" {faction.Value.Tag}({faction.Value.Members.Count}) ");
+            }
+            Context.Respond($"{sb.ToString()}");
+        }
+
         private static void RemoveEmptyFactions()
         {
             CleanFaction_Internal(1);
