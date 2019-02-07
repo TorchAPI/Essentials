@@ -38,7 +38,7 @@ namespace Essentials.Commands
 
             if (VoteStatus == Status.voteInProgress)
             {
-                Context.Respond($"vote for {voteInProgress} is currently active. Use !yes to vote");
+                Context.Respond($"vote for {voteInProgress} is currently active. Use [!yes] to vote");
                 return;
             }
 
@@ -46,7 +46,7 @@ namespace Essentials.Commands
 
             if (command == null || !command.Votable)
             {
-                Context.Respond($"Couldn't find any votable command with the name '{name}'");
+                Context.Respond($"Couldn't find any votable command with the name [{name}]");
                 return;
             }
 
