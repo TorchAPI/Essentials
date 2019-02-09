@@ -218,6 +218,7 @@ namespace Essentials.Commands
                         .SendMessageAsSelf($"Vote for {voteInProgress} cancelled");
                     voteResult = Status.voteCancel;
                     VoteEnd();
+
                     yield break;
                 }
 
@@ -238,7 +239,6 @@ namespace Essentials.Commands
                 else
                 {
                     var _votePercent = 100 * (_voteReg.Count / MySession.Static.Players.GetOnlinePlayerCount());
-
                     if (_votePercent >= command.Percentage)
                     {
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
@@ -254,13 +254,15 @@ namespace Essentials.Commands
                     }
                     voteResultPercentage = _votePercent;
                     VoteEnd();
+
                     yield break;
                 }
             }
         }
-
+        
         public void VoteEnd()
         {
+
             //Make sure it's all good for next round
             VoteStatus = Status.voteStandby;
             voteInProgress = null;
