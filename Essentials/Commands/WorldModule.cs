@@ -96,6 +96,42 @@ namespace Essentials.Commands
             Context.Respond($"Removed {count} factions with fewer than {memberCount} members.");
         }
 
+        [Command("faction list", "lists all factions in the game")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void ListFactions()
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach(var faction in MySession.Static.Factions.ToList())
+            {
+                sb.Append($"{faction.Value.Tag}({faction.Value.Members.Count}) ");
+            }
+            Context.Respond(sb.ToString());
+        }
+
+        [Command("faction remove", "removes faction by tag name")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void RemoveFaction(string tag)
+        {
+            if (tag == null)
+            {
+                Context.Respond("You need to add a faction tag to remove");
+                return;
+            }
+            if (MySession.Static.Factions.FactionTagExists(tag))
+            {
+                RemoveFaction(tag);
+                if (MySession.Static.Factions.FactionTagExists(tag))
+                    Context.Respond($"{tag} removal failed");
+                else
+                    Context.Respond($"{tag} removal successful");
+                RemoveEmptyFactions();
+            }
+            else
+            {
+                Context.Respond($"{tag} is not a faction on this server");
+            }
+        }
+
         private static void RemoveEmptyFactions()
         {
             CleanFaction_Internal(1);
