@@ -51,6 +51,15 @@ namespace Essentials
             set => SetValue(ref _utilityShowPosition, value);
         }
 
+        private bool _markerShowPosition;
+
+        [Display(Name = "Grid list GPS marker",Description ="Show uservers the poition of all grids they own by gps marker")]
+        public bool MarkerShowPosition
+        {
+            get => _markerShowPosition;
+            set => SetValue(ref _markerShowPosition, value);
+        }
+
         private int _backpackLimit = 1;
         [Display(Name = "Backpack Limit", Description = "Sets the number of backpacks that can belong to any player. Empty backpacks are deleted after 30 seconds, and backpacks which break the limit are deleted in order spawned. Set -1 for no limit.")]
         public int BackpackLimit
