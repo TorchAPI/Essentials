@@ -117,9 +117,12 @@ namespace Essentials.Commands
                 Context.Respond("You need to add a faction tag to remove");
                 return;
             }
-            if (MySession.Static.Factions.FactionTagExists(tag))
+
+            var fac = MySession.Static.Factions.TryGetFactionByTag(tag);
+            
+            if (fac != null)
             {
-                RemoveFaction(tag);
+                RemoveFaction(fac);
                 if (MySession.Static.Factions.FactionTagExists(tag))
                     Context.Respond($"{tag} removal failed");
                 else
@@ -130,6 +133,31 @@ namespace Essentials.Commands
             {
                 Context.Respond($"{tag} is not a faction on this server");
             }
+        }
+
+        [Command("faction members", "lists members of given faction")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void FactionMembers(string tag)
+        {
+            if (tag == null)
+            {
+                Context.Respond("list a faction tag you would like to get members of");
+                return;
+            }
+            if (MySession.Static.Factions.FactionTagExists(tag))
+            {
+                StringBuilder sb = new StringBuilder();
+                var faction = MySession.Static.Factions.TryGetFactionByTag(tag);
+                foreach (var player in faction.Members)
+                {
+                    var playerID = MySession.Static.Players.TryGetIdentity(player.Value.PlayerId);
+                    sb.Append($"{playerID.DisplayName} ");
+                }
+                Context.Respond(sb.ToString());
+            }
+            else
+                Context.Respond($"{tag} is not a faction on this server");
+            
         }
 
         private static void RemoveEmptyFactions()
