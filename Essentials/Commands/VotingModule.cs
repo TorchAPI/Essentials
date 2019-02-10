@@ -206,7 +206,6 @@ namespace Essentials.Commands
         //vote countdown
         private IEnumerable VoteCountdown(TimeSpan time)
         {
-            var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(voteInProgress));
 
 
             for (var i = time.TotalSeconds; i >= 0; i--)
@@ -237,9 +236,9 @@ namespace Essentials.Commands
                 }
                 else
                 {
-                    var _votePercent = 100 * (_voteReg.Count / MySession.Static.Players.GetOnlinePlayerCount());
+                    var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(voteInProgress));
 
-                    if (_votePercent >= command.Percentage)
+                    if (VoteCount(_voteReg.Count) >= command.Percentage)
                     {
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                             .SendMessageAsSelf($"Vote for {voteInProgress} is successful");
@@ -252,12 +251,23 @@ namespace Essentials.Commands
                             .SendMessageAsSelf($"Vote for {voteInProgress} failed");
                         voteResult = Status.voteFail;
                     }
-                    voteResultPercentage = _votePercent;
+                    voteResultPercentage = VoteCount(_voteReg.Count);
                     VoteEnd();
                     yield break;
                 }
             }
         }
+
+        //creating calculation method for reasons
+
+        public double VoteCount(double votecount)
+        {
+            double playercount = MySession.Static.Players.GetOnlinePlayerCount();
+            double result = Math.Round(100 * (votecount / playercount));
+            return result;
+
+        }
+
 
         public void VoteEnd()
         {
