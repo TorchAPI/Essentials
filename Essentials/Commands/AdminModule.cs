@@ -49,6 +49,24 @@ namespace Essentials.Commands
             Context.Respond($"Max player count: {MyMultiplayer.Static.MemberLimit}. Current online players: {MyMultiplayer.Static.MemberCount - 1}");
         }
 
+        [Command("playerlist", "Lists current players on the server")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void ListPlayers()
+        {
+            if(MySession.Static.Players.GetOnlinePlayerCount() == 0)
+            {
+                Context.Respond("No players online");
+                return;
+            }
+            StringBuilder sb = new StringBuilder();
+            foreach(var player in MySession.Static.Players.GetOnlinePlayers())
+            {
+                sb.Append($"{player.DisplayName}, ");
+            }
+            Context.Respond(sb.ToString());
+        }
+
+
         [Command("runauto", "Runs the auto command with the given name immediately")]
         [Permission(MyPromoteLevel.Admin)]
         public void RunAuto(string name)
