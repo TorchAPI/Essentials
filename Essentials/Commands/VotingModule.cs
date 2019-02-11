@@ -206,6 +206,7 @@ namespace Essentials.Commands
         //vote countdown
         private IEnumerable VoteCountdown(TimeSpan time)
         {
+            var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(voteInProgress));
 
 
             for (var i = time.TotalSeconds; i >= 0; i--)
@@ -217,6 +218,7 @@ namespace Essentials.Commands
                         .SendMessageAsSelf($"Vote for {voteInProgress} cancelled");
                     voteResult = Status.voteCancel;
                     VoteEnd();
+
                     yield break;
                 }
 
@@ -236,9 +238,8 @@ namespace Essentials.Commands
                 }
                 else
                 {
-                    var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(voteInProgress));
-
-                    if (VoteCount(_voteReg.Count) >= command.Percentage)
+                    var _votePercent = 100 * (_voteReg.Count / MySession.Static.Players.GetOnlinePlayerCount());
+                    if (_votePercent >= command.Percentage)
                     {
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                             .SendMessageAsSelf($"Vote for {voteInProgress} is successful");
@@ -251,26 +252,17 @@ namespace Essentials.Commands
                             .SendMessageAsSelf($"Vote for {voteInProgress} failed");
                         voteResult = Status.voteFail;
                     }
-                    voteResultPercentage = VoteCount(_voteReg.Count);
+                    voteResultPercentage = _votePercent;
                     VoteEnd();
+
                     yield break;
                 }
             }
         }
-
-        //creating calculation method for reasons
-
-        public double VoteCount(double votecount)
-        {
-            double playercount = MySession.Static.Players.GetOnlinePlayerCount();
-            double result = Math.Round(100 * (votecount / playercount));
-            return result;
-
-        }
-
-
+        
         public void VoteEnd()
         {
+
             //Make sure it's all good for next round
             VoteStatus = Status.voteStandby;
             voteInProgress = null;
