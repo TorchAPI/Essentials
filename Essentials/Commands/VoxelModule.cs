@@ -14,6 +14,7 @@ using Torch.Mod.Messages;
 using VRage.Game.Entity;
 using VRage.Network;
 using VRage.Voxels;
+using VRageMath;
 using Parallel = ParallelTasks.Parallel;
 
 namespace Essentials.Commands
@@ -24,7 +25,7 @@ namespace Essentials.Commands
         private Logger _log = LogManager.GetCurrentClassLogger();
 
         [Command("reset all", "Resets all voxel maps.")]
-        public void ResetAll()
+        public void ResetAll(bool deleteStorage = false)
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelBase>();
             
@@ -37,9 +38,16 @@ namespace Essentials.Commands
                                                 if (map.StorageName == null || map.Storage.DataProvider == null)
                                                     continue;
 
-                                                map.Storage.Reset(MyStorageDataTypeFlags.All);
-                                                lock (resetIds)
-                                                    resetIds.Add(map.EntityId);
+                                                long id = map.EntityId;
+
+                                                if(deleteStorage && map is MyVoxelMap)
+                                                    map.Close();
+                                                else
+                                                    map.Storage.Reset(MyStorageDataTypeFlags.All);
+
+                                                if(!deleteStorage)
+                                                    lock (resetIds)
+                                                        resetIds.Add(id);
                                             }
                                             catch (Exception e)
                                             {
@@ -51,8 +59,8 @@ namespace Essentials.Commands
             Context.Respond($"Reset {resetIds.Count} voxel maps.");
         }
 
-        [Command("cleanup asteroids", "Resets all asteroids that don't have a grid or player nearby")]
-        public void CleanupAsteroids()
+        [Command("cleanup asteroids", "Resets all asteroids that don't have a grid or player nearby.")]
+        public void CleanupAsteroids(bool deleteStorage = false)
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelMap>();
 
@@ -74,15 +82,68 @@ namespace Essentials.Commands
                                                 if(nearEntities.Any(e => e is MyCubeGrid || e is MyCharacter))
                                                     continue;
 
-                                                map.Storage.Reset(MyStorageDataTypeFlags.All);
-                                                lock(resetIds)
-                                                    resetIds.Add(map.EntityId);
+                                                long id = map.EntityId;
+
+                                                if(deleteStorage)
+                                                    map.Close();
+                                                else
+                                                    map.Storage.Reset(MyStorageDataTypeFlags.All);
+
+                                                if(!deleteStorage)
+                                                    lock(resetIds)  
+                                                        resetIds.Add(id);
                                             }
                                             catch (Exception e)
                                             {
                                                 _log.Error($"{e.Message}\n{e.StackTrace}");
                                             }
                                         }//);
+
+            ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
+
+            Context.Respond($"Reset {resetIds.Count} voxel maps.");
+        }
+
+        [Command("cleanup distant", "Resets all asteroids that don't have a grid or player inside the specified radius.")]
+        public void CleanupAsteroidsDistant(double distance = 1000, bool deleteStorage = false)
+        {
+
+            var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelMap>();
+
+            var resetIds = new List<long>();
+
+            //Parallel.ForEach(voxelMaps, map =>
+            foreach (var map in voxelMaps)
+            {
+                try
+                {
+                    if (map.StorageName == null || map.Storage.DataProvider == null)
+                        continue;
+
+                    var s = new BoundingSphereD(map.PositionComp.GetPosition(), distance);
+                    var nearEntities = new List<MyEntity>();
+
+                    MyGamePruningStructure.GetAllTopMostEntitiesInSphere(ref s, nearEntities);
+
+                    if (nearEntities.Any(e => e is MyCubeGrid || e is MyCharacter))
+                        continue;
+
+                    long id = map.EntityId;
+                    
+                    if(deleteStorage)
+                        map.Close();
+                    else
+                        map.Storage.Reset(MyStorageDataTypeFlags.All);
+
+                    if(!deleteStorage)
+                        lock (resetIds)
+                            resetIds.Add(id);
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"{e.Message}\n{e.StackTrace}");
+                }
+            }//);
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 

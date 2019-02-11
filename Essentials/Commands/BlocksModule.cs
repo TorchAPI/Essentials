@@ -161,7 +161,7 @@ namespace Essentials.Commands
             }
             else
             {
-                Context.Respond($"{category} is not part of the set. Use the following with this command: " + string.Join(", ", Enum.GetValues(typeof(BlockCategory))));
+                Context.Respond($"{category} is not a valid category. Use one of the following: " + string.Join(", ", Enum.GetValues(typeof(BlockCategory))));
                 return;
             }
 
@@ -195,7 +195,7 @@ namespace Essentials.Commands
             }
             else
             {
-                Context.Respond($"{category} is not part of the set. Use the following with this command: " + string.Join(", ", Enum.GetValues(typeof(BlockCategory))));
+                Context.Respond($"{category} is not a valid category. Use one of the following: " + string.Join(", ", Enum.GetValues(typeof(BlockCategory))));
                 return;
             }
 
@@ -207,30 +207,30 @@ namespace Essentials.Commands
 
         public bool IsBlockTypeOf(MyFunctionalBlock block, BlockCategory category)
         {
-            if (block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Reactor) ||
-            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
-            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_SolarPanel))
-                return category.Equals(BlockCategory.power);
-
-            if (block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Assembler) ||
-            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Refinery) ||
-            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_OxygenGenerator))
-                return category.Equals(BlockCategory.production);
-
-            if (block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_InteriorTurret) ||
-            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_LargeGatlingTurret) ||
-            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_LargeMissileTurret))
-                return category.Equals(BlockCategory.weapons);
-
-
-            return false;
+            switch (category)
+            {
+                case BlockCategory.Power:
+                    return block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Reactor) ||
+                           block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
+                           block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_SolarPanel);
+                case BlockCategory.Production:
+                    return block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Assembler) ||
+                           block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Refinery) ||
+                           block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_OxygenGenerator);
+                case BlockCategory.Weapons:
+                    return block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_InteriorTurret) ||
+                           block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_LargeGatlingTurret) ||
+                           block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_LargeMissileTurret);
+                default:
+                    throw new InvalidBranchException();
+            }
         }
 
         public enum BlockCategory
         {
-            power,
-            production,
-            weapons
+            Power,
+            Production,
+            Weapons
 
         }
     }

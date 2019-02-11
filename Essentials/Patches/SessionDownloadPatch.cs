@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -18,6 +19,9 @@ using Sandbox.Game.World;
 using Sandbox.Game.World.Generator;
 using Sandbox.ModAPI;
 using SpaceEngineers.Game.Entities.Blocks;
+using Torch.API.Session;
+using Torch.API.Managers;
+using Torch.Managers;
 using Torch.Managers.PatchManager;
 using Torch.Managers.PatchManager.MSIL;
 using Torch.Mod;
@@ -36,13 +40,39 @@ using VRageMath;
 
 namespace Essentials.Patches
 {
+    /// <summary>
+    /// This is a replacement for the vanilla logic that generates a world save to send to new clients.
+    /// The main focus of this replacement is to drastically reduce the amount of data sent to clients
+    /// (which removes some exploits), and to remove as many allocations as realistically possible,
+    /// in order to speed up the client join process, avoiding lag spikes on new connections.
+    /// 
+    /// This code is **NOT** free to use, under the Apache license. You know who this message is for.
+    /// 
+    /// </summary>
     public class SessionDownloadPatch
     {
         private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
+        private static ITorchSessionManager _sessionManager;
+        private static ITorchSessionManager SessionManager => _sessionManager ?? (_sessionManager = EssentialsPlugin.Instance.Torch.Managers.GetManager<ITorchSessionManager>());
+
         public static void Patch(PatchContext ctx)
         {
             ctx.GetPattern(typeof(MyMultiplayerServerBase).GetMethod("OnWorldRequest", BindingFlags.NonPublic | BindingFlags.Instance)).Transpilers.Add(typeof(SessionDownloadPatch).GetMethod(nameof(PatchGetWorld), BindingFlags.NonPublic | BindingFlags.Static));
+            SessionManager.OverrideModsChanged += OverrideModsChanged;
+        }
+
+        private static void OverrideModsChanged(CollectionChangeEventArgs args)
+        {
+            switch (args.Action)
+            {
+                case CollectionChangeAction.Add:
+                    _checkpoint?.Mods.Add((MyObjectBuilder_Checkpoint.ModItem)args.Element);
+                    break;
+                case CollectionChangeAction.Remove:
+                    _checkpoint?.Mods.Remove((MyObjectBuilder_Checkpoint.ModItem)args.Element);
+                    break;
+            }
         }
 
         private static IEnumerable<MsilInstruction> PatchGetWorld(IEnumerable<MsilInstruction> input)
@@ -136,7 +166,7 @@ namespace Essentials.Patches
                 _checkpoint.Settings = settings;
                 //We're replacing the call to MySession.GetWorld, so Torch can't inject the torch mod. Do it here instead
                 _checkpoint.Mods = MySession.Static.Mods.ToList();
-                _checkpoint.Mods.Add(new MyObjectBuilder_Checkpoint.ModItem(TorchModCore.MOD_ID));
+                _checkpoint.Mods.AddRange(SessionManager.OverrideMods);
                 _checkpoint.Scenario = MySession.Static.Scenario.Id;
                 _checkpoint.WorldBoundaries = MySession.Static.WorldBoundaries;
                 _checkpoint.PreviousEnvironmentHostility = MySession.Static.PreviousEnvironmentHostility;
@@ -500,8 +530,9 @@ namespace Essentials.Patches
             foreach (KeyValuePair<Type, MySessionComponentBase> entry in compDic)
             {
                 //literally dozens of MB of duplicated garbage. Ignore all of it.
-                if (entry.Value is MyProceduralWorldGenerator)
-                    continue;
+                //TODO: Keen fixed the duplication but this shouldn't exist at all. Rexxar has a plan
+                //if (entry.Value is MyProceduralWorldGenerator)
+                //    continue;
 
                 MyObjectBuilder_SessionComponent ob = entry.Value.GetObjectBuilder();
                 if (ob != null)
