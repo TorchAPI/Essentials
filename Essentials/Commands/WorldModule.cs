@@ -151,7 +151,7 @@ namespace Essentials.Commands
                 foreach (var player in faction.Members)
                 {
                     var playerID = MySession.Static.Players.TryGetIdentity(player.Value.PlayerId);
-                    sb.Append($"{playerID.DisplayName} ");
+                    sb.Append($"{playerID.DisplayName}, ");
                 }
                 Context.Respond(sb.ToString());
             }
