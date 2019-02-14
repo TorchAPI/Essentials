@@ -16,6 +16,8 @@ using Sandbox.Game.World.Generator;
 using Sandbox.ModAPI;
 using SpaceEngineers.Game.GUI;
 using Torch.Commands;
+using Torch.Mod;
+using Torch.Mod.Messages;
 using Torch.Commands.Permissions;
 using Torch.Managers;
 using Torch.Utils;
@@ -96,17 +98,6 @@ namespace Essentials.Commands
             Context.Respond($"Removed {count} factions with fewer than {memberCount} members.");
         }
 
-        [Command("faction list", "lists all factions in the game")]
-        [Permission(MyPromoteLevel.Admin)]
-        public void ListFactions()
-        {
-            StringBuilder sb = new StringBuilder();
-            foreach(var faction in MySession.Static.Factions.ToList())
-            {
-                sb.Append($"{faction.Value.Tag}({faction.Value.Members.Count}) ");
-            }
-            Context.Respond(sb.ToString());
-        }
 
         [Command("faction remove", "removes faction by tag name")]
         [Permission(MyPromoteLevel.Admin)]
@@ -135,29 +126,54 @@ namespace Essentials.Commands
             }
         }
 
-        [Command("faction members", "lists members of given faction")]
+        [Command("faction info", "lists members of given faction")]
         [Permission(MyPromoteLevel.Admin)]
-        public void FactionMembers(string tag)
+        public void FactionInfo()
         {
-            if (tag == null)
+
+            StringBuilder sb = new StringBuilder();
+            double memberCount;
+
+            foreach (var factionID in MySession.Static.Factions)
             {
-                Context.Respond("list a faction tag you would like to get members of");
-                return;
-            }
-            if (MySession.Static.Factions.FactionTagExists(tag))
-            {
-                StringBuilder sb = new StringBuilder();
-                var faction = MySession.Static.Factions.TryGetFactionByTag(tag);
+                var faction = factionID.Value;
+                memberCount = faction.Members.Count();
+                sb.AppendLine();
+                sb.AppendLine($"{faction.Tag} - {memberCount} players in this faction");
                 foreach (var player in faction.Members)
                 {
                     var playerID = MySession.Static.Players.TryGetIdentity(player.Value.PlayerId);
-                    sb.Append($"{playerID.DisplayName} ");
+                    sb.AppendLine($"{playerID.DisplayName}");
                 }
-                Context.Respond(sb.ToString());
+            }
+            
+            //Just don't see the need for this anymore.  Leaving for now in case it comes handy in the future
+            /*
+            else if (MySession.Static.Factions.FactionTagExists(tag))
+            {
+                var faction = MySession.Static.Factions.TryGetFactionByTag(tag);
+                memberCount = faction.Members.Count();
+
+                sb.AppendLine($"{faction.Tag} - {memberCount} players in this faction");
+                foreach (var player in faction.Members)
+                {
+                    var playerID = MySession.Static.Players.TryGetIdentity(player.Value.PlayerId);
+                    sb.AppendLine($"{playerID.DisplayName}");
+                }
+
             }
             else
                 Context.Respond($"{tag} is not a faction on this server");
-            
+                */
+
+            if (Context.Player == null)
+                Context.Respond(sb.ToString());
+            else if (Context?.Player?.SteamUserId > 0)
+            {
+                ModCommunication.SendMessageTo(new DialogMessage("Faction Info", null, sb.ToString()), Context.Player.SteamUserId);
+            }
+
+
         }
 
         private static void RemoveEmptyFactions()

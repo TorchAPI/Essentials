@@ -61,9 +61,15 @@ namespace Essentials.Commands
             StringBuilder sb = new StringBuilder();
             foreach(var player in MySession.Static.Players.GetOnlinePlayers())
             {
-                sb.Append($"{player.DisplayName}, ");
+                sb.AppendLine();
+                sb.AppendLine($"{player.DisplayName}");
             }
-            Context.Respond(sb.ToString());
+            if (Context.Player == null)
+                Context.Respond(sb.ToString());
+            else if (Context?.Player?.SteamUserId > 0)
+            {
+                ModCommunication.SendMessageTo(new DialogMessage("List of Online Players", null, sb.ToString()), Context.Player.SteamUserId);
+            }
         }
 
 
