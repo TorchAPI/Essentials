@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using Sandbox;
 using Sandbox.Game.Entities;
+using Sandbox.ModAPI;
 using Torch.API.Managers;
 using Torch.Commands;
 using Torch.Commands.Permissions;
@@ -97,7 +98,14 @@ namespace Essentials
 
                 if (grid.BigOwners.Contains(id))
                 {
+
                     sb.AppendLine($"{grid.DisplayName} - {grid.GridSizeEnum} - {grid.BlocksCount} blocks - Position {(EssentialsPlugin.Instance.Config.UtilityShowPosition ? grid.PositionComp.GetPosition().ToString() : "Unknown")}");
+                    if (EssentialsPlugin.Instance.Config.MarkerShowPosition)
+                    {
+                        var gridGPS = MyAPIGateway.Session?.GPS.Create(grid.DisplayName, ($"{grid.DisplayName} - {grid.GridSizeEnum} - {grid.BlocksCount} blocks"), grid.PositionComp.GetPosition(), true);
+
+                        MyAPIGateway.Session?.GPS.AddGps(Context.Player.IdentityId, gridGPS);
+                    }
                 }
             }
 
