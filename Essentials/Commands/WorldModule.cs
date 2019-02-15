@@ -16,6 +16,8 @@ using Sandbox.Game.World.Generator;
 using Sandbox.ModAPI;
 using SpaceEngineers.Game.GUI;
 using Torch.Commands;
+using Torch.Mod;
+using Torch.Mod.Messages;
 using Torch.Commands.Permissions;
 using Torch.Managers;
 using Torch.Utils;
@@ -49,7 +51,7 @@ namespace Essentials.Commands
                     count++;
                 }
             }
-            
+
             RemoveEmptyFactions();
             FixBlockOwnership();
             Context.Respond($"Removed {count} old identities");
@@ -82,7 +84,7 @@ namespace Essentials.Commands
                     }
                 }
             }
-            
+
             RemoveEmptyFactions();
             FixBlockOwnership();
             Context.Respond($"Removed {count} old identities and {count2} grids owned by them.");
@@ -96,17 +98,6 @@ namespace Essentials.Commands
             Context.Respond($"Removed {count} factions with fewer than {memberCount} members.");
         }
 
-        [Command("faction list", "lists all factions in the game")]
-        [Permission(MyPromoteLevel.Admin)]
-        public void ListFactions()
-        {
-            StringBuilder sb = new StringBuilder();
-            foreach(var faction in MySession.Static.Factions.ToList())
-            {
-                sb.Append($"{faction.Value.Tag}({faction.Value.Members.Count}) ");
-            }
-            Context.Respond(sb.ToString());
-        }
 
         [Command("faction remove", "removes faction by tag name")]
         [Permission(MyPromoteLevel.Admin)]
@@ -119,7 +110,7 @@ namespace Essentials.Commands
             }
 
             var fac = MySession.Static.Factions.TryGetFactionByTag(tag);
-            
+
             if (fac != null)
             {
                 RemoveFaction(fac);
@@ -135,29 +126,54 @@ namespace Essentials.Commands
             }
         }
 
-        [Command("faction members", "lists members of given faction")]
+        [Command("faction info", "lists members of given faction")]
         [Permission(MyPromoteLevel.Admin)]
-        public void FactionMembers(string tag)
+        public void FactionInfo()
         {
-            if (tag == null)
+
+            StringBuilder sb = new StringBuilder();
+            double memberCount;
+
+            foreach (var factionID in MySession.Static.Factions)
             {
-                Context.Respond("list a faction tag you would like to get members of");
-                return;
-            }
-            if (MySession.Static.Factions.FactionTagExists(tag))
-            {
-                StringBuilder sb = new StringBuilder();
-                var faction = MySession.Static.Factions.TryGetFactionByTag(tag);
+                var faction = factionID.Value;
+                memberCount = faction.Members.Count();
+                sb.AppendLine();
+                sb.AppendLine($"{faction.Tag} - {memberCount} players in this faction");
                 foreach (var player in faction.Members)
                 {
                     var playerID = MySession.Static.Players.TryGetIdentity(player.Value.PlayerId);
-                    sb.Append($"{playerID.DisplayName}, ");
+                    sb.AppendLine($"{playerID.DisplayName}");
                 }
-                Context.Respond(sb.ToString());
+            }
+
+            //Just don't see the need for this anymore.  Leaving for now in case it comes handy in the future
+            /*
+            else if (MySession.Static.Factions.FactionTagExists(tag))
+            {
+                var faction = MySession.Static.Factions.TryGetFactionByTag(tag);
+                memberCount = faction.Members.Count();
+
+                sb.AppendLine($"{faction.Tag} - {memberCount} players in this faction");
+                foreach (var player in faction.Members)
+                {
+                    var playerID = MySession.Static.Players.TryGetIdentity(player.Value.PlayerId);
+                    sb.AppendLine($"{playerID.DisplayName}");
+                }
+
             }
             else
                 Context.Respond($"{tag} is not a faction on this server");
-            
+                */
+
+            if (Context.Player == null)
+                Context.Respond(sb.ToString());
+            else if (Context?.Player?.SteamUserId > 0)
+            {
+                ModCommunication.SendMessageTo(new DialogMessage("Faction Info", null, sb.ToString()), Context.Player.SteamUserId);
+            }
+
+
         }
 
         private static void RemoveEmptyFactions()
@@ -214,7 +230,7 @@ namespace Essentials.Commands
         [ReflectedMethod(Name = "ApplyFactionStateChange", Type = typeof(MyFactionCollection))]
         private static Action<MyFactionCollection, MyFactionStateChange, long, long, long, long> _applyFactionState;
 
-        private static MethodInfo _factionChangeSuccessInfo = typeof(MyFactionCollection).GetMethod("FactionStateChangeSuccess", BindingFlags.NonPublic|BindingFlags.Static);
+        private static MethodInfo _factionChangeSuccessInfo = typeof(MyFactionCollection).GetMethod("FactionStateChangeSuccess", BindingFlags.NonPublic | BindingFlags.Static);
         private static readonly MethodInfo _factionStateChangeReq = typeof(MyFactionCollection).GetMethod("FactionStateChangeRequest", BindingFlags.Static | BindingFlags.NonPublic);
         //TODO: This should probably be moved into Torch base, but I honestly cannot be bothered
         /// <summary>
@@ -225,9 +241,10 @@ namespace Essentials.Commands
         {
             //bypass the check that says the server doesn't have permission to delete factions
             //_applyFactionState(MySession.Static.Factions, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
-            MyMultiplayer.RaiseStaticEvent(s =>
-                    (Action<MyFactionStateChange, long, long, long, long>) Delegate.CreateDelegate(typeof(Action<MyFactionStateChange, long, long, long, long>), _factionStateChangeReq),
-                MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, faction.FounderId, faction.FounderId);
+            //MyMultiplayer.RaiseStaticEvent(s =>
+            //        (Action<MyFactionStateChange, long, long, long, long>) Delegate.CreateDelegate(typeof(Action<MyFactionStateChange, long, long, long, long>), _factionStateChangeReq),
+            //    MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, faction.FounderId, faction.FounderId);
+            NetworkManager.RaiseStaticEvent(_factionChangeSuccessInfo, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
         }
 
         private static int FixBlockOwnership()
@@ -244,7 +261,7 @@ namespace Essentials.Commands
                 {
                     if (block.OwnerId == 0 || MySession.Static.Players.HasIdentity(block.OwnerId))
                         continue;
-                    
+
                     block.ChangeOwner(owner, share);
                     count++;
                 }
@@ -256,8 +273,8 @@ namespace Essentials.Commands
         private static readonly FieldInfo GpsDicField = GpssField.FieldType.GetField("m_playerGpss", BindingFlags.NonPublic | BindingFlags.Instance);
         private static readonly FieldInfo SeedParamField = typeof(MyProceduralWorldGenerator).GetField("m_existingObjectsSeeds", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        private static readonly FieldInfo CamerasField = typeof(MySession).GetField("Cameras", BindingFlags.NonPublic|BindingFlags.Instance);
-        private static readonly FieldInfo AllCamerasField = CamerasField.FieldType.GetField("m_entityCameraSettings", BindingFlags.NonPublic|BindingFlags.Instance);
+        private static readonly FieldInfo CamerasField = typeof(MySession).GetField("Cameras", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo AllCamerasField = CamerasField.FieldType.GetField("m_entityCameraSettings", BindingFlags.NonPublic | BindingFlags.Instance);
 
         [Command("sandbox clean", "Cleans up junk data from the sandbox file")]
         [Permission(MyPromoteLevel.SpaceMaster)]
@@ -342,9 +359,9 @@ namespace Essentials.Commands
             }
             count += idCache.Count;
             idCache.Clear();
-            
+
             //delete chat history for deleted factions
-            for(int i = MySession.Static.FactionChatHistory.Count -1; i >=0; i--)
+            for (int i = MySession.Static.FactionChatHistory.Count - 1; i >= 0; i--)
             {
                 var history = MySession.Static.FactionChatHistory[i];
                 if (MySession.Static.Factions.TryGetFactionById(history.FactionId1) == null || MySession.Static.Factions.TryGetFactionById(history.FactionId2) == null)
