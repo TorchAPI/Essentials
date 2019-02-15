@@ -2,13 +2,20 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
+using System.Threading.Tasks;
+using System.Xml.Serialization;
 using Essentials.Utils;
 using NLog;
+using Sandbox;
 using Sandbox.Engine.Multiplayer;
+using Sandbox.Engine.Physics;
 using Sandbox.Engine.Utils;
+using Sandbox.Engine.Voxels;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.GameSystems;
@@ -16,15 +23,11 @@ using Sandbox.Game.Multiplayer;
 using Sandbox.Game.Screens.Helpers;
 using Sandbox.Game.SessionComponents;
 using Sandbox.Game.World;
-using Sandbox.Game.World.Generator;
 using Sandbox.ModAPI;
 using SpaceEngineers.Game.Entities.Blocks;
-using Torch.API.Session;
 using Torch.API.Managers;
-using Torch.Managers;
+using Torch.API.Session;
 using Torch.Managers.PatchManager;
-using Torch.Managers.PatchManager.MSIL;
-using Torch.Mod;
 using Torch.Utils;
 using VRage;
 using VRage.Collections;
@@ -32,36 +35,180 @@ using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
-using VRage.Library.Collections;
+using VRage.GameServices;
 using VRage.Network;
 using VRage.ObjectBuilders;
+using VRage.Replication;
 using VRage.Serialization;
 using VRageMath;
 
 namespace Essentials.Patches
 {
     /// <summary>
-    /// This is a replacement for the vanilla logic that generates a world save to send to new clients.
-    /// The main focus of this replacement is to drastically reduce the amount of data sent to clients
-    /// (which removes some exploits), and to remove as many allocations as realistically possible,
-    /// in order to speed up the client join process, avoiding lag spikes on new connections.
+    ///     This is a replacement for the vanilla logic that generates a world save to send to new clients.
+    ///     The main focus of this replacement is to drastically reduce the amount of data sent to clients
+    ///     (which removes some exploits), and to remove as many allocations as realistically possible,
+    ///     in order to speed up the client join process, avoiding lag spikes on new connections.
     /// 
-    /// This code is **NOT** free to use, under the Apache license. You know who this message is for.
-    /// 
+    ///     This code is **NOT** free to use, under the Apache license. You know who this message is for.
     /// </summary>
     public class SessionDownloadPatch
     {
         private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         private static ITorchSessionManager _sessionManager;
+
+        [ReflectedMethod(Name = "RaiseClientLeft")]
+        private static Action<MyMultiplayerBase, ulong, MyChatMemberStateChangeEnum> _raseClientLeft;
+
+        [ReflectedGetter(Name = "TransportLayer")]
+        private static Func<MySyncLayer, object> _transportLayer;
+
+        [ReflectedMethod(Name = "SendFlush", TypeName = "Sandbox.Engine.Multiplayer.MyTransportLayer, Sandbox.Game")]
+        private static Action<object, ulong> _sendFlush;
+
+        private static int _lastSize = 0x8000;
+
+        [ReflectedGetter(Name = "m_callback")]
+        private static Func<MyReplicationServer, IReplicationServerCallback> _getCallback;
+        
+        private static readonly TypedObjectPool Pool = new TypedObjectPool();
+
+        [ReflectedGetter(Name = "m_sessionComponents")]
+        private static Func<MySession, CachingDictionary<Type, MySessionComponentBase>> SessionComponents_Getter;
+
+        [ReflectedGetter(Name = "Cameras")]
+        private static Func<MySession, object> Camera_Getter;
+
+        [ReflectedGetter(Name = "m_entityCameraSettings", TypeName = "Sandbox.Game.Multiplayer.MyCameraCollection, Sandbox.Game")]
+        private static Func<object, Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>>> EntityCameraSettings_Getter;
+
+        private static MyObjectBuilder_Checkpoint _checkpoint;
+        private static MyObjectBuilder_Gps bGps;
+
+        [ReflectedGetter(Name = "m_objectFactory", TypeName = "Sandbox.Game.Entities.MyEntityFactory, Sandbox.Game")]
+        private static Func<MyObjectFactory<MyEntityTypeAttribute, MyEntity>> ObjectFactory_Getter;
+
+        [ReflectedGetter(Name = "m_players")]
+        private static Func<MyPlayerCollection, ConcurrentDictionary<MyPlayer.PlayerId, MyPlayer>> Players_Getter;
+
+        [ReflectedGetter(Name = "m_playerIdentityIds")]
+        private static Func<MyPlayerCollection, ConcurrentDictionary<MyPlayer.PlayerId, long>> PlayerIdentities_Getter;
+
+        private static List<CameraControllerSettings> _cameraSettings;
+
+        [ReflectedMethod(Name = "SaveInternal")]
+        private static Action<MyStorageBase, Stream> _saveInternal;
+
         private static ITorchSessionManager SessionManager => _sessionManager ?? (_sessionManager = EssentialsPlugin.Instance.Torch.Managers.GetManager<ITorchSessionManager>());
+
+        private static Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>> EntityCameraSettings => EntityCameraSettings_Getter(Camera_Getter(MySession.Static));
 
         public static void Patch(PatchContext ctx)
         {
-            ctx.GetPattern(typeof(MyMultiplayerServerBase).GetMethod("OnWorldRequest", BindingFlags.NonPublic | BindingFlags.Instance)).Transpilers.Add(typeof(SessionDownloadPatch).GetMethod(nameof(PatchGetWorld), BindingFlags.NonPublic | BindingFlags.Static));
+            ctx.GetPattern(typeof(MyMultiplayerServerBase).GetMethod("OnWorldRequest", BindingFlags.NonPublic | BindingFlags.Instance)).Prefixes.Add(typeof(SessionDownloadPatch).GetMethod(nameof(PatchGetWorld), BindingFlags.NonPublic | BindingFlags.Static));
             SessionManager.OverrideModsChanged += OverrideModsChanged;
         }
 
+        public static MyObjectBuilder_World GetClientWorld(EndpointId sender)
+        {
+            if (!EssentialsPlugin.Instance.Config.EnableClientTweaks)
+                return MySession.Static.GetWorld(false);
+
+            Log.Info($"Preparing world for {sender.Value}...");
+
+            var ob = new MyObjectBuilder_World
+                     {
+                         Checkpoint = GetClientCheckpoint(sender.Value),
+                         Sector = GetClientSector(sender.Value)
+                     };
+
+            if (EssentialsPlugin.Instance.Config.PackPlanets)
+            {
+                Stopwatch stopwatch = Stopwatch.StartNew();
+                ob.VoxelMaps = new SerializableDictionary<string, byte[]>(GetUncompressedVoxels(true));
+                stopwatch.Stop();
+                Log.Info($"Voxel snapshot took {stopwatch.Elapsed.TotalMilliseconds}ms");
+            }
+            else
+                ob.VoxelMaps = new SerializableDictionary<string, byte[]>();
+
+            return ob;
+        }
+
+        /// <summary>
+        /// Gets uncompressed storage data for all planets in the world.
+        /// Data is wrapped in a no-compression gzip stream for vanilla client compatibility.
+        /// </summary>
+        /// <param name="includeChanged"></param>
+        /// <returns></returns>
+        public static Dictionary<string, byte[]> GetUncompressedVoxels(bool includeChanged)
+        {
+            var voxelCache = new Dictionary<string, byte[]>(MySession.Static.VoxelMaps.Instances.Count);
+            var i = 0;
+            Log.Info("Taking voxel snapshots");
+            foreach (MyVoxelBase voxelMap in MySession.Static.VoxelMaps.Instances)
+            {
+                if (!(voxelMap is MyPlanet))
+                    continue;
+
+                if (includeChanged == false && (voxelMap.ContentChanged || voxelMap.BeforeContentChanged))
+                    continue;
+
+                if (voxelMap.Save == false)
+                    continue;
+
+                if (voxelCache.ContainsKey(voxelMap.StorageName))
+                    continue;
+
+                Log.Info($"{i++}: {voxelMap.StorageName}");
+                SaveUncompressed((MyStorageBase)voxelMap.Storage, out byte[] data);
+                voxelCache.Add(voxelMap.StorageName, data);
+            }
+            Log.Info("Voxel snapshot finished");
+            return voxelCache;
+        }
+
+        /// <summary>
+        /// Gets the uncompressed, gzip-wrapped storage data for a given voxel map.
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="data"></param>
+        private static void SaveUncompressed(MyStorageBase storage, out byte[] data)
+        {
+            if (storage.CachedWrites)
+                storage.WritePending(true);
+
+            using (var ms = new MemoryStream(0x8000))
+            using (var gz = new GZipStream(ms, CompressionLevel.NoCompression))
+            using (var bf = new BufferedStream(gz, 0x8000))
+            {
+                string name;
+                int version;
+                if (storage is MyOctreeStorage)
+                {
+                    name = "Octree";
+                    version = 1;
+                }
+                else
+                    throw new InvalidBranchException("Keen what are you DOING");
+                bf.WriteNoAlloc(name);
+                bf.Write7BitEncodedInt(version);
+
+                _saveInternal(storage, bf);
+
+                bf.Flush();
+                gz.Flush();
+
+                data = ms.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// Event handler for injected client mods.
+        /// Needed because we cache the checkpoint and are too lazy to update this list all the time
+        /// </summary>
+        /// <param name="args"></param>
         private static void OverrideModsChanged(CollectionChangeEventArgs args)
         {
             switch (args.Action)
@@ -75,74 +222,143 @@ namespace Essentials.Patches
             }
         }
 
-        private static IEnumerable<MsilInstruction> PatchGetWorld(IEnumerable<MsilInstruction> input)
+        //private static void Init()
+        //{
+        //    MySession.Static.Factions.FactionStateChanged += (change, l, arg3, arg4, arg5) => _dirty = true;
+        //    MySession.Static.Factions.FactionCreated += id => _dirty = true;
+        //    MySession.Static.Factions.FactionEdited += id => _dirty = true;
+        //    MySession.Static.Factions.FactionAutoAcceptChanged += (l, b, arg3) => _dirty = true;
+
+        //    MySession.Static.ChatSystem.FactionHistoryDeleted += () => _dirty = true;
+        //    MySession.Static.ChatSystem.FactionMessageReceived += id => _dirty = true;
+        //    MySession.Static.ChatSystem.PlayerMessageReceived += id => _dirty = true;
+        //}
+
+
+        /// <summary>
+        /// Main entry point to this class. Prefix on MyMultiplayerBase.OnWorldRequest.
+        /// Effectively replaces all client join logic.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <returns></returns>
+        private static bool PatchGetWorld(EndpointId sender)
         {
-            foreach (MsilInstruction ins in input)
+            Log.Info($"World request received: {MyMultiplayer.Static.GetMemberName(sender.Value)}");
+
+            if (MyMultiplayer.Static.KickedClients.ContainsKey(sender.Value) || MyMultiplayer.Static.BannedClients.Contains(sender.Value) || MySandboxGame.ConfigDedicated?.Banned.Contains(sender.Value) == true)
             {
-                if ((ins.OpCode == OpCodes.Callvirt || ins.OpCode == OpCodes.Call) && ins.Operand is MsilOperandInline<MethodBase> mdo && mdo.Value.Name == "GetWorld")
+                //a hacked client or a plugin can request world data without properly joining the server
+                Log.Error("Banned client requested world. This is bad.");
+                _raseClientLeft(MyMultiplayer.Static, sender.Value, MyChatMemberStateChangeEnum.Banned);
+                return false;
+            }
+
+            if (MySession.Static == null)
+            {
+                Log.Error("World is not loaded!");
+                return false;
+            }
+
+            //taking a session snapshot is the only thing that must be done synchronously
+            MyObjectBuilder_World worldData = GetClientWorld(sender);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            worldData.Checkpoint.WorkshopId = null;
+            stopwatch.Stop();
+            Log.Info($"World checkpoint took {stopwatch.Elapsed.TotalMilliseconds}ms");
+
+            if (worldData.Clusters == null)
+                worldData.Clusters = new List<BoundingBoxD>();
+            worldData.Clusters.Clear();
+            MyPhysics.SerializeClusters(worldData.Clusters);
+
+            //serializin, compressing, and sending the data can all be dumped into a thread
+            if (EssentialsPlugin.Instance.Config.AsyncJoin)
+                Task.Run(() => PackAndSend(worldData, sender));
+            else
+                PackAndSend(worldData, sender);
+
+            return false;
+        }
+
+        /// <summary>
+        /// Utility to serialize, compress, and send the world data
+        /// </summary>
+        /// <param name="worldData"></param>
+        /// <param name="sender"></param>
+        private static void PackAndSend(MyObjectBuilder_World worldData, EndpointId sender)
+        {
+            Log.Info("Beginning world compression...");
+            try
+            {
+                using (var worldStream = new MemoryStream())
                 {
-                    yield return new MsilInstruction(OpCodes.Pop);
-                    yield return new MsilInstruction(OpCodes.Pop);
-                    yield return new MsilInstruction(OpCodes.Ldarg_1);
-                    yield return new MsilInstruction(OpCodes.Call).InlineValue(GetWorldInfo);
+                    SerializeZipped(worldStream, worldData, EssentialsPlugin.Instance.Config.CompressionLevel, _lastSize);
+                    _sendFlush(_transportLayer(MyMultiplayer.Static.SyncLayer), sender.Value);
+
+                    Stopwatch stopwatch = Stopwatch.StartNew();
+                    byte[] buffer = worldStream.ToArray();
+                    Log.Info($"Sending {Utilities.FormatDataSize(buffer.Length)} world data...");
+                    SendWorld(buffer, sender);
+                    stopwatch.Stop();
+                    Log.Info($"Data flush took {stopwatch.Elapsed.TotalMilliseconds}ms");
                 }
-                else if (ins.OpCode == OpCodes.Stfld && ins.Operand is MsilOperandInline<FieldInfo> fdo && fdo.Value.Name == "CharacterToolbar")
-                {
-                    yield return new MsilInstruction(OpCodes.Pop);
-                    yield return new MsilInstruction(OpCodes.Pop);
-                }
-                else
-                    yield return ins;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failure during world compression!");
             }
         }
 
-        private static readonly MethodInfo GetWorldInfo = typeof(SessionDownloadPatch).GetMethod(nameof(GetClientWorld), BindingFlags.Public | BindingFlags.Static);
-
-        public static MyObjectBuilder_World GetClientWorld(EndpointId sender)
+        /// <summary>
+        /// Replacement for MyObjectBuilderSerializer that lets you set compression level.
+        /// </summary>
+        /// <param name="writeTo"></param>
+        /// <param name="obj"></param>
+        /// <param name="level"></param>
+        /// <param name="bufferSize"></param>
+        private static void SerializeZipped(Stream writeTo, MyObjectBuilder_Base obj, CompressionLevel level, int bufferSize = 0x8000)
         {
-            if (!EssentialsPlugin.Instance.Config.EnableClientTweaks)
+            var ms = new MemoryStream(bufferSize);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            XmlSerializer serializer = MyXmlSerializerManager.GetSerializer(obj.GetType());
+            serializer.Serialize(ms, obj);
+            stopwatch.Stop();
+            Log.Info($"Serialization took {stopwatch.Elapsed.TotalMilliseconds}ms");
+            ms.Position = 0;
+            Log.Info($"Wrote {Utilities.FormatDataSize(ms.Length)}B");
+            _lastSize = Math.Max(_lastSize, (int)ms.Length);
+            stopwatch.Restart();
+            using (var gz = new GZipStream(writeTo, level))
             {
-                return MySession.Static.GetWorld(false);
+                ms.CopyTo(gz);
             }
-
-            Log.Info($"Preparing world for {sender.Value}...");
-
-            var ob = new MyObjectBuilder_World
-                     {
-                         Checkpoint = GetClientCheckpoint(sender.Value),
-                         VoxelMaps = new SerializableDictionary<string, byte[]>(),
-                         Sector = GetClientSector(sender.Value)
-                     };
-
-            return ob;
+            stopwatch.Stop();
+            Log.Info($"Compression took {stopwatch.Elapsed.TotalMilliseconds}ms");
+            ms.Close();
         }
 
-        private static readonly TypedObjectPool Pool = new TypedObjectPool();
-        
-        [ReflectedGetter(Name = "m_sessionComponents")]
-        private static Func<MySession, CachingDictionary<Type, MySessionComponentBase>> SessionComponents_Getter;
-        
-        private static Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>> EntityCameraSettings => EntityCameraSettings_Getter(Camera_Getter(MySession.Static));
+        /// <summary>
+        /// Replaces some truly awful Keencode that involves a handful of branches and callvirt
+        /// for *each byte* in the byte array. This is at least a 5x improvement in tests.
+        /// </summary>
+        /// <param name="worldData"></param>
+        /// <param name="sendTo"></param>
+        private static void SendWorld(byte[] worldData, EndpointId sendTo)
+        {
+            IReplicationServerCallback callback = _getCallback((MyReplicationServer)MyMultiplayer.Static.ReplicationLayer);
+            MyPacketDataBitStreamBase data = callback.GetBitStreamPacketData();
+            data.Stream.WriteVariant((uint)worldData.Length);
+            for (var i = 0; i < worldData.Length; i++)
+                data.Stream.WriteByte(worldData[i]);
+            callback.SendWorld(data, sendTo);
+        }
 
-        [ReflectedGetter(Name = "Cameras")]
-        private static Func<MySession, object> Camera_Getter;
-
-        [ReflectedGetter(Name = "m_entityCameraSettings", TypeName ="Sandbox.Game.Multiplayer.MyCameraCollection, Sandbox.Game" )]
-        private static Func<object, Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>>> EntityCameraSettings_Getter;
-
-        private static MyObjectBuilder_Checkpoint _checkpoint;
-        private static MyObjectBuilder_Gps bGps;
-
-        [ReflectedGetter(Name = "m_objectFactory", TypeName = "Sandbox.Game.Entities.MyEntityFactory, Sandbox.Game")]
-        private static Func<MyObjectFactory<MyEntityTypeAttribute, MyEntity>> ObjectFactory_Getter;
-
-        [ReflectedGetter(Name = "m_players")]
-        private static Func<MyPlayerCollection, ConcurrentDictionary<MyPlayer.PlayerId, MyPlayer>> Players_Getter;
-        [ReflectedGetter(Name = "m_playerIdentityIds")]
-        private static Func<MyPlayerCollection, ConcurrentDictionary<MyPlayer.PlayerId, long>> PlayerIdentities_Getter;
-
-        private static List<CameraControllerSettings> _cameraSettings;
-        
+        /// <summary>
+        /// Gets a session snapshot customized for an individual player. Removes data that player does not need,
+        /// which improves download times, and fixes some exploits.
+        /// </summary>
+        /// <param name="steamId"></param>
+        /// <returns></returns>
         private static MyObjectBuilder_Checkpoint GetClientCheckpoint(ulong steamId)
         {
             Log.Info($"Saving checkpoint...");
@@ -187,7 +403,7 @@ namespace Essentials.Patches
                 _checkpoint.NonPlayerIdentities = new List<long>();
                 _checkpoint.CharacterToolbar = null;
             }
-            
+
             _checkpoint.CreativeTools.Clear();
             Pool.DeallocateCollection(_checkpoint.Gps.Dictionary.Values);
             _checkpoint.Gps.Dictionary.Clear();
@@ -206,7 +422,7 @@ namespace Essentials.Patches
             Pool.DeallocateAndClear(_checkpoint.Clients);
             _checkpoint.NonPlayerIdentities.Clear();
             Pool.DeallocateAndClear(_cameraSettings);
-            
+
             if (MySession.Static.CreativeToolsEnabled(steamId))
                 _checkpoint.CreativeTools.Add(steamId);
             //checkpoint.Briefing = Briefing;
@@ -226,12 +442,12 @@ namespace Essentials.Patches
             //  checkpoint.PlayerToolbars = Toolbars.GetSerDictionary();
 
             //Sync.Players.SavePlayers(_checkpoint);
-            var m_players = Players_Getter(MySession.Static.Players);
-            var m_playerIdentityIds = PlayerIdentities_Getter(MySession.Static.Players);
+            ConcurrentDictionary<MyPlayer.PlayerId, MyPlayer> m_players = Players_Getter(MySession.Static.Players);
+            ConcurrentDictionary<MyPlayer.PlayerId, long> m_playerIdentityIds = PlayerIdentities_Getter(MySession.Static.Players);
 
-            foreach (var p in m_players.Values)
+            foreach (MyPlayer p in m_players.Values)
             {
-                var id = new MyObjectBuilder_Checkpoint.PlayerId() { ClientId = p.Id.SteamId, SerialId = p.Id.SerialId };
+                var id = new MyObjectBuilder_Checkpoint.PlayerId {ClientId = p.Id.SteamId, SerialId = p.Id.SerialId};
                 var playerOb = Pool.AllocateOrCreate<MyObjectBuilder_Player>();
 
                 playerOb.DisplayName = p.DisplayName;
@@ -244,24 +460,25 @@ namespace Essentials.Patches
                 else
                     playerOb.BuildColorSlots.Clear();
 
-                foreach(var color in p.BuildColorSlots)
+                foreach (Vector3 color in p.BuildColorSlots)
                     playerOb.BuildColorSlots.Add(color);
 
                 _checkpoint.AllPlayersData.Dictionary.Add(id, playerOb);
             }
 
-            foreach (var identityPair in m_playerIdentityIds)
+            foreach (KeyValuePair<MyPlayer.PlayerId, long> identityPair in m_playerIdentityIds)
             {
-                if (m_players.ContainsKey(identityPair.Key)) continue;
+                if (m_players.ContainsKey(identityPair.Key))
+                    continue;
 
-                var id = new MyObjectBuilder_Checkpoint.PlayerId() { ClientId = identityPair.Key.SteamId, SerialId = identityPair.Key.SerialId };
-                var identity = MySession.Static.Players.TryGetIdentity(identityPair.Value);
-                MyObjectBuilder_Player playerOb = Pool.AllocateOrCreate<MyObjectBuilder_Player>();
+                var id = new MyObjectBuilder_Checkpoint.PlayerId {ClientId = identityPair.Key.SteamId, SerialId = identityPair.Key.SerialId};
+                MyIdentity identity = MySession.Static.Players.TryGetIdentity(identityPair.Value);
+                var playerOb = Pool.AllocateOrCreate<MyObjectBuilder_Player>();
 
                 playerOb.DisplayName = identity?.DisplayName;
                 playerOb.IdentityId = identityPair.Value;
                 playerOb.Connected = false;
-                
+
                 if (MyCubeBuilder.AllPlayersColors != null)
                     MyCubeBuilder.AllPlayersColors.TryGetValue(identityPair.Key, out playerOb.BuildColorSlots);
 
@@ -270,13 +487,13 @@ namespace Essentials.Patches
 
             if (MyCubeBuilder.AllPlayersColors != null)
             {
-                foreach (var colorPair in MyCubeBuilder.AllPlayersColors)
+                foreach (KeyValuePair<MyPlayer.PlayerId, List<Vector3>> colorPair in MyCubeBuilder.AllPlayersColors)
                 {
                     //TODO: check if the player exists in m_allIdentities
                     if (m_players.ContainsKey(colorPair.Key) || m_playerIdentityIds.ContainsKey(colorPair.Key))
                         continue;
 
-                    var id = new MyObjectBuilder_Checkpoint.PlayerId() { ClientId = colorPair.Key.SteamId, SerialId = colorPair.Key.SerialId };
+                    var id = new MyObjectBuilder_Checkpoint.PlayerId {ClientId = colorPair.Key.SteamId, SerialId = colorPair.Key.SerialId};
                     _checkpoint.AllPlayersColors.Dictionary.Add(id, colorPair.Value);
                 }
             }
@@ -294,7 +511,7 @@ namespace Essentials.Patches
 
                 //MySession.Static.Cameras.SaveCameraCollection(checkpoint);
                 player.EntityCameraData = _cameraSettings;
-                var d = EntityCameraSettings;
+                Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>> d = EntityCameraSettings;
                 if (d.TryGetValue(ppid, out Dictionary<long, MyEntityCameraSettings> camera))
                 {
                     foreach (KeyValuePair<long, MyEntityCameraSettings> cameraSetting in camera)
@@ -341,20 +558,20 @@ namespace Essentials.Patches
             if (MyFakes.ENABLE_MISSION_TRIGGERS)
                 //usually empty, so meh
                 _checkpoint.MissionTriggers = MySessionComponentMissionTriggers.Static.GetObjectBuilder();
-            
+
             //bunch of allocations in here, but can't replace the logic easily because private types
             _checkpoint.Factions = MySession.Static.Factions.GetObjectBuilder();
 
             //ok for now, clients need to know about dead identities. Might filter out those that own no blocks.
             //amount of data per ID is low, and admins usually clean them, so meh
             //_checkpoint.Identities = Sync.Players.SaveIdentities();
-            foreach (var identity in MySession.Static.Players.GetAllIdentities())
+            foreach (MyIdentity identity in MySession.Static.Players.GetAllIdentities())
             {
                 if (MySession.Static.Players.TryGetPlayerId(identity.IdentityId, out MyPlayer.PlayerId id))
                 {
-                    var p = MySession.Static.Players.GetPlayerById(id);
-                    if(p!=null)
-                        identity.LastLogoutTime= DateTime.Now;
+                    MyPlayer p = MySession.Static.Players.GetPlayerById(id);
+                    if (p != null)
+                        identity.LastLogoutTime = DateTime.Now;
                 }
 
                 var objectBuilder = Pool.AllocateOrCreate<MyObjectBuilder_Identity>();
@@ -380,9 +597,7 @@ namespace Essentials.Patches
             foreach (KeyValuePair<long, MyPlayer.PlayerId> entry in MySession.Static.Players.ControlledEntities)
             {
                 if (entry.Value.SteamId == steamId)
-                {
                     _checkpoint.ControlledEntities.Dictionary.Add(entry.Key, cpid);
-                }
             }
 
             //checkpoint.SpectatorPosition = new MyPositionAndOrientation(ref spectatorMatrix);
@@ -413,7 +628,7 @@ namespace Essentials.Patches
                     Pool.DeallocateAndClear(builder.PlayerChatHistory);
                 else
                     builder.PlayerChatHistory = new List<MyObjectBuilder_PlayerChatHistory>();
-                foreach (var chat in playerChat.PlayerChatHistory.Values)
+                foreach (MyPlayerChatHistory chat in playerChat.PlayerChatHistory.Values)
                 {
                     var cb = Pool.AllocateOrCreate<MyObjectBuilder_PlayerChatHistory>();
                     if (cb.Chat != null)
@@ -421,7 +636,7 @@ namespace Essentials.Patches
                     else
                         cb.Chat = new List<MyObjectBuilder_PlayerChatItem>();
                     cb.IdentityId = chat.IdentityId;
-                    foreach (var m in chat.Chat)
+                    foreach (MyPlayerChatItem m in chat.Chat)
                     {
                         var mb = Pool.AllocateOrCreate<MyObjectBuilder_PlayerChatItem>();
                         mb.Text = m.Text;
@@ -432,15 +647,15 @@ namespace Essentials.Patches
                     }
                     builder.PlayerChatHistory.Add(cb);
                 }
-                
-                if(builder.GlobalChatHistory == null)
+
+                if (builder.GlobalChatHistory == null)
                     builder.GlobalChatHistory = Pool.AllocateOrCreate<MyObjectBuilder_GlobalChatHistory>();
                 if (builder.GlobalChatHistory.Chat != null)
                     Pool.DeallocateAndClear(builder.GlobalChatHistory.Chat);
                 else
                     builder.GlobalChatHistory.Chat = new List<MyObjectBuilder_GlobalChatItem>();
 
-                foreach (var g in playerChat.GlobalChatHistory.Chat)
+                foreach (MyGlobalChatItem g in playerChat.GlobalChatHistory.Chat)
                 {
                     var gb = Pool.AllocateOrCreate<MyObjectBuilder_GlobalChatItem>();
                     gb.Text = g.Text;
@@ -479,7 +694,7 @@ namespace Essentials.Patches
                             builder.FactionId1 = history.FactionId1;
                             builder.FactionId2 = history.FactionId2;
 
-                            foreach (var fc in history.Chat)
+                            foreach (MyFactionChatItem fc in history.Chat)
                             {
                                 if (fc.PlayersToSendTo != null && fc.PlayersToSendTo.Count > 0)
                                 {
@@ -495,7 +710,7 @@ namespace Essentials.Patches
                                         fb.IsAlreadySentTo.Clear();
                                     else
                                         fb.IsAlreadySentTo = new List<bool>();
-                                    foreach (var pair in fc.PlayersToSendTo)
+                                    foreach (KeyValuePair<long, bool> pair in fc.PlayersToSendTo)
                                     {
                                         fb.PlayersToSendToUniqueNumber.Add(MyEntityIdentifier.GetIdUniqueNumber(pair.Key));
                                         fb.IsAlreadySentTo.Add(pair.Value);
@@ -511,7 +726,7 @@ namespace Essentials.Patches
             //_checkpoint.Clients = SaveMembers_Imp(MySession.Static, false);
             if (MyMultiplayer.Static.Members.Count() > 1)
             {
-                foreach (var member in MyMultiplayer.Static.Members)
+                foreach (ulong member in MyMultiplayer.Static.Members)
                 {
                     var ob = Pool.AllocateOrCreate<MyObjectBuilder_Client>();
                     ob.SteamId = member;
@@ -522,7 +737,7 @@ namespace Essentials.Patches
             }
 
             //_checkpoint.NonPlayerIdentities = Sync.Players.SaveNpcIdentities();
-            foreach(var npc in MySession.Static.Players.GetNPCIdentities())
+            foreach (long npc in MySession.Static.Players.GetNPCIdentities())
                 _checkpoint.NonPlayerIdentities.Add(npc);
 
             //SaveSessionComponentObjectBuilders(checkpoint);
@@ -550,6 +765,11 @@ namespace Essentials.Patches
             return _checkpoint;
         }
 
+        /// <summary>
+        /// Gets entities to pack into the session snapshot, customized for a given user
+        /// </summary>
+        /// <param name="steamId"></param>
+        /// <returns></returns>
         private static MyObjectBuilder_Sector GetClientSector(ulong steamId)
         {
             MyObjectBuilder_Sector ob = MySession.Static.GetSector(false);

@@ -9,6 +9,7 @@ using Sandbox.ModAPI;
 using Torch;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
+using VRage.Utils;
 
 namespace Essentials
 {
@@ -74,6 +75,12 @@ namespace Essentials
             }
 
             return null;
+        }
+
+        public static string FormatDataSize(double size)
+        {
+            string p = MyUtils.FormatByteSizePrefix(ref size);
+            return $"{size:N}{p}B";
         }
     }
 }
