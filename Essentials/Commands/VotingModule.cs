@@ -17,17 +17,17 @@ namespace Essentials.Commands
 {
     public class VotingModule : CommandModule
     {
-        private static Random rnd = new Random();
-        private static int _cooldown = rnd.Next(5, 30);
-        private static string voteInProgress;
-        private static Dictionary<ulong, DateTime> _voteReg = new Dictionary<ulong, DateTime>();
-        private static Dictionary<ulong, DateTime> _voteCooldown = new Dictionary<ulong, DateTime>();
-        public static Status VoteStatus = Status.voteStandby;
+        private static readonly Random rnd = new Random();
+        private int _cooldown = rnd.Next(5, 30);
+        private string voteInProgress;
+        private Dictionary<ulong, DateTime> _voteReg = new Dictionary<ulong, DateTime>();
+        private Dictionary<ulong, DateTime> _voteCooldown = new Dictionary<ulong, DateTime>();
+        private Status VoteStatus = Status.voteStandby;
 
         //last vote info for debugging
-        private static string lastVoteName;
-        private static Status voteResult;
-        private static double voteResultPercentage;
+        private string lastVoteName;
+        private Status voteResult;
+        private double voteResultPercentage;
 
         [Command("vote", "starts a vote for a command")]
         [Permission(MyPromoteLevel.None)]
@@ -44,7 +44,7 @@ namespace Essentials.Commands
 
             var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(name));
 
-            if (command == null || !command.Votable)
+            if (command == null || command.CommandTrigger != Trigger.Vote)
             {
                 Context.Respond($"Couldn't find any votable command with the name [{name}]");
                 return;
@@ -70,7 +70,7 @@ namespace Essentials.Commands
 
             else _voteCooldown.Add(steamid, DateTime.Now.AddMinutes(_cooldown));
 
-            TimeSpan _voteDuration = TimeSpan.Parse(command.VoteDuration);
+            TimeSpan _voteDuration = TimeSpan.Parse(command.Interval);
             // voting status
             voteInProgress = name;
             VoteStatus = Status.voteInProgress;
@@ -145,7 +145,7 @@ namespace Essentials.Commands
             if (_voteReg.TryGetValue(steamid, out DateTime lastcommand))
             {
                 TimeSpan difference = DateTime.Now - lastcommand;
-                TimeSpan _voteDuration = TimeSpan.Parse(command.VoteDuration);
+                TimeSpan _voteDuration = TimeSpan.Parse(command.Interval);
                 if (difference.TotalSeconds < _voteDuration.TotalSeconds)
                 {
                     Context.Respond($"Your vote has already been submitted.");
@@ -237,7 +237,7 @@ namespace Essentials.Commands
                 {
                     var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(voteInProgress));
 
-                    if (VoteCount(_voteReg.Count) >= command.Percentage)
+                    if (VoteCount(_voteReg.Count) >= (command.Ratio /100))
                     {
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                             .SendMessageAsSelf($"Vote for {voteInProgress} is successful");
@@ -262,7 +262,7 @@ namespace Essentials.Commands
         public double VoteCount(double votecount)
         {
             double playercount = MySession.Static.Players.GetOnlinePlayerCount();
-            double result = Math.Round(100 * votecount / playercount);
+            double result = Math.Round(votecount / playercount);
             return result;
 
         }
