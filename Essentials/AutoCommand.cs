@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -7,9 +8,12 @@ using NLog;
 using Torch;
 using Torch.API;
 using Torch.API.Managers;
+using Torch.Server.ViewModels.Entities;
 using Torch.Commands;
 using Torch.Server;
 using Torch.Views;
+using Sandbox.Game.World;
+using Sandbox.Game.Entities;
 
 namespace Essentials
 {
@@ -20,21 +24,28 @@ namespace Essentials
         private TimeSpan _interval = TimeSpan.Zero;
         private DateTime _nextRun = DateTime.MinValue;
         private DayOfWeek _day = DayOfWeek.All;
+        private Trigger _trigger = Trigger.Disabled;
         private int _currentStep;
-        private int _votepercentage;
-        private TimeSpan _voteDuration = TimeSpan.Zero;
         private string _name;
         private bool _enabled;
-        private bool _votable;
+        private float _ratio;
+        private double _triggerCount;
 
+        /*
         [Display(Description = "Enables or disables this command. NOTE: !admin runauto does NOT respect this setting!")]
         public bool Enabled
         {
             get => _enabled;
             set => SetValue(ref _enabled, value);
         }
-
-
+        */
+        [Display(Name = "Trigger", Description ="Choose a trigger for the command")]
+        public Trigger CommandTrigger
+        {
+            get => _trigger;
+            set => SetValue(ref _trigger, value);
+        }
+        
         [Display(Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to trigger the command from ingame or from other auto commands.")]
         public string Name
         {
@@ -76,6 +87,21 @@ namespace Essentials
             }
         }
 
+        [Display(Name = "Trigger Ratio", Description = "Ratio for Sim Speed and Vote Triggers. 0.5 is equivalent to 50%")]
+        public float Ratio
+        {
+            get => _ratio;
+            set => SetValue(ref _ratio, Math.Min(Math.Max(value, 0), 1));
+
+        }
+        [Display(Name = "Trigger Count", Description = "Only use with")]
+        public double TriggerCount
+        {
+            get => _triggerCount;
+            set => SetValue(ref _triggerCount, Math.Max(0, value));
+
+        }
+        /*
         [Display(Description = "Adds voting option to this command.  NOTE: A successful vote will activate this command")]
         public bool Votable
         {
@@ -96,6 +122,7 @@ namespace Essentials
             get => _votepercentage;
             set => SetValue(ref _votepercentage, Math.Min(Math.Max(value, 0), 100));
         }
+        */
 
         [Display(Name = "Day of week", GroupName = "Schedule", Description = "Combined with Scheduled Time, will run the command on the given day of the week at the set time.")]
         public DayOfWeek DayOfWeek
@@ -117,7 +144,7 @@ namespace Essentials
             if (DateTime.Now < _nextRun)
                 return;
 
-            //double cast here as I'm unsure how casting directly between enum types will work
+           //double cast here as I'm unsure how casting directly between enum types will work
             if (DayOfWeek != DayOfWeek.All && DateTime.Now.DayOfWeek != (System.DayOfWeek)(int)DayOfWeek)
             {
                 //adding one day because I can't be bothered to calculate exact interval
@@ -143,6 +170,8 @@ namespace Essentials
                     _nextRun = DateTime.Now + _interval;
             }
         }
+
+
 
         public class CommandStep : ViewModel
         {
@@ -202,8 +231,19 @@ namespace Essentials
 
         public override string ToString()
         {
-            return $"{Name} : {(Enabled ? "Enabled" : "Disabled")} : {Steps.Count}";
+            return $"{Name} : {_trigger.ToString()} : {Steps.Count}";
         }
+    }
+
+    public enum Trigger
+    {
+        Disabled = -1,
+        Timed,
+        Scheduled,
+        Vote,
+        PlayerCount,
+        GridCount,
+        SimSpeed
     }
 
     public enum DayOfWeek
