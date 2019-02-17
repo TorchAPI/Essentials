@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO.Compression;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -110,6 +111,30 @@ namespace Essentials
         {
             get => _enableToolbarOverride;
             set => SetValue(ref _enableToolbarOverride, value);
+        }
+
+        private CompressionLevel _compression = CompressionLevel.Optimal;
+        [Display(Name = "Compression Level", GroupName = "Client Join Tweaks", Order = 5, Description = "Sets the level of compression applied to client data. Higher compression takes more CPU, but less network bandwidth. Recommended to leave this at 'Optimal'")]
+        public CompressionLevel CompressionLevel
+        {
+            get => _compression;
+            set => SetValue(ref _compression, value);
+        }
+
+        private bool _asyncJoin;
+        [Display(Name = "Async Join", GroupName = "Client Join Tweaks", Order = 6, Description = "Speeds up client joining by moving almost all of the logic out of the game thread. Disable this if you get 'CollectionModifiedException'")]
+        public bool AsyncJoin
+        {
+            get => _asyncJoin;
+            set => SetValue(ref _asyncJoin, value);
+        }
+
+        private bool _packPlanets;
+        [Display(Name = "Pack Planets", GroupName = "Client Join Tweaks", Order = 7, Description = "Packs planet data into initial world download. Can speed up spawning in some cases. CAUTION: Planet data is very large! You should use Compression Level 'Optimal' and the Async Join option!")]
+        public bool PackPlanets
+        {
+            get => _packPlanets;
+            set => SetValue(ref _packPlanets, value);
         }
 
         private MyObjectBuilder_Toolbar _vanillaBacking;
