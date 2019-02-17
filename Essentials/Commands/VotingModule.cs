@@ -17,17 +17,17 @@ namespace Essentials.Commands
 {
     public class VotingModule : CommandModule
     {
-        private static readonly Random rnd = new Random();
-        private int _cooldown = rnd.Next(5, 30);
-        private string voteInProgress;
-        private Dictionary<ulong, DateTime> _voteReg = new Dictionary<ulong, DateTime>();
-        private Dictionary<ulong, DateTime> _voteCooldown = new Dictionary<ulong, DateTime>();
-        private Status VoteStatus = Status.voteStandby;
+        private static Random rnd = new Random();
+        private static int _cooldown = rnd.Next(5, 30);
+        private static string voteInProgress;
+        private static Dictionary<ulong, DateTime> _voteReg = new Dictionary<ulong, DateTime>();
+        private static Dictionary<ulong, DateTime> _voteCooldown = new Dictionary<ulong, DateTime>();
+        public static Status VoteStatus = Status.voteStandby;
 
         //last vote info for debugging
-        private string lastVoteName;
-        private Status voteResult;
-        private double voteResultPercentage;
+        private static string lastVoteName;
+        private static Status voteResult;
+        private static double voteResultPercentage;
 
         [Command("vote", "starts a vote for a command")]
         [Permission(MyPromoteLevel.None)]
@@ -38,7 +38,7 @@ namespace Essentials.Commands
 
             if (VoteStatus == Status.voteInProgress)
             {
-                Context.Respond($"vote for {voteInProgress} is currently active. Use [!yes] to vote");
+                Context.Respond($"vote for {voteInProgress} is currently active. Use [!yes] to vote and [!no] to retract vote");
                 return;
             }
 
@@ -178,7 +178,7 @@ namespace Essentials.Commands
             sb.AppendLine("Last vote info");
             if (lastVoteName != null)
                 sb.AppendLine($"Last vote: {lastVoteName.ToString()}");
-            sb.AppendLine($"Last Vote Result: {voteResult}");
+            sb.AppendLine($"Last Vote Result: {voteResult.ToString()}");
             sb.AppendLine($"Last vote percent: {voteResultPercentage}");
             Context.Respond(sb.ToString());
 
@@ -210,7 +210,7 @@ namespace Essentials.Commands
             for (var i = time.TotalSeconds; i >= 0; i--)
             {
 
-                if (VoteStatus == Status.voteCancel || _voteReg.Count < 1)
+                if (VoteStatus != Status.voteInProgress || _voteReg.Count < 1)
                 {
                     Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                         .SendMessageAsSelf($"Vote for {voteInProgress} cancelled");
@@ -236,36 +236,30 @@ namespace Essentials.Commands
                 else
                 {
                     var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(voteInProgress));
-
-                    if (VoteCount(_voteReg.Count) >= (command.Ratio /100))
+                    double vr = ((_voteReg.Count / MySession.Static.Players.GetOnlinePlayerCount()) * 100);
+                    Task.Delay(5000).ContinueWith(_ =>
                     {
-                        Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
-                            .SendMessageAsSelf($"Vote for {voteInProgress} is successful");
-                        voteResult = Status.voteSuccess;
-                        command.RunNow();
-                    }
-                    else
-                    {
-                        Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
-                            .SendMessageAsSelf($"Vote for {voteInProgress} failed");
-                        voteResult = Status.voteFail;
-                    }
-                    voteResultPercentage = VoteCount(_voteReg.Count);
+                        if (vr >= command.Ratio)
+                        {
+                            Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
+                                .SendMessageAsSelf($"Vote for {voteInProgress} is successful");
+                            voteResult = Status.voteSuccess;
+                            command.RunNow();
+                        }
+                        else if (vr < command.Ratio)
+                        {
+                            Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
+                                .SendMessageAsSelf($"Vote for {voteInProgress} failed");
+                            voteResult = Status.voteFail;
+                        }
+                    });
+                    voteResultPercentage = vr;
                     VoteEnd();
                     yield break;
                 }
             }
         }
 
-        //creating calculation method for reasons
-
-        public double VoteCount(double votecount)
-        {
-            double playercount = MySession.Static.Players.GetOnlinePlayerCount();
-            double result = Math.Round(votecount / playercount);
-            return result;
-
-        }
 
         public void VoteEnd()
         {
