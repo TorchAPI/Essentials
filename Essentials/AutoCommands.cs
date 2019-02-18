@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Timers;
 using NLog;
+using Torch;
 using Torch.API;
-using Torch.Server;
 using Sandbox.Game.World;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.Entities;
@@ -20,12 +19,10 @@ namespace Essentials
         private static AutoCommands _instance;
         public static AutoCommands Instance => _instance ?? (_instance = new AutoCommands());
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
-        private Stopwatch _uptime;
         private Timer _timer;
 
         public void Start()
         {
-            _uptime = Stopwatch.StartNew();
             _timer = new Timer(1000);
             _timer.Elapsed += TimerElapsed;
             _timer.AutoReset = true;
@@ -40,8 +37,7 @@ namespace Essentials
                     return;
                 else if(command.CommandTrigger == Trigger.OnStart)
                 {
-                    var elapsed = TimeSpan.FromSeconds(Math.Floor(_uptime.Elapsed.TotalSeconds));
-                    if(TimeSpan.Parse(command.Interval) == elapsed)
+                    if(TimeSpan.Parse(command.Interval) == ((ITorchServer)TorchBase.Instance).ElapsedPlayTime)
                         command.RunNow();
                 }
             }
