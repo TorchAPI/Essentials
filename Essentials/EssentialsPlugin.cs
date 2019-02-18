@@ -91,8 +91,7 @@ namespace Essentials
                                                    _control.IsEnabled = true;
                                                    _control.DataContext = Config;
                                                });
-                    Task.Delay(10000).ContinueWith(_ =>
-                    AutoCommands.Instance.Start());
+                    AutoCommands.Instance.Start();
                     InfoModule.Init();
                     break;
                 case TorchSessionState.Unloading:

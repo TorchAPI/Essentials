@@ -239,14 +239,14 @@ namespace Essentials.Commands
                     double vr = ((_voteReg.Count / MySession.Static.Players.GetOnlinePlayerCount()) * 100);
                     Task.Delay(5000).ContinueWith(_ =>
                     {
-                        if (vr >= command.Ratio)
+                        if (vr >= command.TriggerRatio)
                         {
                             Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                                 .SendMessageAsSelf($"Vote for {voteInProgress} is successful");
                             voteResult = Status.voteSuccess;
                             command.RunNow();
                         }
-                        else if (vr < command.Ratio)
+                        else if (vr < command.TriggerRatio)
                         {
                             Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                                 .SendMessageAsSelf($"Vote for {voteInProgress} failed");
