@@ -27,8 +27,7 @@ namespace Essentials
         private Trigger _trigger = Trigger.Disabled;
         private int _currentStep;
         private string _name;
-        private bool _enabled;
-        private float _ratio;
+        private float _triggerRatio;
         private double _triggerCount;
 
         /*
@@ -88,10 +87,10 @@ namespace Essentials
         }
 
         [Display(Name = "Trigger Ratio", Description = "Ratio for Sim Speed and Vote Triggers. 0.5 is equivalent to 50%")]
-        public float Ratio
+        public float TriggerRatio
         {
-            get => _ratio;
-            set => SetValue(ref _ratio, Math.Min(Math.Max(value, 0), 1));
+            get => _triggerRatio;
+            set => SetValue(ref _triggerRatio, Math.Min(Math.Max(value, 0), 1));
 
         }
         [Display(Name = "Trigger Count", Description = "Only use with")]
@@ -101,28 +100,6 @@ namespace Essentials
             set => SetValue(ref _triggerCount, Math.Max(0, value));
 
         }
-        /*
-        [Display(Description = "Adds voting option to this command.  NOTE: A successful vote will activate this command")]
-        public bool Votable
-        {
-            get => _votable;
-            set => SetValue(ref _votable, value);
-        }
-
-        [Display(Name = "Vote Duration", Description = "Sets the duration for the vote. NOTE: Make sure to check the votable box to activate. Format is HH:MM:SS.")]
-        public string VoteDuration
-        {
-            get => _voteDuration.ToString();
-            set => SetValue(ref _voteDuration, TimeSpan.Parse(value));
-        }
-
-        [Display(Name = "Vote Percentage", Description = "Sets the percentage Yes vote needed for the command to activate. NOTE: This only works if the votable box is checked")]
-        public int Percentage
-        {
-            get => _votepercentage;
-            set => SetValue(ref _votepercentage, Math.Min(Math.Max(value, 0), 100));
-        }
-        */
 
         [Display(Name = "Day of week", GroupName = "Schedule", Description = "Combined with Scheduled Time, will run the command on the given day of the week at the set time.")]
         public DayOfWeek DayOfWeek
@@ -243,7 +220,8 @@ namespace Essentials
         Vote,
         PlayerCount,
         GridCount,
-        SimSpeed
+        SimSpeed,
+        OnStart
     }
 
     public enum DayOfWeek
