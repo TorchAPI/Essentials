@@ -51,7 +51,7 @@ namespace Essentials.Commands
                     count++;
                 }
             }
-            
+
             RemoveEmptyFactions();
             FixBlockOwnership();
             Context.Respond($"Removed {count} old identities");
@@ -84,7 +84,7 @@ namespace Essentials.Commands
                     }
                 }
             }
-            
+
             RemoveEmptyFactions();
             FixBlockOwnership();
             Context.Respond($"Removed {count} old identities and {count2} grids owned by them.");
@@ -110,7 +110,7 @@ namespace Essentials.Commands
             }
 
             var fac = MySession.Static.Factions.TryGetFactionByTag(tag);
-            
+
             if (fac != null)
             {
                 RemoveFaction(fac);
@@ -146,7 +146,7 @@ namespace Essentials.Commands
                     sb.AppendLine($"{playerID.DisplayName}");
                 }
             }
-            
+
             //Just don't see the need for this anymore.  Leaving for now in case it comes handy in the future
             /*
             else if (MySession.Static.Factions.FactionTagExists(tag))
@@ -230,7 +230,7 @@ namespace Essentials.Commands
         [ReflectedMethod(Name = "ApplyFactionStateChange", Type = typeof(MyFactionCollection))]
         private static Action<MyFactionCollection, MyFactionStateChange, long, long, long, long> _applyFactionState;
 
-        private static MethodInfo _factionChangeSuccessInfo = typeof(MyFactionCollection).GetMethod("FactionStateChangeSuccess", BindingFlags.NonPublic|BindingFlags.Static);
+        private static MethodInfo _factionChangeSuccessInfo = typeof(MyFactionCollection).GetMethod("FactionStateChangeSuccess", BindingFlags.NonPublic | BindingFlags.Static);
         private static readonly MethodInfo _factionStateChangeReq = typeof(MyFactionCollection).GetMethod("FactionStateChangeRequest", BindingFlags.Static | BindingFlags.NonPublic);
         //TODO: This should probably be moved into Torch base, but I honestly cannot be bothered
         /// <summary>
@@ -261,7 +261,7 @@ namespace Essentials.Commands
                 {
                     if (block.OwnerId == 0 || MySession.Static.Players.HasIdentity(block.OwnerId))
                         continue;
-                    
+
                     block.ChangeOwner(owner, share);
                     count++;
                 }
@@ -273,8 +273,8 @@ namespace Essentials.Commands
         private static readonly FieldInfo GpsDicField = GpssField.FieldType.GetField("m_playerGpss", BindingFlags.NonPublic | BindingFlags.Instance);
         private static readonly FieldInfo SeedParamField = typeof(MyProceduralWorldGenerator).GetField("m_existingObjectsSeeds", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        private static readonly FieldInfo CamerasField = typeof(MySession).GetField("Cameras", BindingFlags.NonPublic|BindingFlags.Instance);
-        private static readonly FieldInfo AllCamerasField = CamerasField.FieldType.GetField("m_entityCameraSettings", BindingFlags.NonPublic|BindingFlags.Instance);
+        private static readonly FieldInfo CamerasField = typeof(MySession).GetField("Cameras", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo AllCamerasField = CamerasField.FieldType.GetField("m_entityCameraSettings", BindingFlags.NonPublic | BindingFlags.Instance);
 
         [Command("sandbox clean", "Cleans up junk data from the sandbox file")]
         [Permission(MyPromoteLevel.SpaceMaster)]
@@ -359,9 +359,9 @@ namespace Essentials.Commands
             }
             count += idCache.Count;
             idCache.Clear();
-            
+
             //delete chat history for deleted factions
-            for(int i = MySession.Static.FactionChatHistory.Count -1; i >=0; i--)
+            for (int i = MySession.Static.FactionChatHistory.Count - 1; i >= 0; i--)
             {
                 var history = MySession.Static.FactionChatHistory[i];
                 if (MySession.Static.Factions.TryGetFactionById(history.FactionId1) == null || MySession.Static.Factions.TryGetFactionById(history.FactionId2) == null)

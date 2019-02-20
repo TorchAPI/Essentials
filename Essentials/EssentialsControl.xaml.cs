@@ -41,7 +41,7 @@ namespace Essentials
             var items = list.SelectedItems.Cast<AutoCommand>().ToList();
             foreach (var item in items)
             {
-                item.Enabled = false;
+                item.CommandTrigger = Trigger.Disabled;
                 Plugin.Config.AutoCommands.Remove(item);
             }
         }
