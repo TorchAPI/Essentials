@@ -37,7 +37,9 @@ namespace Essentials
                     return;
                 else if(command.CommandTrigger == Trigger.OnStart)
                 {
-                    if(TimeSpan.Parse(command.Interval) == ((ITorchServer)TorchBase.Instance).ElapsedPlayTime)
+                    var a = TimeSpan.Parse(command.Interval);
+                    var b = ((ITorchServer)TorchBase.Instance).ElapsedPlayTime;
+                    if ((a - b).TotalSeconds <= 1 && (a - b).TotalSeconds > 0)
                         command.RunNow();
                 }
             }

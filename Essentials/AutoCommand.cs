@@ -214,14 +214,14 @@ namespace Essentials
 
     public enum Trigger
     {
-        Disabled = -1,
-        Timed,
-        Scheduled,
-        Vote,
-        PlayerCount,
+        Disabled,
         GridCount,
+        OnStart,
+        PlayerCount,
+        Scheduled,
         SimSpeed,
-        OnStart
+        Timed,
+        Vote
     }
 
     public enum DayOfWeek
