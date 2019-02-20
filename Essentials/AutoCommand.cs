@@ -86,14 +86,14 @@ namespace Essentials
             }
         }
 
-        [Display(Name = "Trigger Ratio", Description = "Ratio for Sim Speed and Vote Triggers. 0.5 is equivalent to 50%")]
+        [Display(Name = "Trigger Ratio", Description = "Ratio for Sim Speed or Vote Trigger. 0.5 is equivalent to 50%")]
         public float TriggerRatio
         {
             get => _triggerRatio;
             set => SetValue(ref _triggerRatio, Math.Min(Math.Max(value, 0), 1));
 
         }
-        [Display(Name = "Trigger Count", Description = "Only use with")]
+        [Display(Name = "Trigger Count", Description = "Only use with GridCount or PlayerCount Trigger")]
         public double TriggerCount
         {
             get => _triggerCount;
