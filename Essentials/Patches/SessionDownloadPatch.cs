@@ -271,7 +271,7 @@ namespace Essentials.Patches
             worldData.Clusters.Clear();
             MyPhysics.SerializeClusters(worldData.Clusters);
 
-            //serializin, compressing, and sending the data can all be dumped into a thread
+            //serializing, compressing, and sending the data can all be dumped into a thread
             if (EssentialsPlugin.Instance.Config.AsyncJoin)
                 Task.Run(() => PackAndSend(worldData, sender));
             else
@@ -405,7 +405,7 @@ namespace Essentials.Patches
             }
 
             _checkpoint.CreativeTools.Clear();
-            Pool.DeallocateCollection(_checkpoint.Gps.Dictionary.Values);
+            //Pool.DeallocateCollection(_checkpoint.Gps.Dictionary.Values);
             _checkpoint.Gps.Dictionary.Clear();
             //Pool.DeallocateAndClear(bGps.Entries);
             bGps.Entries.Clear();

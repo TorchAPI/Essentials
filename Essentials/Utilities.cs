@@ -65,8 +65,7 @@ namespace Essentials
                 }
             }
 
-            MyPlayer.PlayerId playerId;
-            if (MySession.Static.Players.TryGetPlayerId(id, out playerId))
+            if (MySession.Static.Players.TryGetPlayerId(id, out MyPlayer.PlayerId playerId))
             {
                 if (MySession.Static.Players.TryGetPlayerById(playerId, out MyPlayer player))
                 {
