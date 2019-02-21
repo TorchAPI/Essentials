@@ -93,6 +93,7 @@ namespace Essentials
             set => SetValue(ref _triggerRatio, Math.Min(Math.Max(value, 0), 1));
 
         }
+        
         [Display(Name = "Trigger Count", Description = "Only use with GridCount or PlayerCount Trigger")]
         public double TriggerCount
         {
