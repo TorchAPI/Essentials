@@ -243,6 +243,9 @@ namespace Essentials.Patches
         /// <returns></returns>
         private static bool PatchGetWorld(EndpointId sender)
         {
+            if (!EssentialsPlugin.Instance.Config.EnableClientTweaks)
+                return true;
+
             Log.Info($"World request received: {MyMultiplayer.Static.GetMemberName(sender.Value)}");
 
             if (MyMultiplayer.Static.KickedClients.ContainsKey(sender.Value) || MyMultiplayer.Static.BannedClients.Contains(sender.Value) || MySandboxGame.ConfigDedicated?.Banned.Contains(sender.Value) == true)
@@ -325,7 +328,7 @@ namespace Essentials.Patches
             stopwatch.Stop();
             Log.Info($"Serialization took {stopwatch.Elapsed.TotalMilliseconds}ms");
             ms.Position = 0;
-            Log.Info($"Wrote {Utilities.FormatDataSize(ms.Length)}B");
+            Log.Info($"Wrote {Utilities.FormatDataSize(ms.Length)}");
             _lastSize = Math.Max(_lastSize, (int)ms.Length);
             stopwatch.Restart();
             using (var gz = new GZipStream(writeTo, level))
