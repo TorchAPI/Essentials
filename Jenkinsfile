@@ -48,21 +48,23 @@ node {
 	}
 
 	stage('Acquire SE') {
-		bat 'powershell -File Jenkins/jenkins-grab-se.ps1'
+		withCredentials([string(credentialsId: 'previewSecretPass', variable: 'previewPass')]) {
+		powershell "& Jenkins/jenkins-grab-se.ps1 $previewPass"
+		}
 		bat 'IF EXIST GameBinaries RMDIR GameBinaries'
-		bat 'mklink /J GameBinaries "C:/Steam/Data/DedicatedServer64/"'
+		bat 'mklink /J GameBinaries "C:/Steam/Data-preview/DedicatedServer64/"'
 	}
 
 	stage('Acquire NuGet Packages') {
 		bat 'nuget restore Essentials.sln'
 	}
 	
-	if (env.BRANCH_NAME == "Patron") {
+	if (env.BRANCH_NAME == "master") {
 		buildMode = "Release"
 	} else {
 		buildMode = "Debug"
 	}
-	result = test_with_torch("Patron")
+	result = test_with_torch("survival")
 	if (result) {
 		currentBuild.result = "SUCCESS"
 		stage('Archive') {
