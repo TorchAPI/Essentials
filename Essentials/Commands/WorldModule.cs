@@ -346,7 +346,9 @@ namespace Essentials.Commands
             var f = SeedParamField.GetValue(g) as HashSet<MyObjectSeedParams>;
             count += f.Count;
             f.Clear();
-
+            
+            //TODO
+            /*
             foreach (var history in MySession.Static.ChatHistory)
             {
                 if (!validIdentities.Contains(history.Key))
@@ -370,7 +372,8 @@ namespace Essentials.Commands
                     MySession.Static.FactionChatHistory.RemoveAtFast(i);
                 }
             }
-
+            */
+            
             var cf = AllCamerasField.GetValue(CamerasField.GetValue(MySession.Static)) as Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>>;
             count += cf.Count;
             cf.Clear();

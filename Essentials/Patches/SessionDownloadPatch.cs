@@ -623,6 +623,7 @@ namespace Essentials.Patches
             _checkpoint.ControlledObject = -1;
 
             //SaveChatHistory(checkpoint);
+            /*
             if (player != null && MySession.Static.ChatHistory.TryGetValue(player.IdentityId, out MyChatHistory playerChat))
             {
                 var builder = Pool.AllocateOrCreate<MyObjectBuilder_ChatHistory>();
@@ -725,6 +726,7 @@ namespace Essentials.Patches
                     }
                 }
             }
+            */
 
             //_checkpoint.Clients = SaveMembers_Imp(MySession.Static, false);
             if (MyMultiplayer.Static.Members.Count() > 1)
@@ -781,12 +783,21 @@ namespace Essentials.Patches
             {
                 ob.SectorObjects = new List<MyObjectBuilder_EntityBase>();
                 var grids = new HashSet<MyCubeGrid>();
+                /*
                 foreach (IMyMedicalRoomProvider room in MyMedicalRoomsSystem.GetMedicalRoomsInScene())
                 {
                     if (room.Closed || !room.IsWorking || !(room.SetFactionToSpawnee || room.HasPlayerAccess(MySession.Static.Players.TryGetIdentityId(steamId))))
                         continue;
 
                     grids.Add(((MyMedicalRoom)room).CubeGrid);
+                }
+                */
+                foreach (var respawn in MyRespawnComponent.GetAllRespawns())
+                {
+                    if (respawn.Entity.Closed || !respawn.Entity.IsWorking || !respawn.CanPlayerSpawn(MySession.Static.Players.TryGetIdentityId(steamId), true))
+                        continue;
+
+                    grids.Add(respawn.Entity.CubeGrid);
                 }
 
                 foreach (MyCubeGrid spawngrid in grids)
