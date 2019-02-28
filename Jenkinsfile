@@ -17,7 +17,7 @@ def test_with_torch(branch)
 		}
 
 	
-		stage('Test + Torch ' + branch) {
+		/*stage('Test + Torch ' + branch) {
 			bat 'IF NOT EXIST reports MKDIR reports'
 			bat "\"packages/xunit.runner.console.2.2.0/tools/xunit.console.exe\" \"bin-test/x64/${buildMode}/Essentials.Tests.dll\" -parallel none -xml \"reports/Essentials.Tests.xml\""
 		    step([
@@ -33,7 +33,7 @@ def test_with_torch(branch)
 		            stopProcessingIfError: true
 		        ]]
 		    ])
-		}
+		}*/
 
 		return true
 	} catch (e) {
