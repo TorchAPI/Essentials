@@ -222,16 +222,9 @@ namespace Essentials.Commands
             fac.KickMember(identity.IdentityId);
             return true;
         }
-
-        //Equinox told me you can use delegates for ReflectedMethods.
-        //He lied.
-        //private delegate void FactionStateDelegate(MyFactionCollection instance, MyFactionStateChange action, long fromFactionId, long toFactionId, long playerId, long senderId);
-
-        [ReflectedMethod(Name = "ApplyFactionStateChange", Type = typeof(MyFactionCollection))]
-        private static Action<MyFactionCollection, MyFactionStateChange, long, long, long, long> _applyFactionState;
-
+        
         private static MethodInfo _factionChangeSuccessInfo = typeof(MyFactionCollection).GetMethod("FactionStateChangeSuccess", BindingFlags.NonPublic | BindingFlags.Static);
-        private static readonly MethodInfo _factionStateChangeReq = typeof(MyFactionCollection).GetMethod("FactionStateChangeRequest", BindingFlags.Static | BindingFlags.NonPublic);
+        
         //TODO: This should probably be moved into Torch base, but I honestly cannot be bothered
         /// <summary>
         /// Removes a faction from the server and all clients because Keen fucked up their own system.
