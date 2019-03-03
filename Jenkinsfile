@@ -62,7 +62,7 @@ node {
 	} else {
 		buildMode = "Debug"
 	}
-	result = test_with_torch("survival")
+	result = test_with_torch("master")
 	if (result) {
 		currentBuild.result = "SUCCESS"
 		stage('Archive') {
