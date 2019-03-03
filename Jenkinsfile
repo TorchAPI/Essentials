@@ -57,12 +57,12 @@ node {
 		bat 'nuget restore Essentials.sln'
 	}
 	
-	if (env.BRANCH_NAME == "master") {
+	if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "Patron") {
 		buildMode = "Release"
 	} else {
 		buildMode = "Debug"
 	}
-	result = test_with_torch("master")
+	result = test_with_torch("env.BRANCH_NAME")
 	if (result) {
 		currentBuild.result = "SUCCESS"
 		stage('Archive') {
