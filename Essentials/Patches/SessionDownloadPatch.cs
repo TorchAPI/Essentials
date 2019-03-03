@@ -120,7 +120,8 @@ namespace Essentials.Patches
             var ob = new MyObjectBuilder_World
                      {
                          Checkpoint = GetClientCheckpoint(sender.Value),
-                         Sector = GetClientSector(sender.Value)
+                         Sector = GetClientSector(sender.Value),
+                         Planets = MySession.Static.GetPlanetObjectBuilders()
                      };
 
             if (EssentialsPlugin.Instance.Config.PackPlanets)
