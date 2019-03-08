@@ -62,7 +62,7 @@ node {
 	} else {
 		buildMode = "Debug"
 	}
-	result = test_with_torch("env.BRANCH_NAME")
+	result = test_with_torch(env.BRANCH_NAME)
 	if (result) {
 		currentBuild.result = "SUCCESS"
 		stage('Archive') {
