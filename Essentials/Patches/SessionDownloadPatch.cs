@@ -112,17 +112,22 @@ namespace Essentials.Patches
 
         public static MyObjectBuilder_World GetClientWorld(EndpointId sender)
         {
-            if (!EssentialsPlugin.Instance.Config.EnableClientTweaks)
-                return MySession.Static.GetWorld(false);
+            //if (!EssentialsPlugin.Instance.Config.EnableClientTweaks)
+            //    return MySession.Static.GetWorld(false);
 
             Log.Info($"Preparing world for {sender.Value}...");
 
-            var ob = new MyObjectBuilder_World
-                     {
-                         Checkpoint = GetClientCheckpoint(sender.Value),
-                         Sector = GetClientSector(sender.Value),
-                         Planets = MySession.Static.GetPlanetObjectBuilders()
-                     };
+            var ob = MySession.Static.GetWorld(false);
+            ob.Sector = GetClientSector(sender.Value);
+
+            Log.Warn("Custom checkpoint generation disabled. Using vanilla system until rework is finished.");
+
+            //var ob = new MyObjectBuilder_World
+            //         {
+            //             Checkpoint = GetClientCheckpoint(sender.Value),
+            //             Sector = GetClientSector(sender.Value),
+            //             Planets = MySession.Static.GetPlanetObjectBuilders()
+            //         };
 
             if (EssentialsPlugin.Instance.Config.PackPlanets)
             {
