@@ -238,7 +238,7 @@ namespace Essentials.Commands
                 }
                 else
                 {
-                    double vr = _voteReg.Count / MySession.Static.Players.GetOnlinePlayerCount();
+                    double vr = Convert.ToDouble(_voteReg.Count) / MySession.Static.Players.GetOnlinePlayerCount();
                     if (vr >= _command.TriggerRatio)
                     {
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
