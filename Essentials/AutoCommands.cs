@@ -6,6 +6,7 @@ using System.Timers;
 using NLog;
 using Torch;
 using Torch.API;
+using Torch.Server.ViewModels;
 using Sandbox.Game.World;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.Entities;
@@ -16,6 +17,8 @@ namespace Essentials
 {
     public class AutoCommands : IDisposable
     {
+        protected EntityTreeViewModel Tree { get; }
+
         private static AutoCommands _instance;
         public static AutoCommands Instance => _instance ?? (_instance = new AutoCommands());
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
@@ -48,13 +51,7 @@ namespace Essentials
                 case Trigger.Scheduled:
                     return true;
                 case Trigger.GridCount:
-                        var gridCount = 0;
-                        foreach (var e in MyEntities.GetEntities())
-                        {
-                            if (e is IMyCubeGrid)
-                                gridCount++;
-                        }
-                        return gridCount >= command.TriggerCount;
+                        return Tree.Grids.Count >= command.TriggerCount;
                 case Trigger.PlayerCount:
                     return MySession.Static.Players.GetOnlinePlayerCount() >= command.TriggerCount;
                 case Trigger.SimSpeed:

@@ -39,9 +39,14 @@ namespace Essentials
         [Display(Name = "MotdURL", Description = "Sets a URL to show to players when they connect. Opens in the steam overlay, if enabled.")]
         public string MotdUrl { get => _motdUrl; set => SetValue(ref _motdUrl, value); }
 
+        private bool _newUserMotdUrl;
+        [Display(Name = "Url for New Users Only", Description = "MOTD URL for new users only")]
+        public bool NewUserMotdUrl{get => _newUserMotdUrl;set => SetValue(ref _newUserMotdUrl, value);}
+
         private bool _stopShips;
         [Display(Name = "Stop entities on start", Description = "Stop all entities in the world when the server starts.")]
         public bool StopShipsOnStart { get => _stopShips; set => SetValue(ref _stopShips, value); }
+
 
         private bool _utilityShowPosition;
 

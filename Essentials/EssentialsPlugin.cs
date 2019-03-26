@@ -216,7 +216,8 @@ namespace Essentials
         public void SendMotd(MyPlayer player)
         {
             long playerId = player.Identity.IdentityId;
-            if (!string.IsNullOrEmpty(Config.MotdUrl))
+
+            if (!string.IsNullOrEmpty(Config.MotdUrl) && !Config.NewUserMotdUrl)
             {
                 if (MyGuiSandbox.IsUrlWhitelisted(Config.MotdUrl))
                     MyVisualScriptLogicProvider.OpenSteamOverlay(Config.MotdUrl, playerId);
@@ -233,10 +234,18 @@ namespace Essentials
             bool newUser = !Config.KnownSteamIds.Contains(id);
             if (newUser)
                 Config.KnownSteamIds.Add(id);
+            if (!string.IsNullOrEmpty(Config.MotdUrl) && newUser && Config.NewUserMotdUrl)
+            {
+                if (MyGuiSandbox.IsUrlWhitelisted(Config.MotdUrl))
+                    MyVisualScriptLogicProvider.OpenSteamOverlay(Config.MotdUrl, playerId);
+                else
+                    MyVisualScriptLogicProvider.OpenSteamOverlay($"https://steamcommunity.com/linkfilter/?url={Config.MotdUrl}", playerId);
+            }
 
             if (newUser && !string.IsNullOrEmpty(Config.NewUserMotd))
             {
                 ModCommunication.SendMessageTo(new DialogMessage(MySession.Static.Name, "New User Message Of The Day", Config.NewUserMotd.Replace("%player%", name)), id);
+
             }
             else if (!string.IsNullOrEmpty(Config.Motd))
             {
