@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Sandbox;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Game.World;
+using Torch;
 using Torch.Commands;
 using Torch.Commands.Permissions;
 using Torch.Mod;
@@ -106,6 +108,77 @@ namespace Essentials.Commands
 
             EssentialsPlugin.Instance.Config.DefaultToolbar = toolbar.GetObjectBuilder();
             Context.Respond("Successfully set new default toolbar.");
+        }
+
+        [Command("setrank", "Set the promote level of a player.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void SetRank(string playerNameOrId, string rank)
+        {
+            ulong.TryParse(playerNameOrId, out var id);
+            var player = Utilities.GetPlayerByNameOrId(playerNameOrId) ?? MySession.Static.Players.TryGetPlayerBySteamId(id);
+
+            if (player == null)
+            {
+                Context.Respond($"Player '{playerNameOrId}' not found.");
+                return;
+            }
+
+            if (!Enum.TryParse<MyPromoteLevel>(rank, true, out var promoteLevel) || promoteLevel > MyPromoteLevel.Admin)
+            {
+                Context.Respond($"Invalid rank '{rank}'.");
+                return;
+            }
+
+            MySession.Static.SetUserPromoteLevel(player.SteamUserId, promoteLevel);
+            Context.Respond($"Player '{playerNameOrId}' promoted to '{promoteLevel}'.");
+        }
+
+        [Command("reserve", "Add a player to the reserved slots list.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void ReserveSlot(string playerNameOrId)
+        {
+            ulong.TryParse(playerNameOrId, out var id);
+            id = Utilities.GetPlayerByNameOrId(playerNameOrId)?.SteamUserId ?? id;
+            
+            if (id == 0)
+            {
+                Context.Respond($"Player '{playerNameOrId}' not found.");
+                return;
+            }
+
+            if (MySandboxGame.ConfigDedicated.Reserved.Contains(id))
+            {
+                Context.Respond($"ID {id} is already reserved.");
+                return;
+            }
+            
+            MySandboxGame.ConfigDedicated.Reserved.Add(id);
+            MySandboxGame.ConfigDedicated.Save();
+            Context.Respond($"ID {id} added to reserved slots.");
+        }
+
+        [Command("unreserve", "Remove a player from the reserved slots list.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void UnreserveSlot(string playerNameOrId)
+        {
+            ulong.TryParse(playerNameOrId, out var id);
+            id = Utilities.GetPlayerByNameOrId(playerNameOrId)?.SteamUserId ?? id;
+            
+            if (id == 0)
+            {
+                Context.Respond($"Player '{playerNameOrId}' not found.");
+                return;
+            }
+            
+            if (!MySandboxGame.ConfigDedicated.Reserved.Contains(id))
+            {
+                Context.Respond($"ID {id} is already unreserved.");
+                return;
+            }
+            
+            MySandboxGame.ConfigDedicated.Reserved.Remove(id);
+            MySandboxGame.ConfigDedicated.Save();
+            Context.Respond($"ID {id} removed from reserved slots.");
         }
     }
 }
