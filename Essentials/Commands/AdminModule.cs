@@ -115,11 +115,11 @@ namespace Essentials.Commands
         public void SetRank(string playerNameOrId, string rank)
         {
             ulong.TryParse(playerNameOrId, out var id);
-            var player = Utilities.GetPlayerByNameOrId(playerNameOrId) ?? MySession.Static.Players.TryGetPlayerBySteamId(id);
+            id = Utilities.GetPlayerByNameOrId(playerNameOrId)?.SteamUserId ?? id;
 
-            if (player == null)
+            if (id == 0)
             {
-                Context.Respond($"Player '{playerNameOrId}' not found.");
+                Context.Respond($"Player '{playerNameOrId}' not found or ID is invalid.");
                 return;
             }
 
@@ -129,7 +129,7 @@ namespace Essentials.Commands
                 return;
             }
 
-            MySession.Static.SetUserPromoteLevel(player.SteamUserId, promoteLevel);
+            MySession.Static.SetUserPromoteLevel(id, promoteLevel);
             Context.Respond($"Player '{playerNameOrId}' promoted to '{promoteLevel}'.");
         }
 
@@ -142,7 +142,7 @@ namespace Essentials.Commands
             
             if (id == 0)
             {
-                Context.Respond($"Player '{playerNameOrId}' not found.");
+                Context.Respond($"Player '{playerNameOrId}' not found or ID is invalid.");
                 return;
             }
 
@@ -166,7 +166,7 @@ namespace Essentials.Commands
             
             if (id == 0)
             {
-                Context.Respond($"Player '{playerNameOrId}' not found.");
+                Context.Respond($"Player '{playerNameOrId}' not found or ID is invalid.");
                 return;
             }
             
