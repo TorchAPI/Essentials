@@ -37,13 +37,11 @@ namespace Essentials
             switch (command.CommandTrigger)
             {
                 case Trigger.Disabled:
-                    break;
+                    return  false;
                 case Trigger.OnStart:
                     var a = TimeSpan.Parse(command.Interval);
                     var b = ((ITorchServer)TorchBase.Instance).ElapsedPlayTime;
-                    if ((a - b).TotalSeconds <= 1 && (a - b).TotalSeconds > 0)
-                        return true;
-                    break;
+                return  ((a - b).TotalSeconds <= 1 && (a - b).TotalSeconds > 0);
                 case Trigger.Vote:
                     break;
                 case Trigger.Timed:
