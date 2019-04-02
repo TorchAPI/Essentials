@@ -262,8 +262,7 @@ namespace Essentials.Commands
             return count;
         }
 
-        private static readonly FieldInfo GpssField = typeof(MySession).GetField("Gpss", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly FieldInfo GpsDicField = GpssField.FieldType.GetField("m_playerGpss", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo GpsDicField = typeof(MyGpsCollection).GetField("m_playerGpss", BindingFlags.NonPublic | BindingFlags.Instance);
         private static readonly FieldInfo SeedParamField = typeof(MyProceduralWorldGenerator).GetField("m_existingObjectsSeeds", BindingFlags.NonPublic | BindingFlags.Instance);
 
         private static readonly FieldInfo CamerasField = typeof(MySession).GetField("Cameras", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -321,8 +320,7 @@ namespace Essentials.Commands
             count += CleanFaction_Internal();
 
             //Keen, for the love of god why is everything about GPS internal.
-            var playerGpss = GpsDicField.GetValue(GpssField.GetValue(MySession.Static)) as Dictionary<long, Dictionary<int, MyGps>>;
-
+            var playerGpss = GpsDicField.GetValue(MySession.Static.Gpss) as Dictionary<long, Dictionary<int, MyGps>>;
             foreach (var id in playerGpss.Keys)
             {
                 if (!validIdentities.Contains(id))

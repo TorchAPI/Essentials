@@ -39,9 +39,11 @@ namespace Essentials
                 case Trigger.Disabled:
                     return  false;
                 case Trigger.OnStart:
-                    var a = TimeSpan.Parse(command.Interval);
+                    var a = Math.Max(TimeSpan.Parse(command.Interval).TotalSeconds, 60);
                     var b = ((ITorchServer)TorchBase.Instance).ElapsedPlayTime;
-                return  ((a - b).TotalSeconds <= 1 && (a - b).TotalSeconds > 0);
+                    if  ((a - b.TotalSeconds) <= 1 && (a - b.TotalSeconds > 0))
+                        command.RunNow();
+                    break;
                 case Trigger.Vote:
                     break;
                 case Trigger.Timed:
