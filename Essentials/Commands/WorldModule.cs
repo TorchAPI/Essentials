@@ -222,16 +222,9 @@ namespace Essentials.Commands
             fac.KickMember(identity.IdentityId);
             return true;
         }
-
-        //Equinox told me you can use delegates for ReflectedMethods.
-        //He lied.
-        //private delegate void FactionStateDelegate(MyFactionCollection instance, MyFactionStateChange action, long fromFactionId, long toFactionId, long playerId, long senderId);
-
-        [ReflectedMethod(Name = "ApplyFactionStateChange", Type = typeof(MyFactionCollection))]
-        private static Action<MyFactionCollection, MyFactionStateChange, long, long, long, long> _applyFactionState;
-
+        
         private static MethodInfo _factionChangeSuccessInfo = typeof(MyFactionCollection).GetMethod("FactionStateChangeSuccess", BindingFlags.NonPublic | BindingFlags.Static);
-        private static readonly MethodInfo _factionStateChangeReq = typeof(MyFactionCollection).GetMethod("FactionStateChangeRequest", BindingFlags.Static | BindingFlags.NonPublic);
+        
         //TODO: This should probably be moved into Torch base, but I honestly cannot be bothered
         /// <summary>
         /// Removes a faction from the server and all clients because Keen fucked up their own system.
@@ -346,7 +339,9 @@ namespace Essentials.Commands
             var f = SeedParamField.GetValue(g) as HashSet<MyObjectSeedParams>;
             count += f.Count;
             f.Clear();
-
+            
+            //TODO
+            /*
             foreach (var history in MySession.Static.ChatHistory)
             {
                 if (!validIdentities.Contains(history.Key))
@@ -370,7 +365,8 @@ namespace Essentials.Commands
                     MySession.Static.FactionChatHistory.RemoveAtFast(i);
                 }
             }
-
+            */
+            
             var cf = AllCamerasField.GetValue(CamerasField.GetValue(MySession.Static)) as Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>>;
             count += cf.Count;
             cf.Clear();

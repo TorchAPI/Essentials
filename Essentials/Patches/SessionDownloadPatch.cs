@@ -112,16 +112,22 @@ namespace Essentials.Patches
 
         public static MyObjectBuilder_World GetClientWorld(EndpointId sender)
         {
-            if (!EssentialsPlugin.Instance.Config.EnableClientTweaks)
-                return MySession.Static.GetWorld(false);
+            //if (!EssentialsPlugin.Instance.Config.EnableClientTweaks)
+            //    return MySession.Static.GetWorld(false);
 
             Log.Info($"Preparing world for {sender.Value}...");
 
-            var ob = new MyObjectBuilder_World
-                     {
-                         Checkpoint = GetClientCheckpoint(sender.Value),
-                         Sector = GetClientSector(sender.Value)
-                     };
+            var ob = MySession.Static.GetWorld(false);
+            ob.Sector = GetClientSector(sender.Value);
+
+            Log.Warn("Custom checkpoint generation disabled. Using vanilla system until rework is finished.");
+
+            //var ob = new MyObjectBuilder_World
+            //         {
+            //             Checkpoint = GetClientCheckpoint(sender.Value),
+            //             Sector = GetClientSector(sender.Value),
+            //             Planets = MySession.Static.GetPlanetObjectBuilders()
+            //         };
 
             if (EssentialsPlugin.Instance.Config.PackPlanets)
             {
@@ -623,6 +629,7 @@ namespace Essentials.Patches
             _checkpoint.ControlledObject = -1;
 
             //SaveChatHistory(checkpoint);
+            /*
             if (player != null && MySession.Static.ChatHistory.TryGetValue(player.IdentityId, out MyChatHistory playerChat))
             {
                 var builder = Pool.AllocateOrCreate<MyObjectBuilder_ChatHistory>();
@@ -725,6 +732,7 @@ namespace Essentials.Patches
                     }
                 }
             }
+            */
 
             //_checkpoint.Clients = SaveMembers_Imp(MySession.Static, false);
             if (MyMultiplayer.Static.Members.Count() > 1)
@@ -781,12 +789,21 @@ namespace Essentials.Patches
             {
                 ob.SectorObjects = new List<MyObjectBuilder_EntityBase>();
                 var grids = new HashSet<MyCubeGrid>();
+                /*
                 foreach (IMyMedicalRoomProvider room in MyMedicalRoomsSystem.GetMedicalRoomsInScene())
                 {
                     if (room.Closed || !room.IsWorking || !(room.SetFactionToSpawnee || room.HasPlayerAccess(MySession.Static.Players.TryGetIdentityId(steamId))))
                         continue;
 
                     grids.Add(((MyMedicalRoom)room).CubeGrid);
+                }
+                */
+                foreach (var respawn in MyRespawnComponent.GetAllRespawns())
+                {
+                    if (respawn.Entity.Closed || !respawn.Entity.IsWorking || !respawn.CanPlayerSpawn(MySession.Static.Players.TryGetIdentityId(steamId), true))
+                        continue;
+
+                    grids.Add(respawn.Entity.CubeGrid);
                 }
 
                 foreach (MyCubeGrid spawngrid in grids)
