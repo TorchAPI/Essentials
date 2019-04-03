@@ -9,6 +9,7 @@ using Torch.API;
 using Sandbox.Game.World;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.Entities;
+using Torch.Server.ViewModels;
 using VRage.Game.ModAPI;
 
 
@@ -16,6 +17,7 @@ namespace Essentials
 {
     public class AutoCommands : IDisposable
     {
+        protected EntityTreeViewModel Tree { get; }
         private static AutoCommands _instance;
         public static AutoCommands Instance => _instance ?? (_instance = new AutoCommands());
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
