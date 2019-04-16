@@ -51,6 +51,7 @@ namespace Essentials
                 case Trigger.Scheduled:
                     return true;
                 case Trigger.GridCount:
+
                     switch (command.Compare)
                     {
                         case GTL.GreaterThan:
@@ -74,6 +75,7 @@ namespace Essentials
                 case Trigger.SimSpeed:
 
                     return Math.Min(Sync.ServerSimulationRatio, 1) <= command.TriggerRatio;
+
 
                 default:
                     throw new Exception("fuck it");
