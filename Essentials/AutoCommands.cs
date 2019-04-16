@@ -51,10 +51,28 @@ namespace Essentials
                 case Trigger.Scheduled:
                     return true;
                 case Trigger.GridCount:
-                        return Tree.Grids.Count >= command.TriggerCount;
+                    switch (command.Compare)
+                    {
+                        case GTL.GreaterThan:
+                            return Tree.Grids.Count >= command.TriggerCount;
+                        case GTL.LessThan:
+                            return Tree.Grids.Count <= command.TriggerCount;
+                        default:
+                            throw new Exception("meh");
+                    }
                 case Trigger.PlayerCount:
-                    return MySession.Static.Players.GetOnlinePlayerCount() >= command.TriggerCount;
+                    switch (command.Compare)
+                    {
+                        case GTL.GreaterThan:
+                            return MySession.Static.Players.GetOnlinePlayerCount() >= command.TriggerCount;
+                        case GTL.LessThan:
+                            return MySession.Static.Players.GetOnlinePlayerCount() <= command.TriggerCount;
+                        default:
+                            throw new Exception("meh");
+                    }
+
                 case Trigger.SimSpeed:
+
                     return Math.Min(Sync.ServerSimulationRatio, 1) <= command.TriggerRatio;
 
                 default:

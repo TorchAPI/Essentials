@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
@@ -14,6 +15,7 @@ using Torch.Server;
 using Torch.Views;
 using Sandbox.Game.World;
 using Sandbox.Game.Entities;
+using Sandbox.Game.Multiplayer;
 
 namespace Essentials
 {
@@ -25,25 +27,28 @@ namespace Essentials
         private DateTime _nextRun = DateTime.MinValue;
         private DayOfWeek _day = DayOfWeek.All;
         private Trigger _trigger = Trigger.Disabled;
+        private GTL _comparer = GTL.LessThan;
         private int _currentStep;
         private string _name;
         private float _triggerRatio;
         private double _triggerCount;
+        private DateTime _delay = DateTime.MinValue;
 
-        /*
-        [Display(Description = "Enables or disables this command. NOTE: !admin runauto does NOT respect this setting!")]
-        public bool Enabled
-        {
-            get => _enabled;
-            set => SetValue(ref _enabled, value);
-        }
-        */
+
         [Display(Name = "Trigger", Description ="Choose a trigger for the command")]
         public Trigger CommandTrigger
         {
             get => _trigger;
             set => SetValue(ref _trigger, value);
         }
+
+        [Display(Name = "Trigger Operator", Description ="Choose a Ratio Comparer for the command")]
+        public GTL Compare
+        {
+            get => _comparer;
+            set => SetValue(ref _comparer, value);
+        }
+
         
         [Display(Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to trigger the command from ingame or from other auto commands.")]
         public string Name
@@ -119,8 +124,20 @@ namespace Essentials
 
         public void Update()
         {
+
             if (DateTime.Now < _nextRun)
                 return;
+            if (CommandTrigger == Trigger.SimSpeed)
+            {
+                var duration = TimeSpan.Parse(TriggerCount.ToString());
+                Task.Run(() =>
+                {
+                    var countdown = SimSpeedDelay(duration).GetEnumerator();
+                    while (countdown.MoveNext()) Thread.Sleep(1000);
+                });
+                return;
+            }
+
 
            //double cast here as I'm unsure how casting directly between enum types will work
             if (DayOfWeek != DayOfWeek.All && DateTime.Now.DayOfWeek != (System.DayOfWeek)(int)DayOfWeek)
@@ -142,13 +159,48 @@ namespace Essentials
             if (_currentStep >= Steps.Count)
             {
                 _currentStep = 0;
-                if (_scheduledTime != TimeSpan.Zero)
-                    _nextRun = DateTime.Now.Date + _scheduledTime + TimeSpan.FromDays(1);
-                else
-                    _nextRun = DateTime.Now + _interval;
+                _nextRun = _scheduledTime != TimeSpan.Zero
+                    ? DateTime.Now.Date + _scheduledTime + TimeSpan.FromDays(1)
+                    : _nextRun = DateTime.Now + _interval;
             }
         }
 
+        private IEnumerable SimSpeedDelay(TimeSpan time)
+        {
+            for (var i = time.TotalSeconds; i >= 0; i--)
+            {
+                if (i >= 60 && i % 60 == 0)
+                {
+                    yield return null;
+                }
+
+                if (i > 0)
+                    yield return null;
+                switch (Compare)
+                {
+                    case GTL.LessThan:
+                        if (Math.Min(Sync.ServerSimulationRatio, 1) <= TriggerRatio)
+                        {
+                            RunNow();
+                        }
+                        break;
+                    case GTL.GreaterThan:
+                        if (Math.Min(Sync.ServerSimulationRatio, 1) >= TriggerRatio)
+                        {
+                            RunNow();
+                        }
+                        break;
+
+
+                }
+                if (Math.Min(Sync.ServerSimulationRatio, 1) <= TriggerRatio)
+                {
+                    RunNow();
+                }
+                yield break;
+
+            }
+        }
 
 
         public class CommandStep : ViewModel
@@ -211,6 +263,12 @@ namespace Essentials
         {
             return $"{Name} : {_trigger.ToString()} : {Steps.Count}";
         }
+    }
+
+    public enum GTL
+    {
+        GreaterThan,
+        LessThan
     }
 
     public enum Trigger
