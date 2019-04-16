@@ -61,9 +61,9 @@ namespace Essentials
 
         [Command("tpto", "Teleport directly to an another entity.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
-        public void TeleportTo(string destination)
+        public void TeleportTo(string destination, string entityToMove = null)
         {
-            Teleport(null, destination);
+            Teleport(entityToMove, destination);
         }
 
         [Command("w", "Send a private message to another player.")]
