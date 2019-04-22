@@ -65,13 +65,10 @@ namespace Essentials
             {
                 _scheduledTime = TimeSpan.Parse(value);
                 OnPropertyChanged();
-                if (_scheduledTime != TimeSpan.Zero)
-                {
-                    Interval = TimeSpan.Zero.ToString();
-                    _nextRun = DateTime.Now.Date + _scheduledTime;
-                    if (_nextRun < DateTime.Now)
-                        _nextRun += TimeSpan.FromDays(1);
-                }
+                if (CommandTrigger != Trigger.Scheduled) return;
+                _nextRun = DateTime.Now.Date + _scheduledTime;
+                if (_nextRun < DateTime.Now)
+                    _nextRun += TimeSpan.FromDays(1);
             }
         }
 
@@ -83,11 +80,12 @@ namespace Essentials
             {
                 _interval = TimeSpan.Parse(value);
                 OnPropertyChanged();
-                if (_interval != TimeSpan.Zero)
+                if (CommandTrigger == Trigger.Timed)
                 {
-                    ScheduledTime = TimeSpan.Zero.ToString(); //I hate myself for this
+                    //ScheduledTime = TimeSpan.Zero.ToString(); //I hate myself for this **FIXED!!!***
                     _nextRun = DateTime.Now + _interval;
                 }
+
             }
         }
 
@@ -139,13 +137,14 @@ namespace Essentials
             }
 
 
-           //double cast here as I'm unsure how casting directly between enum types will work
-            if (DayOfWeek != DayOfWeek.All && DateTime.Now.DayOfWeek != (System.DayOfWeek)(int)DayOfWeek)
-            {
-                //adding one day because I can't be bothered to calculate exact interval
-                _nextRun += TimeSpan.FromDays(1);
-                return;
-            }
+            if(CommandTrigger == Trigger.Scheduled && Interval == TimeSpan.Zero.ToString())
+                if (DayOfWeek != DayOfWeek.All && DateTime.Now.DayOfWeek != (System.DayOfWeek)(int)DayOfWeek)
+                {
+                    //adding one day because I can't be bothered to calculate exact interval
+                    _nextRun += TimeSpan.FromDays(1);
+                    return;
+                }
+
 
             if (Steps.Count <= 0)
                 return;
@@ -156,13 +155,13 @@ namespace Essentials
             _currentStep++;
             _nextRun += step.DelaySpan;
 
-            if (_currentStep >= Steps.Count)
-            {
-                _currentStep = 0;
-                _nextRun = _scheduledTime != TimeSpan.Zero
+
+            if (_currentStep < Steps.Count) return;
+            _currentStep = 0;
+            _nextRun = _scheduledTime != TimeSpan.Zero
                     ? DateTime.Now.Date + _scheduledTime + TimeSpan.FromDays(1)
                     : _nextRun = DateTime.Now + _interval;
-            }
+
         }
 
         private IEnumerable SimSpeedDelay(TimeSpan time)
