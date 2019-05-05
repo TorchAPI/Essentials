@@ -31,6 +31,12 @@ namespace Essentials
         {
             Utilities.TryGetEntityByNameOrId(destination, out IMyEntity destEntity);
 
+            if (destEntity == null)
+            {
+                Context.Respond("Destination entity not found");
+                return;
+            }
+
             IMyEntity targetEntity;
             if (string.IsNullOrEmpty(entityToMove))
                 targetEntity = Context.Player?.Controller.ControlledEntity.Entity;
@@ -43,12 +49,6 @@ namespace Essentials
                 return;
             }
 
-            if (destEntity == null)
-            {
-                Context.Respond("Destination entity not found");
-                return;
-            }
-
             var targetPos = MyEntities.FindFreePlace(destEntity.GetPosition(), (float)targetEntity.WorldAABB.Extents.Max());
             if (targetPos == null)
             {
@@ -57,6 +57,13 @@ namespace Essentials
             }
 
             targetEntity.SetPosition(targetPos.Value);
+        }
+
+        [Command("tpto", "Teleport directly to an another entity.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void TeleportTo(string destination, string entityToMove = null)
+        {
+            Teleport(entityToMove, destination);
         }
 
         [Command("w", "Send a private message to another player.")]

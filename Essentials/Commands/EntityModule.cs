@@ -6,6 +6,7 @@ using System.Text;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Game.Entities;
 using Sandbox.Common.ObjectBuilders;
+using Sandbox.Game.World;
 using Sandbox.ModAPI;
 using Torch.Commands;
 using Torch.Commands.Permissions;
@@ -247,6 +248,54 @@ namespace Essentials
             }
             Context.Respond($"Entity '{entity.DisplayName}' powered on");
 
+        }
+
+        [Command("eject", "Ejects a specific player from any block they are seated in, or all players in the server if run with 'all'")]
+        public void Eject(string player)
+        {
+            if (player.ToLower() == "all")
+            {
+                foreach (var ap in MySession.Static.Players.GetOnlinePlayers())
+                {
+                    var parent = ap.Character?.Parent;
+                    if (parent == null)
+                        continue;
+
+                    if (parent is MyShipController c)
+                    {
+                        c.RemoveUsers(false);
+                        //Context.Respond($"Ejected {parent.DisplayName} from seat.");
+                        continue;
+                    }
+                    throw new Exception($"Unknown block parent type! {parent.GetType().FullName}");
+                }
+
+                Context.Respond("Ejected all players from seats");
+            }
+            else
+            {
+                var p = Utilities.GetPlayerByNameOrId(player);
+                if (p == null)
+                {
+                    Context.Respond($"Could not find player {player}");
+                    return;
+                }
+
+                var parent = p.Character?.Parent;
+                if (parent == null)
+                {
+                    Context.Respond("Player is not seated.");
+                    return;
+                }
+
+                if (parent is MyShipController c)
+                {
+                    c.RemoveUsers(false);
+                    Context.Respond($"Ejected {p.DisplayName} from seat.");
+                    return;
+                }
+                throw new Exception($"Unknown block parent type! {parent.GetType().FullName}");
+            }
         }
     }
 }
