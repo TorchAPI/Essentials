@@ -147,7 +147,8 @@ namespace Essentials.Commands
                 sb.AppendLine($"{faction.Tag} - {memberCount} players in this faction");
                 foreach (var player in faction?.Members)
                 {
-                  if (!MySession.Static.Players.HasIdentity(player.Key) && !MySession.Static.Players.IdentityIsNpc(player.Key)) continue; //This is needed to filter out players with no id.
+                  if (!MySession.Static.Players.HasIdentity(player.Key) && !MySession.Static.Players.IdentityIsNpc(player.Key)||
+                      string.IsNullOrEmpty(MySession.Static?.Players?.TryGetIdentity(player.Value.PlayerId).DisplayName)) continue; //This is needed to filter out players with no id.
                     sb.AppendLine($"{MySession.Static?.Players?.TryGetIdentity(player.Value.PlayerId).DisplayName}");
                 }
             }
