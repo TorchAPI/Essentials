@@ -125,17 +125,6 @@ namespace Essentials
 
             if (DateTime.Now < _nextRun)
                 return;
-            if (CommandTrigger == Trigger.SimSpeed)
-            {
-                var duration = TimeSpan.Parse(TriggerCount.ToString());
-                Task.Run(() =>
-                {
-                    var countdown = SimSpeedDelay(duration).GetEnumerator();
-                    while (countdown.MoveNext()) Thread.Sleep(1000);
-                });
-                return;
-            }
-
 
             if(CommandTrigger == Trigger.Scheduled && Interval == TimeSpan.Zero.ToString())
                 if (DayOfWeek != DayOfWeek.All && DateTime.Now.DayOfWeek != (System.DayOfWeek)(int)DayOfWeek)
@@ -164,42 +153,6 @@ namespace Essentials
 
         }
 
-        private IEnumerable SimSpeedDelay(TimeSpan time)
-        {
-            for (var i = time.TotalSeconds; i >= 0; i--)
-            {
-                if (i >= 60 && i % 60 == 0)
-                {
-                    yield return null;
-                }
-
-                if (i > 0)
-                    yield return null;
-                switch (Compare)
-                {
-                    case GTL.LessThan:
-                        if (Math.Min(Sync.ServerSimulationRatio, 1) <= TriggerRatio)
-                        {
-                            RunNow();
-                        }
-                        break;
-                    case GTL.GreaterThan:
-                        if (Math.Min(Sync.ServerSimulationRatio, 1) >= TriggerRatio)
-                        {
-                            RunNow();
-                        }
-                        break;
-
-
-                }
-                if (Math.Min(Sync.ServerSimulationRatio, 1) <= TriggerRatio)
-                {
-                    RunNow();
-                }
-                yield break;
-
-            }
-        }
 
 
         public class CommandStep : ViewModel

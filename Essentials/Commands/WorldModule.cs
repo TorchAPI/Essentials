@@ -131,13 +131,12 @@ namespace Essentials.Commands
         public void FactionInfo()
         {
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             foreach (var factionID in MySession.Static.Factions)
             {
-                double memberCount;
                 var faction = factionID.Value;
-                memberCount = faction.Members.Count();
+                var memberCount = faction.Members.Count();
                 sb.AppendLine();
                 if (faction.IsEveryoneNpc())
                 {
@@ -169,14 +168,14 @@ namespace Essentials.Commands
 
         private static int CleanFaction_Internal(int memberCount = 1)
         {
-            int result = 0;
+            var result = 0;
 
             foreach (var faction in MySession.Static.Factions.ToList())
             {
                 if ((faction.Value.IsEveryoneNpc() || !faction.Value.AcceptHumans) && faction.Value.Members.Count != 0) //needed to add this to catch the 0 member factions
                     continue;
 
-                int validmembers = 0;
+                var validmembers = 0;
                 //O(2n)
                 foreach (var member in faction.Value.Members)
                 {
