@@ -11,6 +11,7 @@ using Sandbox.Game.World;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.Entities;
 using VRage.Game.ModAPI;
+using static Essentials.GTL;
 
 
 namespace Essentials
@@ -23,6 +24,7 @@ namespace Essentials
         public static AutoCommands Instance => _instance ?? (_instance = new AutoCommands());
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
         private Timer _timer;
+        private Dictionary<string,DateTime> simSpeedCheck  = new Dictionary<string, DateTime>();
 
         public void Start()
         {
@@ -51,11 +53,58 @@ namespace Essentials
                 case Trigger.Scheduled:
                     return true;
                 case Trigger.GridCount:
-                        return Tree.Grids.Count >= command.TriggerCount;
+                    switch (command.Compare)
+                    {
+                        case GreaterThan:
+                            return Tree.Grids.Count >= command.TriggerCount;
+                        case LessThan:
+                            return Tree.Grids.Count <= command.TriggerCount;
+                        default:
+                            throw new Exception("meh");
+                    }
                 case Trigger.PlayerCount:
-                    return MySession.Static.Players.GetOnlinePlayerCount() >= command.TriggerCount;
+                    switch (command.Compare)
+                    {
+                        case GreaterThan:
+                            return MySession.Static.Players.GetOnlinePlayerCount() >= command.TriggerCount;
+                        case LessThan:
+                            return MySession.Static.Players.GetOnlinePlayerCount() <= command.TriggerCount;
+                        default:
+                            throw new Exception("meh");
+                    }
+
                 case Trigger.SimSpeed:
-                    return Math.Min(Sync.ServerSimulationRatio, 1) <= command.TriggerRatio;
+                    switch (command.Compare)
+                    {
+                        case GreaterThan:
+                        {
+                            if (Math.Min(Sync.ServerSimulationRatio, 1) >= command.TriggerRatio)
+                            {
+                                if (simSpeedCheck.TryGetValue(command.Name, out var time))
+                                {
+                                    if ((DateTime.Now - time).TotalSeconds < 1 && (DateTime.Now - time).TotalSeconds > 0) simSpeedCheck.Remove(command.Name);
+                                    return (DateTime.Now - time).TotalSeconds < 1 && (DateTime.Now - time).TotalSeconds >= 0;
+                                }
+                                simSpeedCheck.Add(command.Name,(DateTime.Now.AddSeconds(command.TriggerCount)));
+                            }
+                            break;
+                        }
+
+                        case LessThan:
+                        {
+                            if (Math.Min(Sync.ServerSimulationRatio, 1) <= command.TriggerRatio)
+                            {
+                                if (simSpeedCheck.TryGetValue(command.Name, out var time))
+                                {
+                                    if ((DateTime.Now - time).TotalSeconds < 1 && (DateTime.Now - time).TotalSeconds > 0) simSpeedCheck.Remove(command.Name);
+                                    return (DateTime.Now - time).TotalSeconds < 1 && (DateTime.Now - time).TotalSeconds >= 0;
+                                }
+                                simSpeedCheck.Add(command.Name,(DateTime.Now.AddSeconds(command.TriggerCount)));
+                            }
+                            break;
+                        }
+                    }
+                    break;
 
                 default:
                     throw new Exception("fuck it");
