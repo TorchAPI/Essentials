@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
@@ -14,6 +15,7 @@ using Torch.Server;
 using Torch.Views;
 using Sandbox.Game.World;
 using Sandbox.Game.Entities;
+using Sandbox.Game.Multiplayer;
 
 namespace Essentials
 {
@@ -25,25 +27,28 @@ namespace Essentials
         private DateTime _nextRun = DateTime.MinValue;
         private DayOfWeek _day = DayOfWeek.All;
         private Trigger _trigger = Trigger.Disabled;
+        private GTL _comparer = GTL.LessThan;
         private int _currentStep;
         private string _name;
         private float _triggerRatio;
         private double _triggerCount;
+        private DateTime _delay = DateTime.MinValue;
 
-        /*
-        [Display(Description = "Enables or disables this command. NOTE: !admin runauto does NOT respect this setting!")]
-        public bool Enabled
-        {
-            get => _enabled;
-            set => SetValue(ref _enabled, value);
-        }
-        */
+
         [Display(Name = "Trigger", Description ="Choose a trigger for the command")]
         public Trigger CommandTrigger
         {
             get => _trigger;
             set => SetValue(ref _trigger, value);
         }
+
+        [Display(Name = "Trigger Operator", Description ="Choose a Ratio Comparer for the command")]
+        public GTL Compare
+        {
+            get => _comparer;
+            set => SetValue(ref _comparer, value);
+        }
+
         
         [Display(Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to trigger the command from ingame or from other auto commands.")]
         public string Name
@@ -117,6 +122,7 @@ namespace Essentials
 
         public void Update()
         {
+
             if (DateTime.Now < _nextRun)
                 return;
 
@@ -138,13 +144,13 @@ namespace Essentials
             _currentStep++;
             _nextRun += step.DelaySpan;
 
+
             if (_currentStep < Steps.Count) return;
             _currentStep = 0;
-            if(CommandTrigger == Trigger.Scheduled && Interval == TimeSpan.Zero.ToString())
-                _nextRun = DateTime.Now.Date + _scheduledTime + TimeSpan.FromDays(1);
-            else if((CommandTrigger != Trigger.Disabled || CommandTrigger != Trigger.Vote) && Interval != TimeSpan.Zero.ToString())
+            _nextRun = _scheduledTime != TimeSpan.Zero
+                    ? DateTime.Now.Date + _scheduledTime + TimeSpan.FromDays(1)
+                    : _nextRun = DateTime.Now + _interval;
 
-                _nextRun = DateTime.Now + _interval;
         }
 
 
@@ -209,6 +215,12 @@ namespace Essentials
         {
             return $"{Name} : {_trigger.ToString()} : {Steps.Count}";
         }
+    }
+
+    public enum GTL
+    {
+        GreaterThan,
+        LessThan
     }
 
     public enum Trigger
