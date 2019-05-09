@@ -10,6 +10,7 @@ using Torch.Server.ViewModels;
 using Sandbox.Game.World;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.Entities;
+using Sandbox.ModAPI;
 using VRage.Game.ModAPI;
 using static Essentials.GTL;
 
@@ -41,11 +42,10 @@ namespace Essentials
                 case Trigger.Disabled:
                     return  false;
                 case Trigger.OnStart:
-                    var a = Math.Max(TimeSpan.Parse(command.Interval).TotalSeconds, 60);
-                    var b = ((ITorchServer)TorchBase.Instance).ElapsedPlayTime;
-                    if  ((a - b.TotalSeconds) <= 1 && (a - b.TotalSeconds > 0))
-                        command.RunNow();
-                    break;
+                    return ((MyAPIGateway.Session.ElapsedPlayTime - TimeSpan.Parse(command.Interval)).TotalSeconds <
+                            1 &&
+                            ((MyAPIGateway.Session.ElapsedPlayTime - TimeSpan.Parse(command.Interval)).TotalSeconds >
+                             0));
                 case Trigger.Vote:
                     break;
                 case Trigger.Timed:
