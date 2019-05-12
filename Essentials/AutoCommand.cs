@@ -80,7 +80,7 @@ namespace Essentials
             {
                 _interval = TimeSpan.Parse(value);
                 OnPropertyChanged();
-                if (CommandTrigger == Trigger.Timed)
+                if (CommandTrigger == Trigger.Timed || CommandTrigger == Trigger.PlayerCount || CommandTrigger == Trigger.SimSpeed || CommandTrigger == Trigger.GridCount)
                 {
                     //ScheduledTime = TimeSpan.Zero.ToString(); //I hate myself for this **FIXED!!!***
                     _nextRun = DateTime.Now + _interval;
