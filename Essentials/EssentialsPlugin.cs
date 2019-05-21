@@ -49,7 +49,7 @@ namespace Essentials
         public static EssentialsPlugin Instance { get; private set; }
 
         /// <inheritdoc />
-        public UserControl GetControl() => _control ?? (_control = new EssentialsControl() {DataContext = Config});
+        public UserControl GetControl() => _control ?? (_control = new PropertyGrid(){DataContext=Config/*, IsEnabled = false*/});
 
         public void Save()
         {
