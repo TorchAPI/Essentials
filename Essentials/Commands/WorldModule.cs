@@ -115,9 +115,10 @@ namespace Essentials.Commands
                 Context.Respond($"{tag} is not a faction on this server");
                 return;
             }
-            foreach (var player in fac.Members)
+            foreach (var player in fac.Members.ToList())
             {
-                if (!MySession.Static.Players.HasIdentity(player.Key)) continue;
+                if (!MySession.Static.Players.HasIdentity(player.Key))
+                    continue;
                 fac.KickMember(player.Key);
             }
             RemoveFaction(fac);
