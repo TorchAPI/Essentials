@@ -150,6 +150,8 @@ namespace Essentials
         private MyObjectBuilder_Toolbar _defaultToolbar;
 
         [Display(Visible=false)]
+        [XmlIgnore]
+        //TODO!
         public MyObjectBuilder_Toolbar DefaultToolbar
         {
             get => _defaultToolbar ?? VanillaDefaultToolbar;
