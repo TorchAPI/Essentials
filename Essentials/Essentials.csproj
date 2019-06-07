@@ -7,7 +7,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Essentials</RootNamespace>
     <AssemblyName>Essentials</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
@@ -29,6 +29,9 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51">
+      <HintPath>..\GameBinaries\netstandard.dll</HintPath>
+    </Reference>
     <Reference Include="NLog">
       <HintPath>..\packages\NLog.4.4.12\lib\net45\NLog.dll</HintPath>
       <Private>False</Private>
@@ -111,14 +114,6 @@
     </Reference>
     <Reference Include="VRage.Math">
       <HintPath>$(SolutionDir)\GameBinaries\VRage.Math.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="VRage.Native">
-      <HintPath>$(SolutionDir)\GameBinaries\VRage.Native.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="VRage.OpenVRWrapper">
-      <HintPath>$(SolutionDir)\GameBinaries\VRage.OpenVRWrapper.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="VRage.Render">
