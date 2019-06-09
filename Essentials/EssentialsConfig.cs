@@ -6,11 +6,15 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Schema;
 using System.Xml.Serialization;
 using Sandbox.Game.Screens.Helpers;
 using Torch;
 using Torch.Views;
+using VRage;
 using VRage.Game;
+using VRage.ObjectBuilders;
 
 namespace Essentials
 {
@@ -150,20 +154,19 @@ namespace Essentials
         private MyObjectBuilder_Toolbar _defaultToolbar;
 
         [Display(Visible=false)]
-        [XmlIgnore]
         //TODO!
-        public MyObjectBuilder_Toolbar DefaultToolbar
+        public ToolbarWrapper DefaultToolbar
         {
             get => _defaultToolbar ?? VanillaDefaultToolbar;
             set
             {
                 bool valueChanged = false;
 
-                if (value.Slots.Count == VanillaDefaultToolbar.Slots.Count)
+                if (value.Data.Slots.Count == VanillaDefaultToolbar.Slots.Count)
                 {
-                    for (int i = 0; i < value.Slots.Count; i++)
+                    for (int i = 0; i < value.Data.Slots.Count; i++)
                     {
-                        var val = value.Slots[i];
+                        var val = value.Data.Slots[i];
                         var van = VanillaDefaultToolbar.Slots[i];
                         if (val.Index != van.Index || val.Data.SubtypeId != van.Data.SubtypeId)
                         {
@@ -181,6 +184,42 @@ namespace Essentials
         public bool ShouldSerializeDefaultToolbar()
         {
             return _defaultToolbar != null;
+        }
+
+        /// <summary>
+        /// Allows us to use Keen's serializer without losing previously stored config data
+        /// </summary>
+        public class ToolbarWrapper : IXmlSerializable
+        {
+            public MyObjectBuilder_Toolbar Data { get; set; }
+
+            public XmlSchema GetSchema()
+            {
+                return null;
+            }
+
+            public void ReadXml(XmlReader reader)
+            {
+                var ser = MyXmlSerializerManager.GetSerializer(typeof(MyObjectBuilder_Toolbar));
+                var o = ser.Deserialize(reader);
+                Data = (MyObjectBuilder_Toolbar)o;
+            }
+
+            public void WriteXml(XmlWriter writer)
+            {
+                var ser = MyXmlSerializerManager.GetSerializer(typeof(MyObjectBuilder_Toolbar));
+                ser.Serialize(writer, Data);
+            }
+
+            public static implicit operator MyObjectBuilder_Toolbar(ToolbarWrapper o)
+            {
+                return o.Data;
+            }
+
+            public static implicit operator ToolbarWrapper(MyObjectBuilder_Toolbar o)
+            {
+                return new ToolbarWrapper(){Data = o};
+            }
         }
     }
 }
