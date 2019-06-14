@@ -598,6 +598,7 @@ namespace Essentials.Patches
                 objectBuilder.LastLogoutTime = identity.LastLogoutTime;
                 objectBuilder.SavedCharacters = identity.SavedCharacters;
                 objectBuilder.RespawnShips = identity.RespawnShips;
+                objectBuilder.LastDeathPosition = identity.LastDeathPosition;
 
                 _checkpoint.Identities.Add(objectBuilder);
             }

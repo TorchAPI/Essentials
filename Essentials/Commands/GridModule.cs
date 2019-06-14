@@ -77,9 +77,9 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void StopAll()
         {
-                foreach (var grid in MyEntities.GetEntities().OfType<IMyCubeGrid>())
+                foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
                 {
-                    grid.Physics.ClearSpeed();
+                    grid.Physics?.ClearSpeed();
                 }
         }
 
