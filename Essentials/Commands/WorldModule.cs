@@ -163,9 +163,9 @@ namespace Essentials.Commands
 
         }
 
-        private static void RemoveEmptyFactions()
+        private static int RemoveEmptyFactions()
         {
-            CleanFaction_Internal(1);
+            return CleanFaction_Internal(1);
         }
 
         private static int CleanFaction_Internal(int memberCount = 1)
@@ -273,6 +273,7 @@ namespace Essentials.Commands
                 validIdentities.UnionWith(grid.SmallOwners);
             }
 
+            //find online identities
             foreach (var online in MySession.Static.Players.GetOnlinePlayers())
             {
                 validIdentities.Add(online.Identity.IdentityId);
@@ -305,7 +306,7 @@ namespace Essentials.Commands
             count += FixBlockOwnership();
 
             //clean up empty factions
-            count += CleanFaction_Internal();
+            count += RemoveEmptyFactions();
 
             //Keen, for the love of god why is everything about GPS internal.
             var playerGpss = GpsDicField.GetValue(MySession.Static.Gpss) as Dictionary<long, Dictionary<int, MyGps>>;
@@ -356,6 +357,21 @@ namespace Essentials.Commands
             var cf = AllCamerasField.GetValue(CamerasField.GetValue(MySession.Static)) as Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>>;
             count += cf.Count;
             cf.Clear();
+
+            var steamcache = new HashSet<ulong>();
+            foreach (var p in MySession.Static.PromotedUsers)
+            {
+                var id = MySession.Static.Players.TryGetIdentityId(p.Key);
+                if (validIdentities.Contains(id))
+                    continue;
+
+                steamcache.Add(p.Key);
+            }
+
+            count += steamcache.Count;
+            foreach (var s in steamcache)
+                MySession.Static.PromotedUsers.Remove(s);
+            steamcache.Clear();
 
             Context.Respond($"Removed {count} unnecessary elements.");
         }
