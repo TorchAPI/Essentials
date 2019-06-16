@@ -110,20 +110,20 @@ namespace Essentials.Commands
             }
 
             var fac = MySession.Static.Factions.TryGetFactionByTag(tag);
-
-            if (fac != null)
-            {
-                RemoveFaction(fac);
-                if (MySession.Static.Factions.FactionTagExists(tag))
-                    Context.Respond($"{tag} removal failed");
-                else
-                    Context.Respond($"{tag} removal successful");
-                RemoveEmptyFactions();
-            }
-            else
+            if (fac == null || !MySession.Static.Factions.FactionTagExists(tag))
             {
                 Context.Respond($"{tag} is not a faction on this server");
+                return;
             }
+            foreach (var player in fac.Members)
+            {
+                if (!MySession.Static.Players.HasIdentity(player.Key)) continue;
+                fac.KickMember(player.Key);
+            }
+            RemoveFaction(fac);
+            Context.Respond(MySession.Static.Factions.FactionTagExists(tag)
+                ? $"{tag} removal failed"
+                : $"{tag} removal successful");
         }
 
         [Command("faction info", "lists members of given faction")]
@@ -132,40 +132,26 @@ namespace Essentials.Commands
         {
 
             StringBuilder sb = new StringBuilder();
-            double memberCount;
 
             foreach (var factionID in MySession.Static.Factions)
             {
+                double memberCount;
                 var faction = factionID.Value;
                 memberCount = faction.Members.Count();
                 sb.AppendLine();
-                sb.AppendLine($"{faction.Tag} - {memberCount} players in this faction");
-                foreach (var player in faction.Members)
+                if (faction.IsEveryoneNpc())
                 {
-                    var playerID = MySession.Static.Players.TryGetIdentity(player.Value.PlayerId);
-                    sb.AppendLine($"{playerID.DisplayName}");
+                    sb.AppendLine($"{faction.Tag} - {memberCount} NPC found in this faction");
+                    continue;
+                }
+                sb.AppendLine($"{faction.Tag} - {memberCount} players in this faction");
+                foreach (var player in faction?.Members)
+                {
+                    if (!MySession.Static.Players.HasIdentity(player.Key) && !MySession.Static.Players.IdentityIsNpc(player.Key)||
+                        string.IsNullOrEmpty(MySession.Static?.Players?.TryGetIdentity(player.Value.PlayerId).DisplayName)) continue; //This is needed to filter out players with no id.
+                    sb.AppendLine($"{MySession.Static?.Players?.TryGetIdentity(player.Value.PlayerId).DisplayName}");
                 }
             }
-
-            //Just don't see the need for this anymore.  Leaving for now in case it comes handy in the future
-            /*
-            else if (MySession.Static.Factions.FactionTagExists(tag))
-            {
-                var faction = MySession.Static.Factions.TryGetFactionByTag(tag);
-                memberCount = faction.Members.Count();
-
-                sb.AppendLine($"{faction.Tag} - {memberCount} players in this faction");
-                foreach (var player in faction.Members)
-                {
-                    var playerID = MySession.Static.Players.TryGetIdentity(player.Value.PlayerId);
-                    sb.AppendLine($"{playerID.DisplayName}");
-                }
-
-            }
-            else
-                Context.Respond($"{tag} is not a faction on this server");
-                */
-
             if (Context.Player == null)
                 Context.Respond(sb.ToString());
             else if (Context?.Player?.SteamUserId > 0)
@@ -187,11 +173,10 @@ namespace Essentials.Commands
 
             foreach (var faction in MySession.Static.Factions.ToList())
             {
-                if (faction.Value.IsEveryoneNpc() || !faction.Value.AcceptHumans)
+                if ((faction.Value.IsEveryoneNpc() || !faction.Value.AcceptHumans) && faction.Value.Members.Count != 0) //needed to add this to catch the 0 member factions
                     continue;
 
                 int validmembers = 0;
-
                 //O(2n)
                 foreach (var member in faction.Value.Members)
                 {
@@ -238,6 +223,8 @@ namespace Essentials.Commands
             //        (Action<MyFactionStateChange, long, long, long, long>) Delegate.CreateDelegate(typeof(Action<MyFactionStateChange, long, long, long, long>), _factionStateChangeReq),
             //    MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, faction.FounderId, faction.FounderId);
             NetworkManager.RaiseStaticEvent(_factionChangeSuccessInfo, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
+            if(!MyAPIGateway.Session.Factions.FactionTagExists(faction.Tag)) return;
+            MyAPIGateway.Session.Factions.RemoveFaction(faction.FactionId); //Added to remove factions that got through the crack
         }
 
         private static int FixBlockOwnership()

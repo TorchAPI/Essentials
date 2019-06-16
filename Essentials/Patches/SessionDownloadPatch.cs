@@ -137,7 +137,11 @@ namespace Essentials.Patches
                 Log.Info($"Voxel snapshot took {stopwatch.Elapsed.TotalMilliseconds}ms");
             }
             else
+            {
                 ob.VoxelMaps = new SerializableDictionary<string, byte[]>();
+            }
+
+            ob.Planets = MySession.Static.GetPlanetObjectBuilders();
 
             return ob;
         }
