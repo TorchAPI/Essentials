@@ -117,17 +117,17 @@ namespace Essentials.Patches
 
             Log.Info($"Preparing world for {sender.Value}...");
 
-            var ob = MySession.Static.GetWorld(false);
-            ob.Sector = GetClientSector(sender.Value);
+            //var ob = MySession.Static.GetWorld(false);
+            //ob.Sector = GetClientSector(sender.Value);
 
-            Log.Warn("Custom checkpoint generation disabled. Using vanilla system until rework is finished.");
+            //Log.Warn("Custom checkpoint generation disabled. Using vanilla system until rework is finished.");
 
-            //var ob = new MyObjectBuilder_World
-            //         {
-            //             Checkpoint = GetClientCheckpoint(sender.Value),
-            //             Sector = GetClientSector(sender.Value),
-            //             Planets = MySession.Static.GetPlanetObjectBuilders()
-            //         };
+            var ob = new MyObjectBuilder_World
+            {
+                Checkpoint = GetClientCheckpoint(sender.Value),
+                Sector = GetClientSector(sender.Value),
+                Planets = MySession.Static.GetPlanetObjectBuilders()
+            };
 
             if (EssentialsPlugin.Instance.Config.PackPlanets)
             {
@@ -811,12 +811,15 @@ namespace Essentials.Patches
                     grids.Add(respawn.Entity.CubeGrid);
                 }
 
-                foreach (MyCubeGrid spawngrid in grids)
+                if (EssentialsPlugin.Instance.Config.MaxPackedRespawnSize > 0)
                 {
-                    if (EssentialsPlugin.Instance.Config.MaxPackedRespawnSize > 0 && spawngrid.BlocksCount > EssentialsPlugin.Instance.Config.MaxPackedRespawnSize)
-                        continue;
+                    foreach (MyCubeGrid spawngrid in grids)
+                    {
+                        if (spawngrid.BlocksCount > EssentialsPlugin.Instance.Config.MaxPackedRespawnSize)
+                            continue;
 
-                    ob.SectorObjects.Add(spawngrid.GetObjectBuilder());
+                        ob.SectorObjects.Add(spawngrid.GetObjectBuilder());
+                    }
                 }
             }
 
