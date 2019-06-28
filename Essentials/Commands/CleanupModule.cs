@@ -311,6 +311,13 @@ namespace Essentials.Commands
             return grid.BigOwners.Contains(identityId);
         }
 
+        [Condition("faction", helpText: "Finds grids owned by the given faction.  Specify by faction tag.")]
+        public bool Faction(MyCubeGrid grid, string factionTag)
+        {
+            var target = MySession.Static.Factions.TryGetFactionByTag(factionTag);
+            return factionTag != null && target.Members.Keys.Select(member => grid.BigOwners.Contains(member)).FirstOrDefault();
+        }
+
         [Condition("hastype", "notype", "Finds grids containing blocks of the given type.")]
         public bool BlockType(MyCubeGrid grid, string str)
         {
