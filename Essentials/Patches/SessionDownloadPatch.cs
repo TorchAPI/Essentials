@@ -520,7 +520,10 @@ namespace Essentials.Patches
                 if (toolbar != null)
                     player.Toolbar = toolbar.GetObjectBuilder();
                 else if (EssentialsPlugin.Instance.Config.EnableToolbarOverride)
+                {
                     player.Toolbar = EssentialsPlugin.Instance.Config.DefaultToolbar;
+                    _checkpoint.CharacterToolbar = EssentialsPlugin.Instance.Config.DefaultToolbar;
+                }
 
                 //MySession.Static.Cameras.SaveCameraCollection(checkpoint);
                 player.EntityCameraData = _cameraSettings;
