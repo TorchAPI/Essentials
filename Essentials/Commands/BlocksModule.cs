@@ -86,6 +86,7 @@ namespace Essentials.Commands
             {
                 foreach (var block in grid.GetBlocks())
                 {
+                    if (block == null) continue;
                     var blockType = block.BlockDefinition.Id.SubtypeName;
                     if (string.Compare(subtype, blockType, StringComparison.InvariantCultureIgnoreCase) == 0)
                         toRemove.Add(block);
@@ -105,6 +106,7 @@ namespace Essentials.Commands
             {
                 foreach (var block in grid.GetBlocks())
                 {
+                    if (block == null) continue;
                     var blockType = block.BlockDefinition.Id.TypeId.ToString().Substring(16);
                     if (string.Compare(type, blockType, StringComparison.InvariantCultureIgnoreCase) == 0)
                         toRemove.Add(block);
