@@ -39,8 +39,11 @@ namespace Essentials
                 case Trigger.Disabled:
                     return  false;
                 case Trigger.OnStart:
-                    return Math.Abs((MyAPIGateway.Session.ElapsedPlayTime - TimeSpan.Parse(command.Interval))
-                               .TotalSeconds) < 1;
+                    var a = Math.Max(TimeSpan.Parse(command.Interval).TotalSeconds, 60);
+                    var b = ((ITorchServer)TorchBase.Instance).ElapsedPlayTime;
+                    if  ((a - b.TotalSeconds) <= 1 && (a - b.TotalSeconds > 0))
+                        command.RunNow();
+                    break;
                 case Trigger.Vote:
                     break;
                 case Trigger.Timed:
@@ -48,72 +51,12 @@ namespace Essentials
                 case Trigger.Scheduled:
                     return true;
                 case Trigger.GridCount:
-                    var gridCount = MyEntities.GetEntities().OfType<IMyCubeGrid>().Count();
-                    switch (command.Compare)
-                    {
-                        case GreaterThan:
-                            return gridCount > command.TriggerCount;
-                        case LessThan:
-                            return gridCount < command.TriggerCount;
-                        case Equal:
-                            return Math.Abs(gridCount-command.TriggerCount)<1;
-                        default:
-                            throw new Exception("meh");
-                    }
+                        return Tree.Grids.Count >= command.TriggerCount;
                 case Trigger.PlayerCount:
-                    switch (command.Compare)
-                    {
-                        case GreaterThan:
-                            return MySession.Static.Players.GetOnlinePlayerCount() >= command.TriggerCount;
-                        case LessThan:
-                            return MySession.Static.Players.GetOnlinePlayerCount() <= command.TriggerCount;
-                        default:
-                            throw new Exception("meh");
-                    }
-
+                    return MySession.Static.Players.GetOnlinePlayerCount() >= command.TriggerCount;
                 case Trigger.SimSpeed:
-                    var commandActive = _simSpeedCheck.TryGetValue(command, out var time);
-                    switch (command.Compare)
-                    {
-                        case GreaterThan:
-                            if (commandActive)
-                            {
-                                if ((DateTime.Now - time).TotalSeconds < command.TriggerCount) break;
-                                _simSpeedCheck.Remove(command);
-                                return Math.Min(Sync.ServerSimulationRatio, 1) > command.TriggerRatio;
-                            }
+                    return Math.Min(Sync.ServerSimulationRatio, 1) <= command.TriggerRatio;
 
-                            if (Math.Min(Sync.ServerSimulationRatio, 1) < command.TriggerRatio) break;
-                            _simSpeedCheck.Add(command, DateTime.Now);
-                            break;
-
-                        case LessThan:
-                            if (commandActive)
-                            {
-                                if ((DateTime.Now - time).TotalSeconds < command.TriggerCount) break;
-                                _simSpeedCheck.Remove(command);
-                                return Math.Min(Sync.ServerSimulationRatio, 1) < command.TriggerRatio;
-                            }
-
-                            if (Math.Min(Sync.ServerSimulationRatio, 1) > command.TriggerRatio) break;
-                            _simSpeedCheck.Add(command, DateTime.Now);
-                            break;
-
-                        case Equal:
-                            if (commandActive)
-                            {
-                                if ((DateTime.Now - time).TotalSeconds < command.TriggerCount) break;
-                                _simSpeedCheck.Remove(command);
-                                return (Math.Abs(Sync.ServerSimulationRatio - command.TriggerRatio) <= 0);
-                            }
-
-                            if (Math.Abs(Sync.ServerSimulationRatio - command.TriggerRatio)>0)
-                                break;
-                            _simSpeedCheck.Add(command, DateTime.Now);
-                            break;
-                       }
-                       break;
-                            
                 default:
                     throw new Exception("fuck it");
             }

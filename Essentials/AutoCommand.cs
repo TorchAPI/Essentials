@@ -25,27 +25,25 @@ namespace Essentials
         private DateTime _nextRun = DateTime.MinValue;
         private DayOfWeek _day = DayOfWeek.All;
         private Trigger _trigger = Trigger.Disabled;
-        private Gtl _comparer = Gtl.LessThan;
         private int _currentStep;
         private string _name;
         private float _triggerRatio;
         private double _triggerCount;
 
-
+        /*
+        [Display(Description = "Enables or disables this command. NOTE: !admin runauto does NOT respect this setting!")]
+        public bool Enabled
+        {
+            get => _enabled;
+            set => SetValue(ref _enabled, value);
+        }
+        */
         [Display(Name = "Trigger", Description ="Choose a trigger for the command")]
         public Trigger CommandTrigger
         {
             get => _trigger;
             set => SetValue(ref _trigger, value);
         }
-        
-        [Display(Name = "Trigger Operator", Description ="Choose a Ratio Comparer for the command")]
-        public Gtl Compare
-        {
-            get => _comparer;
-            set => SetValue(ref _comparer, value);
-        }
-
         
         [Display(Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to trigger the command from ingame or from other auto commands.")]
         public string Name
@@ -122,19 +120,13 @@ namespace Essentials
             if (DateTime.Now < _nextRun)
                 return;
 
-            switch (CommandTrigger)
-            {
-                case Trigger.GridCount:
-                case Trigger.SimSpeed:
-                case Trigger.PlayerCount:
-                    RunNow();
-                    _nextRun = DateTime.Now + _interval;
-                    return;
-                case Trigger.Scheduled when Interval == TimeSpan.Zero.ToString() && DayOfWeek != DayOfWeek.All && DateTime.Now.DayOfWeek != (System.DayOfWeek)(int)DayOfWeek:
+            if(CommandTrigger == Trigger.Scheduled && Interval == TimeSpan.Zero.ToString())
+                if (DayOfWeek != DayOfWeek.All && DateTime.Now.DayOfWeek != (System.DayOfWeek)(int)DayOfWeek)
+                {
                     //adding one day because I can't be bothered to calculate exact interval
                     _nextRun += TimeSpan.FromDays(1);
                     return;
-            }
+                }
 
 
             if (Steps.Count <= 0)
@@ -148,9 +140,11 @@ namespace Essentials
 
             if (_currentStep < Steps.Count) return;
             _currentStep = 0;
-            _nextRun = _scheduledTime != TimeSpan.Zero
-                    ? DateTime.Now.Date + _scheduledTime + TimeSpan.FromDays(1)
-                    : _nextRun = DateTime.Now + _interval;
+            if(CommandTrigger == Trigger.Scheduled && Interval == TimeSpan.Zero.ToString())
+                _nextRun = DateTime.Now.Date + _scheduledTime + TimeSpan.FromDays(1);
+            else if((CommandTrigger != Trigger.Disabled || CommandTrigger != Trigger.Vote) && Interval != TimeSpan.Zero.ToString())
+
+                _nextRun = DateTime.Now + _interval;
         }
 
 
@@ -215,13 +209,6 @@ namespace Essentials
         {
             return $"{Name} : {_trigger.ToString()} : {Steps.Count}";
         }
-    }
-    
-    public enum Gtl
-    {
-        LessThan,
-        GreaterThan,
-        Equal
     }
 
     public enum Trigger
