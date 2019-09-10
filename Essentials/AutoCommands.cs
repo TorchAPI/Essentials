@@ -10,7 +10,9 @@ using Torch.Server.ViewModels;
 using Sandbox.Game.World;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.Entities;
+using Sandbox.ModAPI;
 using VRage.Game.ModAPI;
+using static Essentials.Gtl;
 
 
 namespace Essentials
@@ -23,6 +25,8 @@ namespace Essentials
         public static AutoCommands Instance => _instance ?? (_instance = new AutoCommands());
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
         private Timer _timer;
+        private readonly Dictionary<AutoCommand,DateTime> _simSpeedCheck  = new Dictionary<AutoCommand, DateTime>();
+
 
         public void Start()
         {
