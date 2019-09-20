@@ -18,7 +18,7 @@ namespace Essentials.Commands
         public void OnType(string type)
         {
             var count = 0;
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(x => x.Projector == null))
             {
                 foreach (var block in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
                 {
@@ -39,7 +39,7 @@ namespace Essentials.Commands
         public void OnSubtype(string subtype)
         {
             var count = 0;
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(x => x.Projector == null))
             {
                 foreach (var block in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
                 {
@@ -60,7 +60,7 @@ namespace Essentials.Commands
         public void OffType(string type)
         {
             var count = 0;
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(x => x.Projector == null))
             {
                 foreach (var block in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
                 {
@@ -82,7 +82,7 @@ namespace Essentials.Commands
         public void RemoveSubtype(string subtype)
         {
             var toRemove = new List<MySlimBlock>();
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(x => x.Projector == null))
             {
                 foreach (var block in grid.GetBlocks())
                 {
@@ -101,7 +101,7 @@ namespace Essentials.Commands
         public void RemoveType(string type)
         {
             var toRemove = new List<MySlimBlock>();
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(x => x.Projector == null))
             {
                 foreach (var block in grid.GetBlocks())
                 {
@@ -120,7 +120,7 @@ namespace Essentials.Commands
         public void OffSubtype(string subtype)
         {
             var count = 0;
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(x => x.Projector == null))
             {
                 foreach (var block in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
                 {
@@ -144,7 +144,7 @@ namespace Essentials.Commands
             var count = 0;
             if (Enum.TryParse(category, out BlockCategory result))
             {
-                foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+                foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(x => x.Projector == null))
                 {
                     foreach (var item in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
                     {
@@ -178,7 +178,7 @@ namespace Essentials.Commands
 
             if (Enum.TryParse(category, out BlockCategory result))
             {
-                foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+                foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(x => x.Projector == null))
                 {
                     foreach (var item in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
                     {

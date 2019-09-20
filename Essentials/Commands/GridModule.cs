@@ -69,7 +69,7 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void StaticLarge()
         {
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(g => g.GridSizeEnum == MyCubeSize.Large))
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(g => g.GridSizeEnum == MyCubeSize.Large).Where(x => x.Projector == null))
                 grid.OnConvertedToStationRequest(); //Keen why do you do this to me?
         }
 
@@ -77,7 +77,7 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void StopAll()
         {
-                foreach (var grid in MyEntities.GetEntities().OfType<IMyCubeGrid>())
+                foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(x => x.Projector == null))
                 {
                     grid.Physics.ClearSpeed();
                 }
@@ -93,7 +93,7 @@ namespace Essentials
             foreach (var entity in MyEntities.GetEntities())
             {
                 var grid = entity as MyCubeGrid;
-                if (grid == null)
+                if (grid == null || grid.Projector != null)
                     continue;
 
                 if (grid.BigOwners.Contains(id))

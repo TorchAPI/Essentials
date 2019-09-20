@@ -178,6 +178,9 @@ namespace Essentials.Commands
                 bool res = true;
                 foreach (var node in group.Nodes)
                 {
+                    if (node.NodeData.Projector != null)
+                        continue;
+                    
                     foreach (var c in conditions)
                     {
                         bool? r = c.Invoke(node.NodeData);
@@ -194,7 +197,7 @@ namespace Essentials.Commands
                 }
 
                 if(res)
-                    foreach (var grid in group.Nodes)
+                    foreach (var grid in group.Nodes.Where(x => x.NodeData.Projector == null))
                         yield return grid.NodeData;
             }
         }
