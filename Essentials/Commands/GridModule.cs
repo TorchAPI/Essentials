@@ -92,7 +92,7 @@ namespace Essentials
 
                 if (gridGroups.Count == 0) 
                 {
-                    Context.Respond("You grid in your line of sight found! Remember not to use spectator!");
+                    Context.Respond("No grid in your line of sight found! Remember to NOT use spectator!");
                     return;
                 }
             } 
