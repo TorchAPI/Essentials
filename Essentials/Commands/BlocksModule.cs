@@ -341,7 +341,11 @@ namespace Essentials.Commands
                 return allGrids.Where(x => x.BigOwners.Contains(player.IdentityId)).ToList();
             }
 
-            if (!long.TryParse(target, out var factionId)) return grids;
+            if (!long.TryParse(target, out var factionId))
+            {
+                var attemptFaction = MySession.Static.Factions.TryGetFactionByTag(target);
+                return attemptFaction == null ? grids : allGrids.Where(x => x.BigOwners.Any(o => attemptFaction.Members.ContainsKey(0))).ToList();
+            }
 
             var faction = MySession.Static.Factions.TryGetFactionById(factionId);
             return faction == null ? grids : allGrids.Where(x => x.BigOwners.Any(o => faction.Members.ContainsKey(0))).ToList();
