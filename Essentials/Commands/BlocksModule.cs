@@ -90,7 +90,7 @@ namespace Essentials.Commands
            
             var mehCount = 0;
 
-            foreach (var grid in grids)
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
             {
                 foreach (var block in grid.GetBlocks())
                 {
@@ -143,7 +143,7 @@ namespace Essentials.Commands
                 return;
             }
 
-            foreach (var grid in grids)
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
             {
                 foreach (var block in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
                 {
