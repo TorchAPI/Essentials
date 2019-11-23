@@ -344,11 +344,11 @@ namespace Essentials.Commands
             if (!long.TryParse(target, out var factionId))
             {
                 var attemptFaction = MySession.Static.Factions.TryGetFactionByTag(target);
-                return attemptFaction == null ? grids : allGrids.Where(x => x.BigOwners.Any(o => attemptFaction.Members.ContainsKey(0))).ToList();
+                return attemptFaction == null ? grids : allGrids.Where(x => x.BigOwners.Any(owner => attemptFaction.Members.ContainsKey(owner))).ToList();
             }
 
             var faction = MySession.Static.Factions.TryGetFactionById(factionId);
-            return faction == null ? grids : allGrids.Where(x => x.BigOwners.Any(o => faction.Members.ContainsKey(0))).ToList();
+            return faction == null ? grids : allGrids.Where(x => x.BigOwners.Any(owner => faction.Members.ContainsKey(owner))).ToList();
 
 
 
