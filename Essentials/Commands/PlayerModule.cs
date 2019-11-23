@@ -103,6 +103,29 @@ namespace Essentials
             Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsOther(message, Context.Player?.DisplayName ?? "Server", MyFontEnum.Red, player.SteamUserId);
         }
 
+        [Command("eject", "Ejects a player from cockpit.")]
+        [Permission(MyPromoteLevel.Moderator)]
+        public void Eject(string playerName) 
+        {
+            var player = Utilities.GetPlayerByNameOrId(playerName);
+            if (player != null) 
+            {
+                if (player?.Controller.ControlledEntity is MyCockpit controller) 
+                {
+                    controller.Use();
+                    Context.Respond($"Player '{player.DisplayName}' ejected.");
+                } 
+                else 
+                {
+                    Context.Respond("Player cannot be ejected.");
+                }
+            } 
+            else 
+            {
+                Context.Respond("Player not found.");
+            }
+        }
+
         [Command("kill", "Kills a player.")]
         [Permission(MyPromoteLevel.Moderator)]
         public void Kill(string playerName) 
