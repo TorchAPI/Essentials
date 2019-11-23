@@ -190,7 +190,7 @@ namespace Essentials.Commands
                 return;
             }
 
-            var toRemove = (from grid in grids from block in grid.GetFatBlocks().OfType<MySlimBlock>().ToList() let blockSubtype = block.BlockDefinition.Id.SubtypeName where string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0 select block).ToList();
+            var toRemove = (from grid in grids from block in grid.GetBlocks() let blockSubtype = block.BlockDefinition.Id.SubtypeName where string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0 select block).ToList();
 
             var count = toRemove.Count;
 
@@ -212,7 +212,7 @@ namespace Essentials.Commands
                 return;
             }
 
-            var toRemove = (from grid in grids from block in grid.GetFatBlocks().OfType<MySlimBlock>().ToList() let blockType = block.BlockDefinition.Id.TypeId.ToString().Substring(16) where string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0 select block).ToList();
+            var toRemove = (from grid in grids from block in grid.GetBlocks() let blockType = block.BlockDefinition.Id.TypeId.ToString().Substring(16) where string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0 select block).ToList();
 
             var count = toRemove.Count;
             foreach (var x in toRemove)
