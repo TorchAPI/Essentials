@@ -34,10 +34,21 @@ namespace Essentials.Commands
                 Context.Respond("No grid found from request");
                 return;
             }
+            //var totalCount = MyEntities.GetEntities().OfType<MyCubeGrid>().Sum(grid => grid.GetBlocks().Select(block => block.BlockDefinition.Id.TypeId.ToString().Substring(16)).Count(blockType => string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0));
+            
+            var mehCount = 0;
+            foreach (var grid in grids)
+            {
+                foreach (var block in grid.GetBlocks())
+                {
+                    if (!block.BlockDefinition.Id.TypeId.ToString().Substring(16)
+                        .Equals(type, StringComparison.OrdinalIgnoreCase)) continue;
+                    mehCount++;
+                }
+            }
 
-            var totalCount = MyEntities.GetEntities().OfType<MyCubeGrid>().Sum(grid => grid.GetBlocks().Select(block => block.BlockDefinition.Id.TypeId.ToString().Substring(16)).Count(blockType => string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0));
 
-            if (totalCount == 0)
+            if (mehCount == 0)
             {
                 Context.Respond($"No block of type {type} found on this server");
                 return;
@@ -53,10 +64,10 @@ namespace Essentials.Commands
             }
 
             if (Context?.Player?.SteamUserId > 0)
-                ModCommunication.SendMessageTo(new DialogMessage("Block Counts", $"Total of {totalCount} blocks of type {type} found on the server", sb.ToString()) , Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Block Counts", $"Total of {mehCount} blocks of type {type} found on the server", sb.ToString()) , Context.Player.SteamUserId);
             else
             {
-                sb.Append($"Total of {totalCount} blocks of type {type} found on the server");
+                sb.Append($"Total of {mehCount} blocks of type {type} found on the server");
                 sb.AppendLine();
 
                 Context?.Respond(sb.ToString());
@@ -75,9 +86,22 @@ namespace Essentials.Commands
                 return;
             }
 
-            var totalCount = MyEntities.GetEntities().OfType<MyCubeGrid>().Sum(grid => grid.GetBlocks().Select(block => block.BlockDefinition.Id.SubtypeName).Count(blockSubtype => string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0));
+            //var totalCount = MyEntities.GetEntities().OfType<MyCubeGrid>().Sum(grid => grid.GetBlocks().Select(block => block.BlockDefinition.Id.SubtypeName).Count(blockSubtype => string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0));
+           
+            var mehCount = 0;
 
-            if (totalCount == 0)
+            foreach (var grid in grids)
+            {
+                foreach (var block in grid.GetBlocks())
+                {
+                    if (!block.BlockDefinition.Id.SubtypeName
+                        .Equals(subtype, StringComparison.OrdinalIgnoreCase)) continue;
+                    mehCount++;
+                }
+            }
+
+
+            if (mehCount == 0)
             {
                 Context.Respond($"No block of type {subtype} found on this server");
                 return;
@@ -94,10 +118,10 @@ namespace Essentials.Commands
             }
 
             if (Context?.Player?.SteamUserId > 0)
-                ModCommunication.SendMessageTo(new DialogMessage("Block Counts", $"Total of {totalCount} blocks of subtype {subtype} found on the server", sb.ToString()) , Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Block Counts", $"Total of {mehCount} blocks of subtype {subtype} found on the server", sb.ToString()) , Context.Player.SteamUserId);
             else
             {
-                sb.Append($"Total of {totalCount} blocks of subtype {subtype} found on the server");
+                sb.Append($"Total of {mehCount} blocks of subtype {subtype} found on the server");
                 sb.AppendLine();
 
                 Context?.Respond(sb.ToString());
@@ -119,11 +143,23 @@ namespace Essentials.Commands
                 return;
             }
 
-            foreach (var block in from grid in grids from block in grid.GetFatBlocks().OfType<MyFunctionalBlock>().ToList() let blockType = block.BlockDefinition.Id.TypeId.ToString().Substring(16) where string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0 select block)
+            foreach (var grid in grids)
             {
-                block.Enabled = true;
-                count++;
+                foreach (var block in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
+                {
+                    if (!block.BlockDefinition.Id.TypeId.ToString().Substring(16)
+                        .Equals(type, StringComparison.OrdinalIgnoreCase)) continue;
+                    block.Enabled = true;
+                    count++;
+                }
             }
+
+
+            /* foreach (var block in from grid in grids from block in grid.GetFatBlocks().OfType<MyFunctionalBlock>().ToList() let blockType = block.BlockDefinition.Id.TypeId.ToString().Substring(16) where string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0 select block)
+             {
+                 block.Enabled = true;
+                 count++;
+             }*/
 
 
             Context.Respond($"Enabled {count} blocks of type {type}.");
@@ -143,11 +179,23 @@ namespace Essentials.Commands
                 return;
             }
 
-            foreach (var block in from grid in grids from block in grid.GetFatBlocks().OfType<MyFunctionalBlock>().ToList() let blockSubtype = block.BlockDefinition.Id.SubtypeName where string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0 select block)
+            foreach (var grid in grids)
+            {
+                foreach (var block in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
+                {
+                    if (!block.BlockDefinition.Id.SubtypeName
+                        .Equals(subtype, StringComparison.OrdinalIgnoreCase)) continue;
+                    block.Enabled = true;
+                    count++;
+                }
+            }
+
+
+            /*foreach (var block in from grid in grids from block in grid.GetFatBlocks().OfType<MyFunctionalBlock>().ToList() let blockSubtype = block.BlockDefinition.Id.SubtypeName where string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0 select block)
             {
                 block.Enabled = true;
                 count++;
-            }
+            }*/
 
 
             Context.Respond($"Enabled {count} blocks of type {subtype}.");
@@ -167,11 +215,22 @@ namespace Essentials.Commands
                 return;
             }
 
+            foreach (var grid in grids)
+            {
+                foreach (var block in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
+                {
+                    if (!block.BlockDefinition.Id.TypeId.ToString().Substring(16)
+                        .Equals(type, StringComparison.OrdinalIgnoreCase)) continue;
+                    block.Enabled = false;
+                    count++;
+                }
+            }
+            /*
             foreach (var block in from grid in grids from block in grid.GetFatBlocks().OfType<MyFunctionalBlock>().ToList() let blockType = block.BlockDefinition.Id.TypeId.ToString().Substring(16) where string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0 select block)
             {
                 block.Enabled = false;
                 count++;
-            }
+            }*/
 
 
             Context.Respond($"Disabled {count} blocks of type {type}.");
@@ -190,9 +249,24 @@ namespace Essentials.Commands
                 return;
             }
 
-            var toRemove = (from grid in grids from block in grid.GetBlocks() let blockSubtype = block.BlockDefinition.Id.SubtypeName where string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0 select block).ToList();
+            var count = 0;
 
-            var count = toRemove.Count;
+            var toRemove = new List<MySlimBlock>();
+
+            foreach (var grid in grids)
+            {
+                foreach (var block in grid.GetBlocks())
+                {
+                    if (!block.BlockDefinition.Id.SubtypeName
+                        .Equals(subtype, StringComparison.OrdinalIgnoreCase)) continue;
+                    toRemove.Add(block);
+                    count++;
+                }
+            }
+
+            //var toRemove = (from grid in grids from block in grid.GetBlocks() let blockSubtype = block.BlockDefinition.Id.SubtypeName where string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0 select block).ToList();
+
+            //var count = toRemove.Count;
 
             foreach (var x in toRemove)
                 x.CubeGrid.RazeBlock(x.Position);
@@ -212,9 +286,24 @@ namespace Essentials.Commands
                 return;
             }
 
-            var toRemove = (from grid in grids from block in grid.GetBlocks() let blockType = block.BlockDefinition.Id.TypeId.ToString().Substring(16) where string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0 select block).ToList();
+            var count = 0;
 
-            var count = toRemove.Count;
+            var toRemove = new List<MySlimBlock>();
+
+            foreach (var grid in grids)
+            {
+                foreach (var block in grid.GetBlocks())
+                {
+                    if (!block.BlockDefinition.Id.TypeId.ToString().Substring(16)
+                        .Equals(type, StringComparison.OrdinalIgnoreCase)) continue;
+                    toRemove.Add(block);
+                    count++;
+                }
+            }
+
+            //var toRemove = (from grid in grids from block in grid.GetBlocks() let blockType = block.BlockDefinition.Id.TypeId.ToString().Substring(16) where string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0 select block).ToList();
+
+            //var count = toRemove.Count;
             foreach (var x in toRemove)
                 x.CubeGrid.RazeBlock(x.Position);
             Context.Respond($"Removed {count} blocks of type {type}.");
@@ -234,12 +323,24 @@ namespace Essentials.Commands
                 return;
             }
 
+            foreach (var grid in grids)
+            {
+                foreach (var block in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
+                {
+                    if (!block.BlockDefinition.Id.SubtypeName
+                        .Equals(subtype, StringComparison.OrdinalIgnoreCase)) continue;
+                    block.Enabled = false;
+                    count++;
+                }
+            }
+            /*
+
             foreach (var block in from grid in grids from block in grid.GetFatBlocks().OfType<MyFunctionalBlock>().ToList() let blockSubtype = block.BlockDefinition.Id.SubtypeName where string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0 select block)
             {
                 block.Enabled = true;
                 count++;
             }
-
+            */
 
             Context.Respond($"Enabled {count} blocks of type {subtype}.");
         }
