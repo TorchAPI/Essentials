@@ -29,7 +29,12 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Teleport(string entityToMove, string destination)
         {
-            Utilities.TryGetEntityByNameOrId(destination, out IMyEntity destEntity);
+
+            IMyEntity destEntity;
+            if (string.IsNullOrEmpty(destination))
+                destEntity = Context.Player?.Controller.ControlledEntity.Entity;
+            else
+                Utilities.TryGetEntityByNameOrId(destination, out destEntity);
 
             if (destEntity == null)
             {
@@ -62,6 +67,13 @@ namespace Essentials
         [Command("tpto", "Teleport directly to an another entity.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void TeleportTo(string destination, string entityToMove = null)
+        {
+            Teleport(entityToMove, destination);
+        }
+
+        [Command("tphere", "Teleport an other entity directly to you.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void TeleportHere(string entityToMove, string destination = null) 
         {
             Teleport(entityToMove, destination);
         }
