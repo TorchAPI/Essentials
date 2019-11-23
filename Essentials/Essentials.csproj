@@ -150,6 +150,7 @@
     <Compile Include="EssentialsPlugin.cs" />
     <Compile Include="Commands\GridModule.cs" />
     <Compile Include="Commands\PlayerModule.cs" />
+    <Compile Include="GridFinder.cs" />
     <Compile Include="InfoCommand.cs" />
     <Compile Include="Commands\InfoModule.cs" />
     <Compile Include="Patches\SessionDownloadPatch.cs" />
