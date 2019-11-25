@@ -14,7 +14,6 @@ using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.Game;
 using VRage.ObjectBuilders;
-using ALE_Core.Utils;
 using System.Collections.Concurrent;
 using VRage.Groups;
 
@@ -114,22 +113,26 @@ namespace Essentials
             }
 
             var group = gridGroups.First();
+            int ejectedPlayersCount = 0;
 
             foreach(var node in group.Nodes) 
             {
-
                 MyCubeGrid grid = node.NodeData;
 
                 foreach(var fatBlock in grid.GetFatBlocks()) 
                 {
-
                     if (!(fatBlock is MyShipController shipController))
                         continue;
 
-                    if (shipController.Pilot != null)
+                    if (shipController.Pilot != null) 
+                    {
                         shipController.Use();
+                        ejectedPlayersCount++;
+                    }
                 }
             }
+
+            Context.Respond($"Ejected '{ejectedPlayersCount}' players from their seats.");
         }
 
         [Command("static large", "Makes all large grids static.")]

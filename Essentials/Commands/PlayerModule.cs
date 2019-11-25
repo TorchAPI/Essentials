@@ -71,7 +71,7 @@ namespace Essentials
             Teleport(entityToMove, destination);
         }
 
-        [Command("tphere", "Teleport an other entity directly to you.")]
+        [Command("tphere", "Teleport another entity directly to you.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void TeleportHere(string entityToMove, string destination = null) 
         {

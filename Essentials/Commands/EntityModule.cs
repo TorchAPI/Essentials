@@ -305,8 +305,9 @@ namespace Essentials
                 {
                     controller.Use();
                     Context.Respond($"Player '{playerName}' ejected.");
-
-                } else {
+                } 
+                else 
+                {
                     Context.Respond("Player not seated.");
                 }
 
