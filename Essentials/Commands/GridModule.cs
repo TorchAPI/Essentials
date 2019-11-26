@@ -14,8 +14,8 @@ using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.Game;
 using VRage.ObjectBuilders;
-
-
+using System.Collections.Concurrent;
+using VRage.Groups;
 
 namespace Essentials
 {
@@ -63,6 +63,76 @@ namespace Essentials
                 cubeBlock?.ChangeOwner(identityId, ownerComp.ShareMode);
                 return false;
             });*/
+        }
+
+        [Command("ejectall", "Ejects all Players from given grid.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void Eject(string gridName = null) 
+        {
+            ConcurrentBag<MyGroups<MyCubeGrid, MyGridMechanicalGroupData>.Group> gridGroups;
+
+            if (gridName == null) 
+            {
+                if(Context.Player == null) 
+                {
+                    Context.Respond("The console always has to pass a gridname!");
+                    return;
+                }
+
+                IMyCharacter character = Context.Player.Character;
+
+                if (character == null) 
+                {
+                    Context.Respond("You need to spawn into a character when not using gridname!");
+                    return;
+                }
+
+                gridGroups = GridFinder.FindLookAtGridGroupMechanical(character);
+
+                if (gridGroups.Count == 0) 
+                {
+                    Context.Respond("No grid in your line of sight found! Remember to NOT use spectator!");
+                    return;
+                }
+            } 
+            else 
+            {
+                gridGroups = GridFinder.FindGridGroupMechanical(gridName);
+
+                if (gridGroups.Count == 0) 
+                {
+                    Context.Respond($"Grid with name '{gridName}' was not found!");
+                    return;
+                }
+
+                if (gridGroups.Count > 1) 
+                {
+                    Context.Respond($"There were multiple grids with name '{gridName}' to prevent any mistakes this command will not be executed!");
+                    return;
+                }
+            }
+
+            var group = gridGroups.First();
+            int ejectedPlayersCount = 0;
+
+            foreach(var node in group.Nodes) 
+            {
+                MyCubeGrid grid = node.NodeData;
+
+                foreach(var fatBlock in grid.GetFatBlocks()) 
+                {
+                    if (!(fatBlock is MyShipController shipController))
+                        continue;
+
+                    if (shipController.Pilot != null) 
+                    {
+                        shipController.Use();
+                        ejectedPlayersCount++;
+                    }
+                }
+            }
+
+            Context.Respond($"Ejected '{ejectedPlayersCount}' players from their seats.");
         }
 
         [Command("static large", "Makes all large grids static.")]
