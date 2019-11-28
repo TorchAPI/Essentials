@@ -74,14 +74,14 @@ namespace Essentials.Commands
                 sb.AppendLine();
             }
 
-            if (Context?.Player?.SteamUserId > 0)
+            if (Context.Player?.SteamUserId > 0)
                 ModCommunication.SendMessageTo(new DialogMessage("Block Counts", $"Total of {totalBlockCount} blocks of type {type} found on the server", sb.ToString()) , Context.Player.SteamUserId);
             else
             {
                 sb.Append($"Total of {totalBlockCount} blocks of type {type} found on the server");
                 sb.AppendLine();
 
-                Context?.Respond(sb.ToString());
+                Context.Respond(sb.ToString());
             }
         }
 
@@ -138,14 +138,14 @@ namespace Essentials.Commands
                 sb.AppendLine();
             }
 
-            if (Context?.Player?.SteamUserId > 0)
+            if (Context.Player?.SteamUserId > 0)
                 ModCommunication.SendMessageTo(new DialogMessage("Block Counts", $"Total of {totalBlockCount} blocks of subtype {subtype} found on the server", sb.ToString()) , Context.Player.SteamUserId);
             else
             {
                 sb.Append($"Total of {totalBlockCount} blocks of subtype {subtype} found on the server");
                 sb.AppendLine();
 
-                Context?.Respond(sb.ToString());
+                Context.Respond(sb.ToString());
             }
         }
 
