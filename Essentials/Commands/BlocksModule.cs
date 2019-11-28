@@ -34,40 +34,51 @@ namespace Essentials.Commands
                 Context.Respond("No grid found from request");
                 return;
             }
-            //var totalCount = MyEntities.GetEntities().OfType<MyCubeGrid>().Sum(grid => grid.GetBlocks().Select(block => block.BlockDefinition.Id.TypeId.ToString().Substring(16)).Count(blockType => string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0));
             
-            var mehCount = 0;
-            foreach (var grid in grids)
+
+            var totalBlockList = new List<IMySlimBlock>();
+
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
             {
                 foreach (var block in grid.GetBlocks())
                 {
-                    if (!block.BlockDefinition.Id.TypeId.ToString().Substring(16)
-                        .Equals(type, StringComparison.OrdinalIgnoreCase)) continue;
-                    mehCount++;
+                    var allow = block.BlockDefinition.Id.TypeId.ToString().Substring(16)
+                        .Equals(type, StringComparison.OrdinalIgnoreCase);
+                    
+                    if (!allow) continue;
+                   totalBlockList.Add(block);
                 }
             }
 
-
-            if (mehCount == 0)
+            if (!totalBlockList.Any())
             {
                 Context.Respond($"No block of type {type} found on this server");
                 return;
             }
 
+            var totalBlockCount = totalBlockList.Count;
+
             var sb = new StringBuilder();
             foreach (var grid in grids)
             {
-                var count = grid.GetBlocks().Select(block => block.BlockDefinition.Id.TypeId.ToString().Substring(16)).Count(blockType => string.Compare(type, blockType, StringComparison.InvariantCultureIgnoreCase) == 0);
+                var count = 0;
+                foreach (var block in totalBlockList)
+                {
+                    var makeCount = block.CubeGrid.EntityId == grid.EntityId;
+                    if (!makeCount)continue;
+                    count++;
+                }
+                
                 if (count == 0)continue;
                 sb.Append($"{grid.DisplayName} has {count} blocks with type {type}");
                 sb.AppendLine();
             }
 
             if (Context?.Player?.SteamUserId > 0)
-                ModCommunication.SendMessageTo(new DialogMessage("Block Counts", $"Total of {mehCount} blocks of type {type} found on the server", sb.ToString()) , Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Block Counts", $"Total of {totalBlockCount} blocks of type {type} found on the server", sb.ToString()) , Context.Player.SteamUserId);
             else
             {
-                sb.Append($"Total of {mehCount} blocks of type {type} found on the server");
+                sb.Append($"Total of {totalBlockCount} blocks of type {type} found on the server");
                 sb.AppendLine();
 
                 Context?.Respond(sb.ToString());
@@ -86,42 +97,52 @@ namespace Essentials.Commands
                 return;
             }
 
-            //var totalCount = MyEntities.GetEntities().OfType<MyCubeGrid>().Sum(grid => grid.GetBlocks().Select(block => block.BlockDefinition.Id.SubtypeName).Count(blockSubtype => string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0));
            
-            var mehCount = 0;
+            var totalBlockList = new List<IMySlimBlock>();
 
             foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
             {
                 foreach (var block in grid.GetBlocks())
                 {
-                    if (!block.BlockDefinition.Id.SubtypeName
-                        .Equals(subtype, StringComparison.OrdinalIgnoreCase)) continue;
-                    mehCount++;
+                    var allow = block.BlockDefinition.Id.SubtypeName
+                        .Equals(subtype, StringComparison.OrdinalIgnoreCase);
+                    
+                    if (!allow) continue;
+                    totalBlockList.Add(block);
                 }
             }
 
 
-            if (mehCount == 0)
+            if (!totalBlockList.Any())
             {
                 Context.Respond($"No block of type {subtype} found on this server");
                 return;
             }
 
+            var totalBlockCount = totalBlockList.Count;
+
             var sb = new StringBuilder();
 
             foreach (var grid in grids)
             {
-                var count = grid.GetBlocks().Select(block => block.BlockDefinition.Id.SubtypeId.ToString()).Count(blockType => string.Compare(subtype, blockType, StringComparison.InvariantCultureIgnoreCase) == 0);
+                var count = 0;
+                foreach (var block in totalBlockList)
+                {
+                    var makeCount = block.CubeGrid.EntityId == grid.EntityId;
+                    if (!makeCount)continue;
+                    count++;
+                }
+                
                 if (count == 0)continue;
                 sb.Append($"{grid.DisplayName} has {count} blocks with subtype {subtype}");
                 sb.AppendLine();
             }
 
             if (Context?.Player?.SteamUserId > 0)
-                ModCommunication.SendMessageTo(new DialogMessage("Block Counts", $"Total of {mehCount} blocks of subtype {subtype} found on the server", sb.ToString()) , Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Block Counts", $"Total of {totalBlockCount} blocks of subtype {subtype} found on the server", sb.ToString()) , Context.Player.SteamUserId);
             else
             {
-                sb.Append($"Total of {mehCount} blocks of subtype {subtype} found on the server");
+                sb.Append($"Total of {totalBlockCount} blocks of subtype {subtype} found on the server");
                 sb.AppendLine();
 
                 Context?.Respond(sb.ToString());
@@ -361,7 +382,8 @@ namespace Essentials.Commands
 
             if (!Enum.TryParse(category, true, out BlockCategory result))
             {
-                Context.Respond($"{category} is not a valid category. Use one of the following: " + string.Join(", ", Enum.GetValues(typeof(BlockCategory))));
+                var usableString = string.Join(", ", Enum.GetValues(typeof(BlockCategory)));
+                Context.Respond($"{category} is not a valid category. Use one of the following: {usableString}" );
                 return;
             }
 
@@ -396,7 +418,8 @@ namespace Essentials.Commands
 
             if (!Enum.TryParse(category, true, out BlockCategory result))
             {
-                Context.Respond($"{category} is not a valid category. Use one of the following: " + string.Join(", ", Enum.GetValues(typeof(BlockCategory))));
+                var usableString = string.Join(", ", Enum.GetValues(typeof(BlockCategory)));
+                Context.Respond($"{category} is not a valid category. Use one of the following: {usableString}" );
                 return;
             }
 
@@ -470,8 +493,11 @@ namespace Essentials.Commands
                 case BlockCategory.Weapons:
                     return block is IMyLargeTurretBase || block is IMyUserControllableGun;
 
+                case BlockCategory.ShipTools:
+                    return block is IMyShipDrill || block is IMyShipWelder || block is IMyShipGrinder;
+
                 default:
-                    throw new InvalidBranchException();
+                    throw new ArgumentException();
             }
         }
 
@@ -479,7 +505,8 @@ namespace Essentials.Commands
         {
             Power,
             Production,
-            Weapons
+            Weapons,
+            ShipTools
 
         }
     }
