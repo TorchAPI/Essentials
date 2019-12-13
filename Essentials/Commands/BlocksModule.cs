@@ -176,13 +176,6 @@ namespace Essentials.Commands
             }
 
 
-            /* foreach (var block in from grid in grids from block in grid.GetFatBlocks().OfType<MyFunctionalBlock>().ToList() let blockType = block.BlockDefinition.Id.TypeId.ToString().Substring(16) where string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0 select block)
-             {
-                 block.Enabled = true;
-                 count++;
-             }*/
-
-
             Context.Respond($"Enabled {count} blocks of type {type}.");
         }
 
@@ -212,12 +205,6 @@ namespace Essentials.Commands
             }
 
 
-            /*foreach (var block in from grid in grids from block in grid.GetFatBlocks().OfType<MyFunctionalBlock>().ToList() let blockSubtype = block.BlockDefinition.Id.SubtypeName where string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0 select block)
-            {
-                block.Enabled = true;
-                count++;
-            }*/
-
 
             Context.Respond($"Enabled {count} blocks of type {subtype}.");
         }
@@ -246,13 +233,6 @@ namespace Essentials.Commands
                     count++;
                 }
             }
-            /*
-            foreach (var block in from grid in grids from block in grid.GetFatBlocks().OfType<MyFunctionalBlock>().ToList() let blockType = block.BlockDefinition.Id.TypeId.ToString().Substring(16) where string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0 select block)
-            {
-                block.Enabled = false;
-                count++;
-            }*/
-
 
             Context.Respond($"Disabled {count} blocks of type {type}.");
         }
@@ -284,11 +264,6 @@ namespace Essentials.Commands
                     count++;
                 }
             }
-
-            //var toRemove = (from grid in grids from block in grid.GetBlocks() let blockSubtype = block.BlockDefinition.Id.SubtypeName where string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0 select block).ToList();
-
-            //var count = toRemove.Count;
-
             foreach (var x in toRemove)
                 x.CubeGrid.RazeBlock(x.Position);
             Context.Respond($"Removed {count} blocks of subtype {subtype}.");
@@ -321,10 +296,6 @@ namespace Essentials.Commands
                     count++;
                 }
             }
-
-            //var toRemove = (from grid in grids from block in grid.GetBlocks() let blockType = block.BlockDefinition.Id.TypeId.ToString().Substring(16) where string.Compare(type, blockType, StringComparison.OrdinalIgnoreCase) == 0 select block).ToList();
-
-            //var count = toRemove.Count;
             foreach (var x in toRemove)
                 x.CubeGrid.RazeBlock(x.Position);
             Context.Respond($"Removed {count} blocks of type {type}.");
@@ -354,14 +325,6 @@ namespace Essentials.Commands
                     count++;
                 }
             }
-            /*
-
-            foreach (var block in from grid in grids from block in grid.GetFatBlocks().OfType<MyFunctionalBlock>().ToList() let blockSubtype = block.BlockDefinition.Id.SubtypeName where string.Compare(subtype, blockSubtype, StringComparison.OrdinalIgnoreCase) == 0 select block)
-            {
-                block.Enabled = true;
-                count++;
-            }
-            */
 
             Context.Respond($"Enabled {count} blocks of type {subtype}.");
         }
