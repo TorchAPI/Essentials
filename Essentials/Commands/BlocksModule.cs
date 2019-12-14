@@ -164,7 +164,7 @@ namespace Essentials.Commands
                 return;
             }
 
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
+            foreach (var grid in grids)
             {
                 foreach (var block in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
                 {
@@ -326,7 +326,7 @@ namespace Essentials.Commands
                 }
             }
 
-            Context.Respond($"Enabled {count} blocks of type {subtype}.");
+            Context.Respond($"Disabled {count} blocks of type {subtype}.");
         }
 
         [Command("on general", "Turn on all blocks of the specified category")]
