@@ -164,7 +164,7 @@ namespace Essentials.Commands
                 return;
             }
 
-            foreach (var grid in grids)
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>())
             {
                 foreach (var block in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
                 {
@@ -176,7 +176,7 @@ namespace Essentials.Commands
             }
 
 
-            Context.Respond($"Turned on {count} blocks of type {type}.");
+            Context.Respond($"Enabled {count} blocks of type {type}.");
         }
 
         [Command("on subtype", "Turn on all blocks of the given subtype.")]
@@ -206,7 +206,7 @@ namespace Essentials.Commands
 
 
 
-            Context.Respond($"Turned on {count} blocks of type {subtype}.");
+            Context.Respond($"Enabled {count} blocks of type {subtype}.");
         }
 
         [Command("off type", "Turn off all blocks of the given type.")]
@@ -234,7 +234,7 @@ namespace Essentials.Commands
                 }
             }
 
-            Context.Respond($"Turned off {count} blocks of type {type}.");
+            Context.Respond($"Disabled {count} blocks of type {type}.");
         }
 
         [Command("remove subtype", "remove all blocks of the given subtype.")]
@@ -326,7 +326,7 @@ namespace Essentials.Commands
                 }
             }
 
-            Context.Respond($"Turned off {count} blocks of type {subtype}.");
+            Context.Respond($"Enabled {count} blocks of type {subtype}.");
         }
 
         [Command("on general", "Turn on all blocks of the specified category")]
@@ -361,7 +361,7 @@ namespace Essentials.Commands
             }
 
 
-            Context.Respond($"Turned on {count} {category} blocks.");
+            Context.Respond($"Enabled {count} {category} blocks.");
         }
 
 
@@ -398,7 +398,7 @@ namespace Essentials.Commands
 
 
 
-            Context.Respond($"Turned off {count} {category} blocks.");
+            Context.Respond($"Disabled {count} {category} blocks.");
         }
 
         private List<MyCubeGrid> GetGrids(string target)
