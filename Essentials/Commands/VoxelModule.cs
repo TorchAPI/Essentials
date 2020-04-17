@@ -30,30 +30,30 @@ namespace Essentials.Commands
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelBase>();
             
             var resetIds = new List<long>();
-            //Parallel.ForEach(voxelMaps, map =>
-            foreach(var map in voxelMaps)
-                                        {
-                                            try
-                                            {
-                                                if (map.StorageName == null || map.Storage.DataProvider == null)
-                                                    continue;
+            
+            foreach (var map in voxelMaps)
+            {
+                try
+                {
+                    if (map.StorageName == null || map.Storage.DataProvider == null)
+                        continue;
 
-                                                long id = map.EntityId;
+                    long id = map.EntityId;
 
-                                                if(deleteStorage && map is MyVoxelMap)
-                                                    map.Close();
-                                                else
-                                                    map.Storage.Reset(MyStorageDataTypeFlags.All);
+                    if (deleteStorage && map is MyVoxelMap)
+                        map.Close();
+                    else
+                    {
+                        map.Storage.Reset(MyStorageDataTypeFlags.All);
+                        resetIds.Add(id);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"{e.Message}\n{e.StackTrace}");
+                }
+            }
 
-                                                if(!deleteStorage)
-                                                    lock (resetIds)
-                                                        resetIds.Add(id);
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                _log.Error($"{e.Message}\n{e.StackTrace}");
-                                            }
-                                        }//, blocking:true);
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
             Context.Respond($"Reset {resetIds.Count} voxel maps.");
@@ -66,38 +66,36 @@ namespace Essentials.Commands
 
             var resetIds = new List<long>();
 
-            //Parallel.ForEach(voxelMaps, map =>
-            foreach(var map in voxelMaps)
-                                        {
-                                            try
-                                            {
-                                                if (map.StorageName == null || map.Storage.DataProvider == null)
-                                                    continue;
+            foreach (var map in voxelMaps)
+            {
+                try
+                {
+                    if (map.StorageName == null || map.Storage.DataProvider == null)
+                        continue;
 
-                                                var s = map.PositionComp.WorldVolume;
-                                                var nearEntities = new List<MyEntity>();
+                    var s = map.PositionComp.WorldVolume;
+                    var nearEntities = new List<MyEntity>();
 
-                                                MyGamePruningStructure.GetAllTopMostEntitiesInSphere(ref s, nearEntities);
+                    MyGamePruningStructure.GetAllTopMostEntitiesInSphere(ref s, nearEntities);
 
-                                                if(nearEntities.Any(e => e is MyCubeGrid || e is MyCharacter))
-                                                    continue;
+                    if (nearEntities.Any(e => e is MyCubeGrid || e is MyCharacter))
+                        continue;
 
-                                                long id = map.EntityId;
+                    long id = map.EntityId;
 
-                                                if(deleteStorage)
-                                                    map.Close();
-                                                else
-                                                    map.Storage.Reset(MyStorageDataTypeFlags.All);
-
-                                                if(!deleteStorage)
-                                                    lock(resetIds)  
-                                                        resetIds.Add(id);
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                _log.Error($"{e.Message}\n{e.StackTrace}");
-                                            }
-                                        }//);
+                    if (deleteStorage)
+                        map.Close();
+                    else
+                    {
+                        map.Storage.Reset(MyStorageDataTypeFlags.All);
+                        resetIds.Add(id);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"{e.Message}\n{e.StackTrace}");
+                }
+            }
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
@@ -111,8 +109,7 @@ namespace Essentials.Commands
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelMap>();
 
             var resetIds = new List<long>();
-
-            //Parallel.ForEach(voxelMaps, map =>
+            
             foreach (var map in voxelMaps)
             {
                 try
@@ -133,17 +130,16 @@ namespace Essentials.Commands
                     if(deleteStorage)
                         map.Close();
                     else
+                    {
                         map.Storage.Reset(MyStorageDataTypeFlags.All);
-
-                    if(!deleteStorage)
-                        lock (resetIds)
-                            resetIds.Add(id);
+                        resetIds.Add(id);
+                    }
                 }
                 catch (Exception e)
                 {
                     _log.Error($"{e.Message}\n{e.StackTrace}");
                 }
-            }//);
+            }
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
@@ -157,23 +153,21 @@ namespace Essentials.Commands
 
             var resetIds = new List<long>();
 
-            //Parallel.ForEach(voxelMaps, map =>
-            foreach(var map in voxelMaps)
-                                        {
-                                            try
-                                            {
-                                                if (map.StorageName == null || map.Storage.DataProvider == null)
-                                                    continue;
+            foreach (var map in voxelMaps)
+            {
+                try
+                {
+                    if (map.StorageName == null || map.Storage.DataProvider == null)
+                        continue;
 
-                                                map.Storage.Reset(MyStorageDataTypeFlags.All);
-                                                lock (resetIds)
-                                                    resetIds.Add(map.EntityId);
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                _log.Error($"{e.Message}\n{e.StackTrace}");
-                                            }
-                                        }//);
+                    map.Storage.Reset(MyStorageDataTypeFlags.All);
+                    resetIds.Add(map.EntityId);
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"{e.Message}\n{e.StackTrace}");
+                }
+            }
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
