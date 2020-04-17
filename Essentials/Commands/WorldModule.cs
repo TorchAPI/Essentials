@@ -27,6 +27,7 @@ using Torch.API.Session;
 using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.Network;
+using Sandbox.Game;
 
 namespace Essentials.Commands
 {
@@ -204,7 +205,16 @@ namespace Essentials.Commands
             var fac = MySession.Static.Factions.GetPlayerFaction(identity.IdentityId);
             if (fac == null)
                 return false;
-            fac.KickMember(identity.IdentityId);
+
+            /* 
+             * VisualScriptLogicProvider takes care of removal of faction if last 
+             * identity is kicked, and promotes the next player in line to Founder 
+             * if the founder is being kicked. 
+             * 
+             * Factions must have a founder otherwise calls like MyFaction.Members.Keys will NRE. 
+             */
+            MyVisualScriptLogicProvider.KickPlayerFromFaction(identity.IdentityId);
+
             return true;
         }
         
