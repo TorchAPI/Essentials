@@ -1,22 +1,16 @@
-﻿using System;
+﻿using NLog;
+using Sandbox.Game.Entities;
+using Sandbox.Game.EntityComponents;
+using Sandbox.Game.World;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Windows.Media.Media3D;
-using Sandbox.Game.Entities;
-using Sandbox.Game.World;
 using Torch.Commands;
-using NLog;
-using Sandbox.Game.EntityComponents;
-using Sandbox.Game.Multiplayer;
-using SpaceEngineers.Game.Entities.Blocks;
 using Torch.Mod;
 using Torch.Mod.Messages;
-using VRage.Game.Entity;
-using VRage.Game.ModAPI;
 using Vector3D = VRageMath.Vector3D;
 
 namespace Essentials.Commands
@@ -25,6 +19,7 @@ namespace Essentials.Commands
     public class CleanupModule : CommandModule
     {
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
+
         [Command("scan", "Find grids matching the given conditions")]
         public void Scan()
         {
@@ -64,7 +59,7 @@ namespace Essentials.Commands
             Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
         }
 
-        [Command("delete floatingobjects","deletes floating objects")]
+        [Command("delete floatingobjects", "deletes floating objects")]
         public void FlObjDelete()
         {
             var count = 0;
@@ -76,7 +71,6 @@ namespace Essentials.Commands
             }
             Context.Respond($"Deleted {count} floating objects.");
             Log.Info($"Cleanup deleted {count} floating objects");
-
         }
 
         [Command("help", "Lists all cleanup conditions.")]
@@ -89,8 +83,8 @@ namespace Essentials.Commands
                 sb.AppendLine($"   {c.HelpText}");
             }
 
-            if(!Context.SentBySelf)
-            ModCommunication.SendMessageTo(new DialogMessage("Cleanup help", null, sb.ToString()), Context.Player.SteamUserId);
+            if (!Context.SentBySelf)
+                ModCommunication.SendMessageTo(new DialogMessage("Cleanup help", null, sb.ToString()), Context.Player.SteamUserId);
             else
                 Context.Respond(sb.ToString());
         }
@@ -116,8 +110,8 @@ namespace Essentials.Commands
         private IEnumerable<MyCubeGrid> ScanConditions(IReadOnlyList<string> args)
         {
             var conditions = new List<Func<MyCubeGrid, bool?>>();
-            
-            for (var i = 0; i < args.Count; i ++)
+
+            for (var i = 0; i < args.Count; i++)
             {
                 string parameter;
                 if (i + 1 >= args.Count)
@@ -130,7 +124,6 @@ namespace Essentials.Commands
                 }
 
                 var arg = args[i];
-                
 
                 if (parameter != null)
                 {
@@ -169,7 +162,7 @@ namespace Essentials.Commands
             }
 
             //default scan to find grids without pilots
-            if(!args.Contains("haspilot", StringComparer.CurrentCultureIgnoreCase))
+            if (!args.Contains("haspilot", StringComparer.CurrentCultureIgnoreCase))
                 conditions.Add(g => !Piloted(g));
 
             foreach (var group in MyCubeGridGroups.Static.Logical.Groups)
@@ -180,7 +173,7 @@ namespace Essentials.Commands
                 {
                     if (node.NodeData.Projector != null)
                         continue;
-                    
+
                     foreach (var c in conditions)
                     {
                         bool? r = c.Invoke(node.NodeData);
@@ -196,7 +189,7 @@ namespace Essentials.Commands
                         break;
                 }
 
-                if(res)
+                if (res)
                     foreach (var grid in group.Nodes.Where(x => x.NodeData.Projector == null))
                         yield return grid.NodeData;
             }
@@ -216,6 +209,18 @@ namespace Essentials.Commands
         public bool BlocksLessThan(MyCubeGrid grid, int count)
         {
             return grid.BlocksCount < count;
+        }
+
+        [Condition("pcugreaterthan", helpText: "Finds grids with more than the given number of PCU.")]
+        public bool PCUGreaterThan(MyCubeGrid grid, int count)
+        {
+            return grid.BlocksPCU > count;
+        }
+
+        [Condition("pculessthan", helpText: "Finds grids with less than the given number of PCU.")]
+        public bool PCULessThan(MyCubeGrid grid, int count)
+        {
+            return grid.BlocksPCU < count;
         }
 
         [Condition("blocksgreaterthan", helpText: "Finds grids with more than the given number of blocks.")]
@@ -299,9 +304,9 @@ namespace Essentials.Commands
                 var player = Utilities.GetPlayerByNameOrId(str);
                 if (player == null)
                 {
-                    if(long.TryParse(str, out long NPCId))
+                    if (long.TryParse(str, out long NPCId))
                     {
-                        if(MySession.Static.Players.IdentityIsNpc(NPCId))
+                        if (MySession.Static.Players.IdentityIsNpc(NPCId))
                         {
                             return grid.BigOwners.Contains(NPCId);
                         }
@@ -333,7 +338,7 @@ namespace Essentials.Commands
         }
 
         /// <summary>
-        /// Removes pilots from grid before deleting, 
+        /// Removes pilots from grid before deleting,
         /// so the character doesn't also get deleted and break everything
         /// </summary>
         /// <param name="grid"></param>
@@ -360,7 +365,7 @@ namespace Essentials.Commands
                 InvertCommand = attribute.InvertCommand;
                 HelpText = attribute.HelpText;
                 _method = evalMethod;
-                if(_method.ReturnType!= typeof(bool))
+                if (_method.ReturnType != typeof(bool))
                     throw new TypeLoadException("Condition does not return a bool!");
                 var p = _method.GetParameters();
                 if (p.Length < 1 || p[0].ParameterType != typeof(MyCubeGrid))
@@ -371,7 +376,6 @@ namespace Essentials.Commands
                     Parameter = null;
                 else
                     Parameter = p[1];
-
             }
 
             public bool? Evaluate(MyCubeGrid grid, string arg, bool invert, CleanupModule module)
@@ -396,13 +400,13 @@ namespace Essentials.Commands
                         return null;
                     }
 
-                    result = (bool)_method.Invoke(module, new[] {grid, val});
+                    result = (bool)_method.Invoke(module, new[] { grid, val });
                 }
                 else
                 {
-                    result = (bool)_method.Invoke(module, new object[] {grid});
+                    result = (bool)_method.Invoke(module, new object[] { grid });
                 }
-                
+
                 return result != invert;
             }
         }
