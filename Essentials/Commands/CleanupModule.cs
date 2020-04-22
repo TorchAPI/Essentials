@@ -212,15 +212,15 @@ namespace Essentials.Commands
         }
 
         [Condition("pcugreaterthan", helpText: "Finds grids with more than the given number of PCU.")]
-        public bool PCUGreaterThan(MyCubeGrid grid, int count)
+        public bool PCUGreaterThan(MyCubeGrid grid, int pcu)
         {
-            return grid.BlocksPCU > count;
+            return grid.BlocksPCU > pcu;
         }
 
         [Condition("pculessthan", helpText: "Finds grids with less than the given number of PCU.")]
-        public bool PCULessThan(MyCubeGrid grid, int count)
+        public bool PCULessThan(MyCubeGrid grid, int pcu)
         {
-            return grid.BlocksPCU < count;
+            return grid.BlocksPCU < pcu;
         }
 
         [Condition("blocksgreaterthan", helpText: "Finds grids with more than the given number of blocks.")]
