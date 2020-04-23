@@ -223,6 +223,37 @@ namespace Essentials.Commands
             return grid.BlocksPCU < pcu;
         }
 
+        [Condition("hasownertype", helpText: "Finds grids with the specified owner type (npc | player | nobody).")]
+        public bool HasOwnerType(MyCubeGrid grid, string ownerType)
+        {
+            if (string.IsNullOrEmpty(ownerType))
+                return false;
+
+            // Get the owner type of the grid.
+            var gridOwnerType = Utils.Ownership.GetOwnerType(grid);
+
+            // Check provided input string.
+            switch (ownerType.ToLower().Trim())
+            {
+                // Check if grid is owner by an NPC.
+                case "npc":
+                case "npcs":
+                    return gridOwnerType == Utils.Ownership.OwnerType.NPC;
+
+                // Check if the grid is owned by a Player.
+                case "player":
+                case "players":
+                    return gridOwnerType == Utils.Ownership.OwnerType.Player;
+
+                // Check if the grid is owned by Nobody.
+                case "nobody":
+                    return gridOwnerType == Utils.Ownership.OwnerType.Nobody;
+            }
+
+            // In all other cases, just return false.
+            return false;
+        }
+
         [Condition("blocksgreaterthan", helpText: "Finds grids with more than the given number of blocks.")]
         public bool BlocksGreaterThan(MyCubeGrid grid, int count)
         {
