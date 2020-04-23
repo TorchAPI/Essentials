@@ -1,17 +1,14 @@
-﻿using System;
+﻿using Sandbox;
+using Sandbox.Engine.Multiplayer;
+using Sandbox.Game.World;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Timers;
-using Sandbox;
-using Sandbox.Engine.Multiplayer;
-using Sandbox.Game.World;
-using Torch;
 using Torch.API.Managers;
 using Torch.Commands;
 using Torch.Commands.Permissions;
-using Torch.Managers.ChatManager;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using VRage.Game.ModAPI;
@@ -35,7 +32,7 @@ namespace Essentials.Commands
             Stats.Timing.WriteTo(sb);
 
             if (Context?.Player?.SteamUserId > 0)
-                ModCommunication.SendMessageTo(new DialogMessage("Statistics", null, sb.ToString()) , Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Statistics", null, sb.ToString()), Context.Player.SteamUserId);
             else
                 Context.Respond(sb.ToString());
         }
@@ -58,13 +55,13 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void ListPlayers()
         {
-            if(MySession.Static.Players.GetOnlinePlayerCount() == 0)
+            if (MySession.Static.Players.GetOnlinePlayerCount() == 0)
             {
                 Context.Respond("No players online");
                 return;
             }
             StringBuilder sb = new StringBuilder();
-            foreach(var player in MySession.Static.Players.GetOnlinePlayers())
+            foreach (var player in MySession.Static.Players.GetOnlinePlayers())
             {
                 sb.AppendLine();
                 sb.AppendLine($"{player.DisplayName}");
@@ -76,7 +73,6 @@ namespace Essentials.Commands
                 ModCommunication.SendMessageTo(new DialogMessage("List of Online Players", null, sb.ToString()), Context.Player.SteamUserId);
             }
         }
-
 
         [Command("runauto", "Runs the auto command with the given name immediately")]
         [Permission(MyPromoteLevel.Admin)]
@@ -142,7 +138,7 @@ namespace Essentials.Commands
         {
             ulong.TryParse(playerNameOrId, out var id);
             id = Utilities.GetPlayerByNameOrId(playerNameOrId)?.SteamUserId ?? id;
-            
+
             if (id == 0)
             {
                 Context.Respond($"Player '{playerNameOrId}' not found or ID is invalid.");
@@ -154,7 +150,7 @@ namespace Essentials.Commands
                 Context.Respond($"ID {id} is already reserved.");
                 return;
             }
-            
+
             MySandboxGame.ConfigDedicated.Reserved.Add(id);
             MySandboxGame.ConfigDedicated.Save();
             Context.Respond($"ID {id} added to reserved slots.");
@@ -166,19 +162,19 @@ namespace Essentials.Commands
         {
             ulong.TryParse(playerNameOrId, out var id);
             id = Utilities.GetPlayerByNameOrId(playerNameOrId)?.SteamUserId ?? id;
-            
+
             if (id == 0)
             {
                 Context.Respond($"Player '{playerNameOrId}' not found or ID is invalid.");
                 return;
             }
-            
+
             if (!MySandboxGame.ConfigDedicated.Reserved.Contains(id))
             {
                 Context.Respond($"ID {id} is already unreserved.");
                 return;
             }
-            
+
             MySandboxGame.ConfigDedicated.Reserved.Remove(id);
             MySandboxGame.ConfigDedicated.Save();
             Context.Respond($"ID {id} removed from reserved slots.");
@@ -209,10 +205,9 @@ namespace Essentials.Commands
                 return;
             }
 
-
             bool res = ChatManager.MuteUser(p.SteamUserId);
 
-            if(!res)
+            if (!res)
                 Context.Respond($"Failed to mute user {user}. They are already muted.");
             else
                 Context.Respond($"Muted user {p.DisplayName}");
@@ -231,7 +226,7 @@ namespace Essentials.Commands
             {
                 foreach (var p in _muted)
                 {
-                    if(p.Value > DateTime.Now)
+                    if (p.Value > DateTime.Now)
                         continue;
 
                     _removeCache.Add(p.Key);
@@ -279,11 +274,11 @@ namespace Essentials.Commands
             foreach (var m in ChatManager.MutedUsers)
             {
                 var s = MySession.Static.Players.TryGetIdentityNameFromSteamId(m);
-                if(string.IsNullOrEmpty(s))
+                if (string.IsNullOrEmpty(s))
                     s = m.ToString();
                 bool f = false;
                 DateTime t = default(DateTime);
-                if(_muted != null)
+                if (_muted != null)
                     lock (_muted)
                         f = _muted.TryGetValue(m, out t);
 

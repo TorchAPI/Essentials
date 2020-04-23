@@ -9,7 +9,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
-
 #if DEBUG
 [assembly: AssemblyConfiguration("Debug")]
 #else

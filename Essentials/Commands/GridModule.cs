@@ -1,21 +1,21 @@
-﻿using System.IO;
-using System.Linq;
-using System.Text;
-using Sandbox;
+﻿using Sandbox;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
+using System.Collections.Concurrent;
+using System.IO;
+using System.Linq;
+using System.Text;
 using Torch.API.Managers;
 using Torch.Commands;
 using Torch.Commands.Permissions;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using VRage;
-using VRage.Game.ModAPI;
-using VRage.ModAPI;
 using VRage.Game;
-using VRage.ObjectBuilders;
-using System.Collections.Concurrent;
+using VRage.Game.ModAPI;
 using VRage.Groups;
+using VRage.ModAPI;
+using VRage.ObjectBuilders;
 
 namespace Essentials
 {
@@ -67,13 +67,13 @@ namespace Essentials
 
         [Command("ejectall", "Ejects all Players from given grid.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
-        public void Eject(string gridName = null) 
+        public void Eject(string gridName = null)
         {
             ConcurrentBag<MyGroups<MyCubeGrid, MyGridMechanicalGroupData>.Group> gridGroups;
 
-            if (gridName == null) 
+            if (gridName == null)
             {
-                if(Context.Player == null) 
+                if (Context.Player == null)
                 {
                     Context.Respond("The console always has to pass a gridname!");
                     return;
@@ -81,7 +81,7 @@ namespace Essentials
 
                 IMyCharacter character = Context.Player.Character;
 
-                if (character == null) 
+                if (character == null)
                 {
                     Context.Respond("You need to spawn into a character when not using gridname!");
                     return;
@@ -89,23 +89,23 @@ namespace Essentials
 
                 gridGroups = GridFinder.FindLookAtGridGroupMechanical(character);
 
-                if (gridGroups.Count == 0) 
+                if (gridGroups.Count == 0)
                 {
                     Context.Respond("No grid in your line of sight found! Remember to NOT use spectator!");
                     return;
                 }
-            } 
-            else 
+            }
+            else
             {
                 gridGroups = GridFinder.FindGridGroupMechanical(gridName);
 
-                if (gridGroups.Count == 0) 
+                if (gridGroups.Count == 0)
                 {
                     Context.Respond($"Grid with name '{gridName}' was not found!");
                     return;
                 }
 
-                if (gridGroups.Count > 1) 
+                if (gridGroups.Count > 1)
                 {
                     Context.Respond($"There were multiple grids with name '{gridName}' to prevent any mistakes this command will not be executed!");
                     return;
@@ -115,16 +115,16 @@ namespace Essentials
             var group = gridGroups.First();
             int ejectedPlayersCount = 0;
 
-            foreach(var node in group.Nodes) 
+            foreach (var node in group.Nodes)
             {
                 MyCubeGrid grid = node.NodeData;
 
-                foreach(var fatBlock in grid.GetFatBlocks()) 
+                foreach (var fatBlock in grid.GetFatBlocks())
                 {
                     if (!(fatBlock is MyShipController shipController))
                         continue;
 
-                    if (shipController.Pilot != null) 
+                    if (shipController.Pilot != null)
                     {
                         shipController.Use();
                         ejectedPlayersCount++;
@@ -147,10 +147,10 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void StopAll()
         {
-                foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(x => x.Projector == null))
-                {
-                    grid.Physics.ClearSpeed();
-                }
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(x => x.Projector == null))
+            {
+                grid.Physics.ClearSpeed();
+            }
         }
 
         [Command("list", "Lists all grids you own at least 50% of. Will give you positions if the server admin enables the option.")]
@@ -168,7 +168,6 @@ namespace Essentials
 
                 if (grid.BigOwners.Contains(id))
                 {
-
                     sb.AppendLine($"{grid.DisplayName} - {grid.GridSizeEnum} - {grid.BlocksCount} blocks - Position {(EssentialsPlugin.Instance.Config.UtilityShowPosition ? grid.PositionComp.GetPosition().ToString() : "Unknown")}");
                     if (EssentialsPlugin.Instance.Config.MarkerShowPosition)
                     {
@@ -204,7 +203,7 @@ namespace Essentials
             MyObjectBuilderSerializer.SerializeXML(path, false, ent.GetObjectBuilder());
             Context.Respond($"Grid saved to {path}");
         }
-        
+
         [Command("import", "Import a grid from file and spawn it by the given entity/player.")]
         public void Import(string gridName, string targetName = null)
         {
@@ -214,7 +213,7 @@ namespace Essentials
                 if (Context.Player == null)
                 {
                     Context.Respond("Target entity must be specified.");
-                    return;   
+                    return;
                 }
 
                 targetName = Context.Player.Controller.ControlledEntity.Entity.DisplayName;
@@ -225,7 +224,7 @@ namespace Essentials
                 Context.Respond("Target entity not found.");
                 return;
             }
-            
+
             var path = string.Format(ExportPath, gridName);
             if (!File.Exists(path))
             {

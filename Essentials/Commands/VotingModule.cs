@@ -1,12 +1,12 @@
-﻿using System;
+﻿using NLog;
+using Sandbox.Game.World;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using NLog;
-using Sandbox.Game.World;
 using Torch.API.Managers;
 using Torch.Commands;
 using Torch.Commands.Permissions;
@@ -26,6 +26,7 @@ namespace Essentials.Commands
 
             // Last vote
             voteFail,
+
             voteSuccess
         }
 
@@ -40,6 +41,7 @@ namespace Essentials.Commands
 
         //last vote info for debugging
         private static string lastVoteName;
+
         private static Status voteResult;
         private static double voteResultPercentage;
 
@@ -66,7 +68,6 @@ namespace Essentials.Commands
                 return;
             }
 
-
             // Rexxar's spam blocker. Timing is random as fuck and unique to each player.
             var steamid = Context.Player.SteamUserId;
             if (_voteCooldown.TryGetValue(steamid, out var activeCooldown))
@@ -81,7 +82,6 @@ namespace Essentials.Commands
 
                 _voteCooldown[steamid] = DateTime.Now.AddMinutes(_cooldown);
             }
-
             else
             {
                 _voteCooldown.Add(steamid, DateTime.Now.AddMinutes(_cooldown));
@@ -207,7 +207,6 @@ namespace Essentials.Commands
             Log.Info($"Voting module reset by {Context.Player.DisplayName}");
         }
 
-
         //vote countdown
         private IEnumerable VoteCountdown(TimeSpan time)
         {
@@ -228,7 +227,6 @@ namespace Essentials.Commands
                         .SendMessageAsSelf($"Voting for {voteInProgress} ends in {i / 60} minute{Pluralize(i / 60)}.");
                     yield return null;
                 }
-
                 else if (i > 0)
                 {
                     if (i < 11)
@@ -259,7 +257,6 @@ namespace Essentials.Commands
                 }
             }
         }
-
 
         public void VoteEnd()
         {

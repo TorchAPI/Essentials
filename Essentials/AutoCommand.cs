@@ -1,19 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using NLog;
+using System;
 using System.Collections.ObjectModel;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using NLog;
 using Torch;
 using Torch.API;
 using Torch.API.Managers;
-using Torch.Server.ViewModels.Entities;
 using Torch.Commands;
 using Torch.Server;
 using Torch.Views;
-using Sandbox.Game.World;
-using Sandbox.Game.Entities;
 
 namespace Essentials
 {
@@ -31,22 +26,20 @@ namespace Essentials
         private float _triggerRatio;
         private double _triggerCount;
 
-
-        [Display(Name = "Trigger", Description ="Choose a trigger for the command")]
+        [Display(Name = "Trigger", Description = "Choose a trigger for the command")]
         public Trigger CommandTrigger
         {
             get => _trigger;
             set => SetValue(ref _trigger, value);
         }
-        
-        [Display(Name = "Trigger Operator", Description ="Choose a Ratio Comparer for the command")]
+
+        [Display(Name = "Trigger Operator", Description = "Choose a Ratio Comparer for the command")]
         public Gtl Compare
         {
             get => _comparer;
             set => SetValue(ref _comparer, value);
         }
 
-        
         [Display(Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to trigger the command from ingame or from other auto commands.")]
         public string Name
         {
@@ -82,7 +75,6 @@ namespace Essentials
                     //ScheduledTime = TimeSpan.Zero.ToString(); //I hate myself for this **FIXED!!!***
                     _nextRun = DateTime.Now + _interval;
                 }
-
             }
         }
 
@@ -91,15 +83,13 @@ namespace Essentials
         {
             get => _triggerRatio;
             set => SetValue(ref _triggerRatio, Math.Min(Math.Max(value, 0), 1));
-
         }
-        
+
         [Display(Name = "Trigger Count", Description = "Only use with GridCount or PlayerCount Trigger")]
         public double TriggerCount
         {
             get => _triggerCount;
             set => SetValue(ref _triggerCount, Math.Max(0, value));
-
         }
 
         [Display(Name = "Day of week", GroupName = "Schedule", Description = "Combined with Scheduled Time, will run the command on the given day of the week at the set time.")]
@@ -130,12 +120,12 @@ namespace Essentials
                     RunNow();
                     _nextRun = DateTime.Now + _interval;
                     return;
+
                 case Trigger.Scheduled when Interval == TimeSpan.Zero.ToString() && DayOfWeek != DayOfWeek.All && DateTime.Now.DayOfWeek != (System.DayOfWeek)(int)DayOfWeek:
                     //adding one day because I can't be bothered to calculate exact interval
                     _nextRun += TimeSpan.FromDays(1);
                     return;
             }
-
 
             if (Steps.Count <= 0)
                 return;
@@ -152,8 +142,6 @@ namespace Essentials
                     ? DateTime.Now.Date + _scheduledTime + TimeSpan.FromDays(1)
                     : _nextRun = DateTime.Now + _interval;
         }
-
-
 
         public class CommandStep : ViewModel
         {
@@ -195,7 +183,6 @@ namespace Essentials
             }
         }
 
-
         /// <summary>
         /// Runs the command and all steps immediately, in a new thread
         /// </summary>
@@ -216,7 +203,7 @@ namespace Essentials
             return $"{Name} : {_trigger.ToString()} : {Steps.Count}";
         }
     }
-    
+
     public enum Gtl
     {
         LessThan,

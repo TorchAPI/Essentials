@@ -1,32 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using NLog;
-using Sandbox.Engine.Multiplayer;
+﻿using NLog;
 using Sandbox.Game.Entities;
-using Sandbox.Game.Entities.Character;
-using Sandbox.Game.Gui;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.Screens.Helpers;
 using Sandbox.Game.World;
 using Sandbox.Game.World.Generator;
 using Sandbox.ModAPI;
-using SpaceEngineers.Game.GUI;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 using Torch.Commands;
-using Torch.Mod;
-using Torch.Mod.Messages;
 using Torch.Commands.Permissions;
 using Torch.Managers;
-using Torch.Utils;
-using Torch.API.Managers;
-using Torch.API.Plugins;
-using Torch.API.Session;
+using Torch.Mod;
+using Torch.Mod.Messages;
 using VRage.Game;
 using VRage.Game.ModAPI;
-using VRage.Network;
 
 namespace Essentials.Commands
 {
@@ -98,7 +88,6 @@ namespace Essentials.Commands
             Context.Respond($"Removed {count} factions with fewer than {memberCount} members.");
         }
 
-
         [Command("faction remove", "removes faction by tag name")]
         [Permission(MyPromoteLevel.Admin)]
         public void RemoveFaction(string tag)
@@ -130,7 +119,6 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void FactionInfo()
         {
-
             StringBuilder sb = new StringBuilder();
 
             foreach (var factionID in MySession.Static.Factions)
@@ -147,7 +135,7 @@ namespace Essentials.Commands
                 sb.AppendLine($"{faction.Tag} - {memberCount} players in this faction");
                 foreach (var player in faction?.Members)
                 {
-                    if (!MySession.Static.Players.HasIdentity(player.Key) && !MySession.Static.Players.IdentityIsNpc(player.Key)||
+                    if (!MySession.Static.Players.HasIdentity(player.Key) && !MySession.Static.Players.IdentityIsNpc(player.Key) ||
                         string.IsNullOrEmpty(MySession.Static?.Players?.TryGetIdentity(player.Value.PlayerId).DisplayName)) continue; //This is needed to filter out players with no id.
                     sb.AppendLine($"{MySession.Static?.Players?.TryGetIdentity(player.Value.PlayerId).DisplayName}");
                 }
@@ -158,8 +146,6 @@ namespace Essentials.Commands
             {
                 ModCommunication.SendMessageTo(new DialogMessage("Faction Info", null, sb.ToString()), Context.Player.SteamUserId);
             }
-
-
         }
 
         private static void RemoveEmptyFactions()
@@ -207,9 +193,9 @@ namespace Essentials.Commands
             fac.KickMember(identity.IdentityId);
             return true;
         }
-        
+
         private static MethodInfo _factionChangeSuccessInfo = typeof(MyFactionCollection).GetMethod("FactionStateChangeSuccess", BindingFlags.NonPublic | BindingFlags.Static);
-        
+
         //TODO: This should probably be moved into Torch base, but I honestly cannot be bothered
         /// <summary>
         /// Removes a faction from the server and all clients because Keen fucked up their own system.
@@ -223,7 +209,7 @@ namespace Essentials.Commands
             //        (Action<MyFactionStateChange, long, long, long, long>) Delegate.CreateDelegate(typeof(Action<MyFactionStateChange, long, long, long, long>), _factionStateChangeReq),
             //    MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, faction.FounderId, faction.FounderId);
             NetworkManager.RaiseStaticEvent(_factionChangeSuccessInfo, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
-            if(!MyAPIGateway.Session.Factions.FactionTagExists(faction.Tag)) return;
+            if (!MyAPIGateway.Session.Factions.FactionTagExists(faction.Tag)) return;
             MyAPIGateway.Session.Factions.RemoveFaction(faction.FactionId); //Added to remove factions that got through the crack
         }
 
@@ -324,7 +310,7 @@ namespace Essentials.Commands
             var f = SeedParamField.GetValue(g) as HashSet<MyObjectSeedParams>;
             count += f.Count;
             f.Clear();
-            
+
             //TODO
             /*
             foreach (var history in MySession.Static.ChatHistory)
@@ -351,7 +337,7 @@ namespace Essentials.Commands
                 }
             }
             */
-            
+
             var cf = AllCamerasField.GetValue(CamerasField.GetValue(MySession.Static)) as Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>>;
             count += cf.Count;
             cf.Clear();

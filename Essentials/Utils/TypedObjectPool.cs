@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Essentials.Utils
 {
-
     public class TypedObjectPool
     {
         private readonly Dictionary<Type, IList> _store;

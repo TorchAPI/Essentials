@@ -1,4 +1,17 @@
-﻿using System;
+﻿using Essentials.Utils;
+using NLog;
+using Sandbox;
+using Sandbox.Engine.Multiplayer;
+using Sandbox.Engine.Physics;
+using Sandbox.Engine.Utils;
+using Sandbox.Engine.Voxels;
+using Sandbox.Game.Entities;
+using Sandbox.Game.Multiplayer;
+using Sandbox.Game.Screens.Helpers;
+using Sandbox.Game.SessionComponents;
+using Sandbox.Game.World;
+using Sandbox.ModAPI;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -9,22 +22,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
-using Essentials.Utils;
-using NLog;
-using Sandbox;
-using Sandbox.Engine.Multiplayer;
-using Sandbox.Engine.Physics;
-using Sandbox.Engine.Utils;
-using Sandbox.Engine.Voxels;
-using Sandbox.Game.Entities;
-using Sandbox.Game.Entities.Character;
-using Sandbox.Game.GameSystems;
-using Sandbox.Game.Multiplayer;
-using Sandbox.Game.Screens.Helpers;
-using Sandbox.Game.SessionComponents;
-using Sandbox.Game.World;
-using Sandbox.ModAPI;
-using SpaceEngineers.Game.Entities.Blocks;
 using Torch.API.Managers;
 using Torch.API.Session;
 using Torch.Managers.PatchManager;
@@ -49,7 +46,7 @@ namespace Essentials.Patches
     ///     The main focus of this replacement is to drastically reduce the amount of data sent to clients
     ///     (which removes some exploits), and to remove as many allocations as realistically possible,
     ///     in order to speed up the client join process, avoiding lag spikes on new connections.
-    /// 
+    ///
     ///     This code is **NOT** free to use, under the Apache license. You know who this message is for.
     /// </summary>
     public class SessionDownloadPatch
@@ -71,7 +68,7 @@ namespace Essentials.Patches
 
         [ReflectedGetter(Name = "m_callback")]
         private static Func<MyReplicationServer, IReplicationServerCallback> _getCallback;
-        
+
         private static readonly TypedObjectPool Pool = new TypedObjectPool();
 
         [ReflectedGetter(Name = "m_sessionComponents")]
@@ -226,6 +223,7 @@ namespace Essentials.Patches
                 case CollectionChangeAction.Add:
                     _checkpoint?.Mods.Add((MyObjectBuilder_Checkpoint.ModItem)args.Element);
                     break;
+
                 case CollectionChangeAction.Remove:
                     _checkpoint?.Mods.Remove((MyObjectBuilder_Checkpoint.ModItem)args.Element);
                     break;
@@ -243,7 +241,6 @@ namespace Essentials.Patches
         //    MySession.Static.ChatSystem.FactionMessageReceived += id => _dirty = true;
         //    MySession.Static.ChatSystem.PlayerMessageReceived += id => _dirty = true;
         //}
-
 
         /// <summary>
         /// Main entry point to this class. Prefix on MyMultiplayerBase.OnWorldRequest.
@@ -460,7 +457,7 @@ namespace Essentials.Patches
 
             foreach (MyPlayer p in m_players.Values)
             {
-                var id = new MyObjectBuilder_Checkpoint.PlayerId {ClientId = p.Id.SteamId, SerialId = p.Id.SerialId};
+                var id = new MyObjectBuilder_Checkpoint.PlayerId { ClientId = p.Id.SteamId, SerialId = p.Id.SerialId };
                 var playerOb = Pool.AllocateOrCreate<MyObjectBuilder_Player>();
 
                 playerOb.DisplayName = p.DisplayName;
@@ -484,7 +481,7 @@ namespace Essentials.Patches
                 if (m_players.ContainsKey(identityPair.Key))
                     continue;
 
-                var id = new MyObjectBuilder_Checkpoint.PlayerId {ClientId = identityPair.Key.SteamId, SerialId = identityPair.Key.SerialId};
+                var id = new MyObjectBuilder_Checkpoint.PlayerId { ClientId = identityPair.Key.SteamId, SerialId = identityPair.Key.SerialId };
                 MyIdentity identity = MySession.Static.Players.TryGetIdentity(identityPair.Value);
                 var playerOb = Pool.AllocateOrCreate<MyObjectBuilder_Player>();
 
@@ -506,7 +503,7 @@ namespace Essentials.Patches
                     if (m_players.ContainsKey(colorPair.Key) || m_playerIdentityIds.ContainsKey(colorPair.Key))
                         continue;
 
-                    var id = new MyObjectBuilder_Checkpoint.PlayerId {ClientId = colorPair.Key.SteamId, SerialId = colorPair.Key.SerialId};
+                    var id = new MyObjectBuilder_Checkpoint.PlayerId { ClientId = colorPair.Key.SteamId, SerialId = colorPair.Key.SerialId };
                     _checkpoint.AllPlayersColors.Dictionary.Add(id, colorPair.Value);
                 }
             }
@@ -552,17 +549,17 @@ namespace Essentials.Patches
                         if (gps.EntityId == 0 || MyEntities.GetEntityById(gps.EntityId) != null)
                         {
                             var builder = new MyObjectBuilder_Gps.Entry
-                                          {
-                                              name = gps.Name,
-                                              description = gps.Description,
-                                              coords = gps.Coords,
-                                              isFinal = gps.DiscardAt == null,
-                                              showOnHud = gps.ShowOnHud,
-                                              alwaysVisible = gps.AlwaysVisible,
-                                              color = gps.GPSColor,
-                                              entityId = gps.EntityId,
-                                              DisplayName = gps.DisplayName
-                                          };
+                            {
+                                name = gps.Name,
+                                description = gps.Description,
+                                coords = gps.Coords,
+                                isFinal = gps.DiscardAt == null,
+                                showOnHud = gps.ShowOnHud,
+                                alwaysVisible = gps.AlwaysVisible,
+                                color = gps.GPSColor,
+                                entityId = gps.EntityId,
+                                DisplayName = gps.DisplayName
+                            };
                             bGps.Entries.Add(builder);
                         }
                     }

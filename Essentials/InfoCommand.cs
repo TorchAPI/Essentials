@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Torch;
+﻿using Torch;
 
 namespace Essentials
 {
@@ -19,7 +18,7 @@ namespace Essentials
         public string ChatResponse
         {
             get => _chatResponse;
-            set =>SetValue(ref _chatResponse, value);
+            set => SetValue(ref _chatResponse, value);
         }
 
         public string DialogResponse
@@ -33,7 +32,7 @@ namespace Essentials
             get => _urlResponse;
             set => SetValue(ref _urlResponse, value);
         }
-        
+
         public override string ToString()
         {
             return Command;

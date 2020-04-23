@@ -1,25 +1,24 @@
-﻿using System;
+﻿using Sandbox.Common.ObjectBuilders;
+using Sandbox.Engine.Multiplayer;
+using Sandbox.Game;
+using Sandbox.Game.Entities;
+using Sandbox.ModAPI;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Sandbox.Engine.Multiplayer;
-using Sandbox.Game.Entities;
-using Sandbox.Common.ObjectBuilders;
-using Sandbox.Game.World;
-using Sandbox.ModAPI;
+using Torch.API.Managers;
 using Torch.Commands;
 using Torch.Commands.Permissions;
 using Torch.Utils;
-using Torch.API.Managers;
 using VRage.Collections;
-using VRage.Game.ModAPI;
-using VRage.ModAPI;
 using VRage.Game;
+using VRage.Game.ModAPI;
+using VRage.Game.ModAPI.Interfaces;
+using VRage.ModAPI;
 using VRage.Network;
 using VRage.Replication;
-using Sandbox.Game;
-using VRage.Game.ModAPI.Interfaces;
 
 namespace Essentials
 {
@@ -27,10 +26,12 @@ namespace Essentials
     public class EntityModule : CommandModule
     {
 #pragma warning disable 649
+
         [ReflectedGetter(Name = "m_clientStates")]
         private static Func<MyReplicationServer, IDictionary> _clientStates;
 
         private const string CLIENT_DATA_TYPE_NAME = "VRage.Network.MyClient, VRage";
+
         [ReflectedGetter(TypeName = CLIENT_DATA_TYPE_NAME, Name = "Replicables")]
         private static Func<object, MyConcurrentDictionary<IMyReplicable, MyReplicableClientData>> _replicables;
 
@@ -39,6 +40,7 @@ namespace Essentials
 
         [ReflectedMethod(Name = "ForceReplicable")]
         private static Action<MyReplicationServer, IMyReplicable, Endpoint> _forceReplicable;
+
 #pragma warning restore 649
 
         private static Dictionary<ulong, DateTime> _commandtimeout = new Dictionary<ulong, DateTime>();
@@ -139,12 +141,12 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Kill(string playerName)
         {
-            /* 
-             * First we try killing the player when hes online. This is easy and fast 
-             * and can also kill the player while being seated. 
+            /*
+             * First we try killing the player when hes online. This is easy and fast
+             * and can also kill the player while being seated.
              */
             var player = Utilities.GetPlayerByNameOrId(playerName);
-            if (player != null) 
+            if (player != null)
             {
                 MyVisualScriptLogicProvider.SetPlayersHealth(player.IdentityId, 0);
 
@@ -154,16 +156,17 @@ namespace Essentials
                 return;
             }
 
-            /* 
+            /*
              * If we could not find the player there is a chance he is offline, in that case we try inflicting
-             * damage to the character as the VST will not help us with offline characters. 
+             * damage to the character as the VST will not help us with offline characters.
              */
-            if (!Utilities.TryGetEntityByNameOrId(playerName, out IMyEntity entity)) {
+            if (!Utilities.TryGetEntityByNameOrId(playerName, out IMyEntity entity))
+            {
                 Context.Respond($"Entity '{playerName}' not found.");
                 return;
             }
 
-            if (entity is IMyCharacter) 
+            if (entity is IMyCharacter)
             {
                 var destroyable = entity as IMyDestroyableObject;
 
@@ -198,7 +201,6 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void PowerOff(string name)
         {
-
             if (string.IsNullOrEmpty(name))
                 return;
 
@@ -225,14 +227,12 @@ namespace Essentials
                 item.Enabled = false;
             }
             Context.Respond($"Entity '{entity.DisplayName}' powered off");
-
         }
 
         [Command("poweron", "Power on entities with the given text in their name.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void PowerOn(string name)
         {
-
             if (string.IsNullOrEmpty(name))
                 return;
 
@@ -259,31 +259,30 @@ namespace Essentials
                 item.Enabled = true;
             }
             Context.Respond($"Entity '{entity.DisplayName}' powered on");
-
         }
 
         [Command("eject", "Ejects a specific player from any block they are seated in, or all players in the server if run with 'all'")]
-        public void Eject(string playerName) {
-
-            if (playerName.ToLower() == "all") 
+        public void Eject(string playerName)
+        {
+            if (playerName.ToLower() == "all")
             {
                 EjectAllPlayers();
             }
-            else 
+            else
             {
                 EjectSinglePlayer(playerName);
             }
         }
 
-        private void EjectAllPlayers() {
-
+        private void EjectAllPlayers()
+        {
             int ejectedPlayersCount = 0;
 
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().ToList()) 
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().ToList())
             {
-                foreach (var controller in grid.GetFatBlocks<MyShipController>()) 
+                foreach (var controller in grid.GetFatBlocks<MyShipController>())
                 {
-                    if (controller.Pilot != null) 
+                    if (controller.Pilot != null)
                     {
                         controller.Use();
                         ejectedPlayersCount++;
@@ -294,19 +293,19 @@ namespace Essentials
             Context.Respond($"Ejected '{ejectedPlayersCount}' players from their seats.");
         }
 
-        private void EjectSinglePlayer(string playerName) {
-
+        private void EjectSinglePlayer(string playerName)
+        {
             /* We check first if the player is among the online players before looping over all grids for nothing. */
             var player = Utilities.GetPlayerByNameOrId(playerName);
-            if (player != null) 
+            if (player != null)
             {
                 /* If he is online we check if he is currently seated. If he is eject him. */
-                if (player?.Controller.ControlledEntity is MyCockpit controller) 
+                if (player?.Controller.ControlledEntity is MyCockpit controller)
                 {
                     controller.Use();
                     Context.Respond($"Player '{playerName}' ejected.");
-                } 
-                else 
+                }
+                else
                 {
                     Context.Respond("Player not seated.");
                 }
@@ -314,13 +313,13 @@ namespace Essentials
                 return;
             }
 
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().ToList()) 
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().ToList())
             {
-                foreach (var controller in grid.GetFatBlocks<MyShipController>()) 
+                foreach (var controller in grid.GetFatBlocks<MyShipController>())
                 {
                     var pilot = controller.Pilot;
 
-                    if (pilot != null && pilot.DisplayName == playerName) 
+                    if (pilot != null && pilot.DisplayName == playerName)
                     {
                         controller.Use();
 

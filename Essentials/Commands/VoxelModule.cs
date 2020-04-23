@@ -1,21 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using NLog;
-using Sandbox.Engine.Multiplayer;
+﻿using NLog;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
-using Sandbox.Game.World;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Torch.Commands;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using VRage.Game.Entity;
-using VRage.Network;
 using VRage.Voxels;
 using VRageMath;
-using Parallel = ParallelTasks.Parallel;
 
 namespace Essentials.Commands
 {
@@ -28,9 +22,9 @@ namespace Essentials.Commands
         public void ResetAll(bool deleteStorage = false)
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelBase>();
-            
+
             var resetIds = new List<long>();
-            
+
             foreach (var map in voxelMaps)
             {
                 try
@@ -105,11 +99,10 @@ namespace Essentials.Commands
         [Command("cleanup distant", "Resets all asteroids that don't have a grid or player inside the specified radius.")]
         public void CleanupAsteroidsDistant(double distance = 1000, bool deleteStorage = false)
         {
-
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelMap>();
 
             var resetIds = new List<long>();
-            
+
             foreach (var map in voxelMaps)
             {
                 try
@@ -126,8 +119,8 @@ namespace Essentials.Commands
                         continue;
 
                     long id = map.EntityId;
-                    
-                    if(deleteStorage)
+
+                    if (deleteStorage)
                         map.Close();
                     else
                     {
@@ -180,7 +173,7 @@ namespace Essentials.Commands
             var maps = new List<MyPlanet>(2);
             foreach (MyPlanet map in MyEntities.GetEntities().OfType<MyPlanet>())
             {
-                if( map.StorageName.Contains(planetName, StringComparison.CurrentCultureIgnoreCase))
+                if (map.StorageName.Contains(planetName, StringComparison.CurrentCultureIgnoreCase))
                     maps.Add(map);
             }
 
@@ -189,12 +182,14 @@ namespace Essentials.Commands
                 case 0:
                     Context.Respond($"Couldn't find planet with name {planetName}");
                     return;
+
                 case 1:
                     var map = maps[0];
                     map.Storage.Reset(MyStorageDataTypeFlags.All);
-                    ModCommunication.SendMessageToClients(new VoxelResetMessage(new long[]{map.EntityId}));
+                    ModCommunication.SendMessageToClients(new VoxelResetMessage(new long[] { map.EntityId }));
                     Context.Respond($"Reset planet {map.Name}");
                     return;
+
                 default:
                     Context.Respond($"Found {maps.Count} planets matching '{planetName}'. Please select from list:");
                     Context.Respond(string.Join("\r\n", maps.Select(m => m.StorageName)));

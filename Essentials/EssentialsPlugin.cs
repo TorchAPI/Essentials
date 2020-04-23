@@ -1,34 +1,27 @@
-﻿using System;
+﻿using Essentials.Commands;
+using Essentials.Patches;
+using NLog;
+using Sandbox.Game;
+using Sandbox.Game.Entities;
+using Sandbox.Game.World;
+using Sandbox.Graphics.GUI;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
-using Essentials.Commands;
-using Essentials.Patches;
-using NLog;
-using Sandbox.Engine.Multiplayer;
-using Sandbox.Game;
-using Sandbox.Game.Entities;
-using Sandbox.Game.Entities.Character;
-using Sandbox.Game.Multiplayer;
-using Sandbox.Game.World;
-using Sandbox.Graphics.GUI;
 using Torch;
 using Torch.API;
 using Torch.API.Managers;
 using Torch.API.Plugins;
 using Torch.API.Session;
-using Torch.Commands;
-using Torch.Managers;
 using Torch.Managers.PatchManager;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using Torch.Session;
 using Torch.Views;
-using VRage.Game;
 using VRage.Game.Entity;
-using VRage.Game.ModAPI;
 using VRageMath;
 
 namespace Essentials
@@ -49,7 +42,7 @@ namespace Essentials
         public static EssentialsPlugin Instance { get; private set; }
 
         /// <inheritdoc />
-        public UserControl GetControl() => _control ?? (_control = new PropertyGrid(){DataContext=Config/*, IsEnabled = false*/});
+        public UserControl GetControl() => _control ?? (_control = new PropertyGrid() { DataContext = Config/*, IsEnabled = false*/});
 
         public void Save()
         {
@@ -84,7 +77,7 @@ namespace Essentials
                     mpMan.PlayerJoined += MotdOnce;
                     mpMan.PlayerLeft += ResetMotdOnce;
                     MyEntities.OnEntityAdd += EntityAdded;
-                    if(Config.StopShipsOnStart)
+                    if (Config.StopShipsOnStart)
                         StopShips();
                     _control?.Dispatcher.Invoke(() =>
                                                {
@@ -94,6 +87,7 @@ namespace Essentials
                     AutoCommands.Instance.Start();
                     InfoModule.Init();
                     break;
+
                 case TorchSessionState.Unloading:
                     mpMan.PlayerLeft -= ResetMotdOnce;
                     mpMan.PlayerJoined -= MotdOnce;
@@ -113,11 +107,11 @@ namespace Essentials
                 return;
 
             var b = myEntity as MyInventoryBagEntity;
-            if(b == null)
+            if (b == null)
                 return;
-            
+
             if (Config.BackpackLimit == 0)
-            { 
+            {
                 _removalTracker.Enqueue(new Tuple<MyInventoryBagEntity, DateTime>(b, DateTime.Now + TimeSpan.FromSeconds(30)));
                 return;
             }
@@ -132,7 +126,7 @@ namespace Essentials
         }
 
         private void ProcessBags()
-        { 
+        {
             //bags don't have inventory in the Add event, so we wait until the next tick. I hate everything.
             foreach (var bags in _bagTracker.Values)
             {
@@ -228,7 +222,7 @@ namespace Essentials
             var id = player.Client.SteamUserId;
             if (id <= 0) //can't remember if this returns 0 or -1 on error.
                 return;
-            
+
             string name = player.Identity?.DisplayName ?? "player";
 
             bool newUser = !Config.KnownSteamIds.Contains(id);
@@ -245,7 +239,6 @@ namespace Essentials
             if (newUser && !string.IsNullOrEmpty(Config.NewUserMotd))
             {
                 ModCommunication.SendMessageTo(new DialogMessage(MySession.Static.Name, "New User Message Of The Day", Config.NewUserMotd.Replace("%player%", name)), id);
-
             }
             else if (!string.IsNullOrEmpty(Config.Motd))
             {

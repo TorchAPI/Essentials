@@ -1,27 +1,27 @@
 ﻿<UserControl x:Class="Essentials.EssentialsControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Essentials"
              mc:Ignorable="d">
     <UserControl.DataContext>
-        <local:EssentialsConfig/>
+        <local:EssentialsConfig />
     </UserControl.DataContext>
     <StackPanel>
-        <Label Content="Message of the Day"/>
-        <TextBox Text="{Binding Motd}" AcceptsReturn="true" MinLines="5" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible"/>
-        <Label Content="Message of the Day (new users)"/>
-        <TextBox Text="{Binding NewUserMotd}" AcceptsReturn="true" MinLines="5" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible"/>
-        <Label Content="MOTD URL (will open in steam overlay)"/>
-        <TextBox Text="{Binding MotdUrl}"/>
+        <Label Content="Message of the Day" />
+        <TextBox Text="{Binding Motd}" AcceptsReturn="true" MinLines="5" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible" />
+        <Label Content="Message of the Day (new users)" />
+        <TextBox Text="{Binding NewUserMotd}" AcceptsReturn="true" MinLines="5" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible" />
+        <Label Content="MOTD URL (will open in steam overlay)" />
+        <TextBox Text="{Binding MotdUrl}" />
         <Label Content="AutoCommands"></Label>
         <Button Content="Add" Click="AddAutoCommand_OnClick"></Button>
-        <DataGrid ItemsSource="{Binding AutoCommands, UpdateSourceTrigger=PropertyChanged}" KeyDown="UIElement_OnKeyDown"/>
-        <Button Content="Save Config" Click="SaveConfig_OnClick"/>
-        <Label Content="Stop all entities on server start"/>
-        <CheckBox IsChecked="{Binding StopShipsOnStart}"/>
-        <Label Content="Show grid position in grid list command"/>
-        <CheckBox IsChecked="{Binding UtilityShowPosition}"/>
+        <DataGrid ItemsSource="{Binding AutoCommands, UpdateSourceTrigger=PropertyChanged}" KeyDown="UIElement_OnKeyDown" />
+        <Button Content="Save Config" Click="SaveConfig_OnClick" />
+        <Label Content="Stop all entities on server start" />
+        <CheckBox IsChecked="{Binding StopShipsOnStart}" />
+        <Label Content="Show grid position in grid list command" />
+        <CheckBox IsChecked="{Binding UtilityShowPosition}" />
     </StackPanel>
 </UserControl>

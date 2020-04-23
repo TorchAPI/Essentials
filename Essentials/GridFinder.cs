@@ -1,5 +1,4 @@
 ﻿using Sandbox.Game.Entities;
-using Sandbox.Game.Entities.Character;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,15 +9,15 @@ using VRageMath;
 
 namespace Essentials
 {
-    public class GridFinder 
+    public class GridFinder
     {
-        public static ConcurrentBag<MyGroups<MyCubeGrid, MyGridMechanicalGroupData>.Group> FindGridGroupMechanical(string gridName) 
+        public static ConcurrentBag<MyGroups<MyCubeGrid, MyGridMechanicalGroupData>.Group> FindGridGroupMechanical(string gridName)
         {
             var groups = new ConcurrentBag<MyGroups<MyCubeGrid, MyGridMechanicalGroupData>.Group>();
 
-            Parallel.ForEach(MyCubeGridGroups.Static.Mechanical.Groups, group => 
+            Parallel.ForEach(MyCubeGridGroups.Static.Mechanical.Groups, group =>
             {
-                foreach (MyGroups<MyCubeGrid, MyGridMechanicalGroupData>.Node groupNodes in group.Nodes) 
+                foreach (MyGroups<MyCubeGrid, MyGridMechanicalGroupData>.Node groupNodes in group.Nodes)
                 {
                     var grid = groupNodes.NodeData;
 
@@ -36,7 +35,7 @@ namespace Essentials
             return groups;
         }
 
-        public static ConcurrentBag<MyGroups<MyCubeGrid, MyGridMechanicalGroupData>.Group> FindLookAtGridGroupMechanical(IMyCharacter controlledEntity) 
+        public static ConcurrentBag<MyGroups<MyCubeGrid, MyGridMechanicalGroupData>.Group> FindLookAtGridGroupMechanical(IMyCharacter controlledEntity)
         {
             const float range = 5000;
             Matrix worldMatrix;
@@ -50,16 +49,16 @@ namespace Essentials
             var list = new Dictionary<MyGroups<MyCubeGrid, MyGridMechanicalGroupData>.Group, double>();
             var ray = new RayD(startPosition, worldMatrix.Forward);
 
-            foreach (var group in MyCubeGridGroups.Static.Mechanical.Groups) 
+            foreach (var group in MyCubeGridGroups.Static.Mechanical.Groups)
             {
-                foreach (MyGroups<MyCubeGrid, MyGridMechanicalGroupData>.Node groupNodes in group.Nodes) 
+                foreach (MyGroups<MyCubeGrid, MyGridMechanicalGroupData>.Node groupNodes in group.Nodes)
                 {
                     IMyCubeGrid cubeGrid = groupNodes.NodeData;
 
                     if (cubeGrid == null || cubeGrid.Physics == null)
                         continue;
 
-                    // check if the ray comes anywhere near the Grid before continuing.    
+                    // check if the ray comes anywhere near the Grid before continuing.
                     if (!ray.Intersects(cubeGrid.WorldAABB).HasValue)
                         continue;
 
@@ -70,15 +69,15 @@ namespace Essentials
 
                     double distance = (startPosition - cubeGrid.GridIntegerToWorld(hit.Value)).Length();
 
-                    if (list.TryGetValue(group, out double oldDistance)) 
+                    if (list.TryGetValue(group, out double oldDistance))
                     {
-                        if (distance < oldDistance) 
+                        if (distance < oldDistance)
                         {
                             list.Remove(group);
                             list.Add(group, distance);
                         }
-                    } 
-                    else 
+                    }
+                    else
                     {
                         list.Add(group, distance);
                     }

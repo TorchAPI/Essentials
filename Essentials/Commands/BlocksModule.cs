@@ -1,16 +1,13 @@
-﻿using System;
+﻿using Sandbox.Common.ObjectBuilders;
+using Sandbox.Game.Entities;
+using Sandbox.Game.Entities.Cube;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Sandbox.Common.ObjectBuilders;
-using Sandbox.Game.Entities;
-using VRage.Game.ModAPI;
-using Sandbox.Game.Entities.Cube;
-using Sandbox.ModAPI;
 using Torch.Commands;
 
 namespace Essentials.Commands
 {
-
     [Category("blocks")]
     public class BlocksModule : CommandModule
     {
@@ -74,7 +71,6 @@ namespace Essentials.Commands
                 }
             }
 
-
             Context.Respond($"Disabled {count} blocks of type {type}.");
         }
 
@@ -134,7 +130,6 @@ namespace Essentials.Commands
                 }
             }
 
-
             Context.Respond($"Disabled {count} blocks of subtype {subtype}.");
         }
 
@@ -150,14 +145,11 @@ namespace Essentials.Commands
                     {
                         if (IsBlockTypeOf(item, result))
                         {
-
                             item.Enabled = true;
                             count++;
                         }
                     }
                 }
-
-
             }
             else
             {
@@ -165,11 +157,8 @@ namespace Essentials.Commands
                 return;
             }
 
-
-
             Context.Respond($"Enabled {count} {category} blocks.");
         }
-
 
         [Command("off general", "Turn off all blocks of the specified category")]
         public void OffGeneral(string category)
@@ -184,14 +173,11 @@ namespace Essentials.Commands
                     {
                         if (IsBlockTypeOf(item, result))
                         {
-
                             item.Enabled = false;
                             count++;
                         }
                     }
                 }
-
-
             }
             else
             {
@@ -199,11 +185,8 @@ namespace Essentials.Commands
                 return;
             }
 
-
-
             Context.Respond($"Disabled {count} {category} blocks.");
         }
-
 
         public bool IsBlockTypeOf(MyFunctionalBlock block, BlockCategory category)
         {
@@ -213,14 +196,17 @@ namespace Essentials.Commands
                     return block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Reactor) ||
                            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
                            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_SolarPanel);
+
                 case BlockCategory.Production:
                     return block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Assembler) ||
                            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Refinery) ||
                            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_OxygenGenerator);
+
                 case BlockCategory.Weapons:
                     return block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_InteriorTurret) ||
                            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_LargeGatlingTurret) ||
                            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_LargeMissileTurret);
+
                 default:
                     throw new InvalidBranchException();
             }
@@ -231,8 +217,6 @@ namespace Essentials.Commands
             Power,
             Production,
             Weapons
-
         }
     }
-
 }

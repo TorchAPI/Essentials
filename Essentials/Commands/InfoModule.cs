@@ -1,8 +1,8 @@
-﻿using System.Linq;
-using Sandbox.Game;
+﻿using Sandbox.Game;
 using Sandbox.Game.World;
-using Torch.Commands;
+using System.Linq;
 using Torch.API.Managers;
+using Torch.Commands;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using VRage.Game;
@@ -10,7 +10,7 @@ using VRage.Game;
 namespace Essentials.Commands
 {
     [Category("info")]
-    public class InfoModule:CommandModule
+    public class InfoModule : CommandModule
     {
         public static void Init()
         {
@@ -43,7 +43,6 @@ namespace Essentials.Commands
                 ModCommunication.SendMessageTo(new DialogMessage(c.Command, content: c.DialogResponse), msg.AuthorSteamId.Value);
             if (!string.IsNullOrEmpty(c.URL))
                 MyVisualScriptLogicProvider.OpenSteamOverlay($"https://steamcommunity.com/linkfilter/?url={c.URL}", playerId);
-
         }
     }
 }
