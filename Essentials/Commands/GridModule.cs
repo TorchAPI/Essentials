@@ -140,6 +140,7 @@ namespace Essentials
         public void StaticLarge()
         {
             foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(g => g.GridSizeEnum == MyCubeSize.Large).Where(x => x.Projector == null))
+                if (grid != grid.GetBiggestGridInGroup()) continue;
                 grid.OnConvertedToStationRequest(); //Keen why do you do this to me?
         }
 
