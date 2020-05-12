@@ -295,6 +295,13 @@ namespace Essentials.Commands
                 return grid.BigOwners.Count == 0;
             }
 
+            if (string.Compare(str, "npc", StringComparison.Ordinal) == 0)
+            {
+                return grid.BigOwners.Count > 0 &&
+                       MySession.Static.Factions.IsNpcFaction(grid.BigOwners.FirstOrDefault());
+            }
+            
+
             if (string.Compare(str, "pirates", StringComparison.InvariantCultureIgnoreCase) == 0)
             {
                 identityId = MyPirateAntennas.GetPiratesId();
@@ -318,6 +325,7 @@ namespace Essentials.Commands
 
             return grid.BigOwners.Contains(identityId);
         }
+        
 
         [Condition("hastype", "notype", "Finds grids containing blocks of the given type.")]
         public bool BlockType(MyCubeGrid grid, string str)
@@ -334,7 +342,7 @@ namespace Essentials.Commands
         [Condition("haspilot", "Finds grids with pilots")]
         public bool Piloted(MyCubeGrid grid)
         {
-            return grid.GetFatBlocks().OfType<MyCockpit>().Any(b => b.Pilot != null);
+            return grid.GetFatBlocks().OfType<MyShipController>().Any(b => b.Pilot != null);
         }
 
         /// <summary>

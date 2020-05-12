@@ -91,6 +91,14 @@ namespace Essentials.Commands
             Context.Respond($"Removed {count} old identities and {count2} grids owned by them.");
         }
 
+        [Command("rep wipe", "Resets the reputation on the server")]
+        public void WipeReputation(bool removePlayerToFaction = true, bool removeFactionToFaction = true)
+        {
+            var count = WipeRep(removePlayerToFaction, removeFactionToFaction);
+            Context.Respond($"Wiped {count} reputations");
+        }
+
+
         [Command("faction clean", "Removes factions with fewer than the given number of players.")]
         public void CleanFactions(int memberCount = 1)
         {
@@ -316,6 +324,11 @@ namespace Essentials.Commands
             //clean up empty factions
             count += CleanFaction_Internal();
 
+            //cleanup reputations
+
+            count += CleanupReputations();
+
+
             //Keen, for the love of god why is everything about GPS internal.
             var playerGpss = GpsDicField.GetValue(MySession.Static.Gpss) as Dictionary<long, Dictionary<int, MyGps>>;
             foreach (var id in playerGpss.Keys)
@@ -368,5 +381,98 @@ namespace Essentials.Commands
 
             Context.Respond($"Removed {count} unnecessary elements.");
         }
+
+        [ReflectedGetter(Name = "m_relationsBetweenFactions", Type = typeof(MyFactionCollection))]
+        private static Func<MyFactionCollection, Dictionary<MyFactionCollection.MyRelatablePair, Tuple<MyRelationsBetweenFactions, int>>> _relationsGet;
+        [ReflectedGetter(Name = "m_relationsBetweenPlayersAndFactions", Type = typeof(MyFactionCollection))]
+        private static Func<MyFactionCollection, Dictionary<MyFactionCollection.MyRelatablePair, Tuple<MyRelationsBetweenFactions, int>>> _playerRelationsGet;
+
+        private static int WipeRep(bool removePlayerToFaction, bool removeFactionToFaction)
+        {
+            var result = 0;
+            var collection0 = _relationsGet(MySession.Static.Factions);
+            var collection1 = _playerRelationsGet(MySession.Static.Factions);
+
+            if (removeFactionToFaction)
+            {
+                foreach (var pair in collection0.Keys.ToList())
+                {
+                    collection0.Remove(pair);
+                    result++;
+                }
+            }
+
+            if (removePlayerToFaction)
+            {
+                foreach (var pair in collection1.Keys.ToList())
+                {
+                    collection1.Remove(pair);
+                    result++;
+                }
+            }
+
+            return result;
+
+        }
+        private static int CleanupReputations()
+        {
+            var collection = _relationsGet(MySession.Static.Factions);
+            var collection2 = _playerRelationsGet(MySession.Static.Factions);
+
+
+            var validIdentities = new HashSet<long>();
+
+            //find all identities owning a block
+            foreach (var entity in MyEntities.GetEntities())
+            {
+                var grid = entity as MyCubeGrid;
+                if (grid == null)
+                    continue;
+                validIdentities.UnionWith(grid.SmallOwners);
+            }
+
+
+            //find online identities
+            foreach (var online in MySession.Static.Players.GetOnlinePlayers())
+            {
+                validIdentities.Add(online.Identity.IdentityId);
+            }
+
+            foreach (var identity in MySession.Static.Players.GetAllIdentities().ToList())
+            {
+                if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                {
+                    validIdentities.Add(identity.IdentityId);
+                }
+            }
+
+
+            //might not be necessary, but just in case
+            validIdentities.Remove(0);
+            var result = 0;
+
+            var collection0List = collection.Keys.ToList();
+            var collection1List = collection2.Keys.ToList();
+
+            foreach (var pair in collection0List)
+            {
+                if (validIdentities.Contains(pair.RelateeId1) && validIdentities.Contains(pair.RelateeId2))
+                    continue;
+                collection.Remove(pair);
+            }
+
+            foreach (var pair in collection1List)
+            {
+                if (validIdentities.Contains(pair.RelateeId1) && validIdentities.Contains(pair.RelateeId2))
+                    continue;
+                collection2.Remove(pair);
+            }
+            
+
+            //_relationsSet.Invoke(MySession.Static.Factions,collection);
+            //_playerRelationsSet.Invoke(MySession.Static.Factions,collection2);
+            return result;
+        }
+
     }
 }
