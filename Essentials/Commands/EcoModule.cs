@@ -172,6 +172,8 @@ namespace Essentials.Commands
                 return;
             }
             MyBankingSystem.RequestTransfer(Context.Player.Identity.IdentityId, p.IdentityId, amount);
+            ModCommunication.SendMessageTo(new NotificationMessage($"Your have recieved {amount} credits from {Context.Player}!", 10000, "Blue"),p.SteamUserId);
+            ModCommunication.SendMessageTo(new NotificationMessage($"Your have sent {amount} credits to {p.DisplayName}!", 10000, "Blue"),Context.Player.SteamUserId);
         }
 
     }
