@@ -18,9 +18,8 @@ using VRage.ModAPI;
 using VRage.Game;
 using VRage.Network;
 using VRage.Replication;
-using IMyDestroyableObject = VRage.Game.ModAPI.Interfaces.IMyDestroyableObject;
-
-
+using Sandbox.Game;
+using VRage.Game.ModAPI.Interfaces;
 
 namespace Essentials
 {
@@ -138,29 +137,42 @@ namespace Essentials
 
         [Command("kill", "kill a player.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
-        public void Kill(string name)
+        public void Kill(string playerName)
         {
-            if (string.IsNullOrEmpty(name))
+            /* 
+             * First we try killing the player when hes online. This is easy and fast 
+             * and can also kill the player while being seated. 
+             */
+            var player = Utilities.GetPlayerByNameOrId(playerName);
+            if (player != null) 
             {
-                Context.Respond($"you must specify a user to kill, you idiot");
+                MyVisualScriptLogicProvider.SetPlayersHealth(player.IdentityId, 0);
+
+                Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf
+                    ($"{player.DisplayName} was killed by an admin");
+
                 return;
             }
 
-            if (!Utilities.TryGetEntityByNameOrId(name, out IMyEntity entity))
-            {
-                Context.Respond($"Entity '{name}' not found.");
+            /* 
+             * If we could not find the player there is a chance he is offline, in that case we try inflicting
+             * damage to the character as the VST will not help us with offline characters. 
+             */
+            if (!Utilities.TryGetEntityByNameOrId(playerName, out IMyEntity entity)) {
+                Context.Respond($"Entity '{playerName}' not found.");
                 return;
             }
 
-            if (entity is IMyCharacter)
+            if (entity is IMyCharacter) 
             {
                 var destroyable = entity as IMyDestroyableObject;
+
                 destroyable.DoDamage(1000f, MyDamageType.Radioactivity, true);
+
                 Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf
                     ($"{entity.DisplayName} was killed by an admin");
             }
         }
-
 
         [Command("find", "Find entities with the given text in their name.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
@@ -251,51 +263,76 @@ namespace Essentials
         }
 
         [Command("eject", "Ejects a specific player from any block they are seated in, or all players in the server if run with 'all'")]
-        public void Eject(string player)
-        {
-            if (player.ToLower() == "all")
-            {
-                foreach (var ap in MySession.Static.Players.GetOnlinePlayers())
-                {
-                    var parent = ap.Character?.Parent;
-                    if (parent == null)
-                        continue;
+        public void Eject(string playerName) {
 
-                    if (parent is MyShipController c)
+            if (playerName.ToLower() == "all") 
+            {
+                EjectAllPlayers();
+            }
+            else 
+            {
+                EjectSinglePlayer(playerName);
+            }
+        }
+
+        private void EjectAllPlayers() {
+
+            int ejectedPlayersCount = 0;
+
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().ToList()) 
+            {
+                foreach (var controller in grid.GetFatBlocks<MyShipController>()) 
+                {
+                    if (controller.Pilot != null) 
                     {
-                        c.RemoveUsers(false);
-                        //Context.Respond($"Ejected {parent.DisplayName} from seat.");
-                        continue;
+                        controller.Use();
+                        ejectedPlayersCount++;
                     }
-                    throw new Exception($"Unknown block parent type! {parent.GetType().FullName}");
                 }
-
-                Context.Respond("Ejected all players from seats");
             }
-            else
+
+            Context.Respond($"Ejected '{ejectedPlayersCount}' players from their seats.");
+        }
+
+        private void EjectSinglePlayer(string playerName) {
+
+            /* We check first if the player is among the online players before looping over all grids for nothing. */
+            var player = Utilities.GetPlayerByNameOrId(playerName);
+            if (player != null) 
             {
-                var p = Utilities.GetPlayerByNameOrId(player);
-                if (p == null)
+                /* If he is online we check if he is currently seated. If he is eject him. */
+                if (player?.Controller.ControlledEntity is MyCockpit controller) 
                 {
-                    Context.Respond($"Could not find player {player}");
-                    return;
+                    controller.Use();
+                    Context.Respond($"Player '{playerName}' ejected.");
+                } 
+                else 
+                {
+                    Context.Respond("Player not seated.");
                 }
 
-                var parent = p.Character?.Parent;
-                if (parent == null)
-                {
-                    Context.Respond("Player is not seated.");
-                    return;
-                }
-
-                if (parent is MyShipController c)
-                {
-                    c.RemoveUsers(false);
-                    Context.Respond($"Ejected {p.DisplayName} from seat.");
-                    return;
-                }
-                throw new Exception($"Unknown block parent type! {parent.GetType().FullName}");
+                return;
             }
+
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().ToList()) 
+            {
+                foreach (var controller in grid.GetFatBlocks<MyShipController>()) 
+                {
+                    var pilot = controller.Pilot;
+
+                    if (pilot != null && pilot.DisplayName == playerName) 
+                    {
+                        controller.Use();
+
+                        Context.Respond($"Player '{playerName}' ejected.");
+
+                        /* We found our player. so no need to continue looking */
+                        return;
+                    }
+                }
+            }
+
+            Context.Respond("Offline player not found or seated.");
         }
     }
 }
