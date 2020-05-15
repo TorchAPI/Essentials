@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using NLog;
 using Sandbox.Engine.Multiplayer;
+using Sandbox.Game;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.Gui;
@@ -212,7 +213,16 @@ namespace Essentials.Commands
             var fac = MySession.Static.Factions.GetPlayerFaction(identity.IdentityId);
             if (fac == null)
                 return false;
-            fac.KickMember(identity.IdentityId);
+ 
+            /* 
+             * VisualScriptLogicProvider takes care of removal of faction if last 
+             * identity is kicked, and promotes the next player in line to Founder 
+             * if the founder is being kicked. 
+             * 
+             * Factions must have a founder otherwise calls like MyFaction.Members.Keys will NRE. 
+             */
+            MyVisualScriptLogicProvider.KickPlayerFromFaction(identity.IdentityId);
+
             return true;
         }
         

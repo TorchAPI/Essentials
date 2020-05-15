@@ -73,15 +73,15 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
     <Reference Include="Torch">
-      <HintPath>..\..\..\..\Sync\ProgramFiles\VisualStudio\source\repos\TorchBinaries\Torch.dll</HintPath>
+      <HintPath>$(SolutionDir)\TorchBinaries\Torch.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Torch.API">
-      <HintPath>..\..\..\..\Sync\ProgramFiles\VisualStudio\source\repos\TorchBinaries\Torch.API.dll</HintPath>
+      <HintPath>$(SolutionDir)\TorchBinaries\Torch.API.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Torch.Server">
-      <HintPath>..\..\..\..\Sync\ProgramFiles\VisualStudio\source\repos\TorchBinaries\Torch.Server.exe</HintPath>
+      <HintPath>$(SolutionDir)\TorchBinaries\Torch.Server.exe</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="VRage">
