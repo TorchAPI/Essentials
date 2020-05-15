@@ -22,7 +22,7 @@ namespace Essentials.Commands
 {
     [Category("econ")]
     public class EcoModule : CommandModule {
-        [Command("give", "Add a specified anount of credits into a users account use '*' to affect all players")]
+        [Command("give", "Add a specified anount of credits into a users account. Use '*' to affect all players")]
         [Permission(MyPromoteLevel.Admin)]
         public void EcoGive(string Player, long amount) {
             if (Player != "*") {
@@ -47,7 +47,7 @@ namespace Essentials.Commands
             Context.Respond($"{amount} credits given to account(s)");
         }
 
-        [Command("take", "Take a specified anount of credits from a users account use '*' to affect all players")]
+        [Command("take", "Take a specified anount of credits from a users account. Use '*' to affect all players")]
         [Permission(MyPromoteLevel.Admin)]
         public void EcoTake(string Player, long amount) {
             if (Player != "*") {
@@ -71,7 +71,7 @@ namespace Essentials.Commands
             Context.Respond($"{amount} credits taken from account(s)");
         }
 
-        [Command("set", "Set a users account to a specifed balance use '*' to affect all players")]
+        [Command("set", "Set a users account to a specifed balance. Use '*' to affect all players")]
         [Permission(MyPromoteLevel.Admin)]
         public void EcoSet(string Player, long amount) {
             if (Player != "*") {
@@ -97,7 +97,7 @@ namespace Essentials.Commands
             Context.Respond($"Balance(s) set to {amount}");
         }
 
-        [Command("reset", "Reset the credits in a users account to 10,000 use '*' to affect all players")]
+        [Command("reset", "Reset the credits in a users account to 10,000. Use '*' to affect all players")]
         [Permission(MyPromoteLevel.Admin)]
         public void EcoReset(string Player) {
             if (Player != "*") {
