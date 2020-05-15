@@ -8,9 +8,11 @@ using Sandbox.Engine.Multiplayer;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.World;
+using Sandbox.Game.World.Generator;
 using Torch.Commands;
 using Torch.Mod;
 using Torch.Mod.Messages;
+using Torch.Utils;
 using VRage.Game.Entity;
 using VRage.Network;
 using VRage.Voxels;
@@ -24,12 +26,21 @@ namespace Essentials.Commands
     {
         private Logger _log = LogManager.GetCurrentClassLogger();
 
+        [ReflectedGetter(Name = "m_asteroidsModule")]
+        private static Func<MyProceduralWorldGenerator, MyProceduralAsteroidCellGenerator> _asteroidGenerator;
+        [ReflectedSetter(Name = "m_isClosingEntities")]
+        private static Action<MyProceduralAsteroidCellGenerator, bool> _deletingSet;
+
+        private static MyProceduralAsteroidCellGenerator _generatorInstance;
+        private static MyProceduralAsteroidCellGenerator GeneratorInstance => _generatorInstance ?? (_generatorInstance = _asteroidGenerator(MyProceduralWorldGenerator.Static));
+
         [Command("reset all", "Resets all voxel maps.")]
         public void ResetAll(bool deleteStorage = false)
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelBase>();
             
             var resetIds = new List<long>();
+            int count = 0;
             
             foreach (var map in voxelMaps)
             {
@@ -38,10 +49,15 @@ namespace Essentials.Commands
                     if (map.StorageName == null || map.Storage.DataProvider == null)
                         continue;
 
+                    count++;
+
                     long id = map.EntityId;
 
                     if (deleteStorage && map is MyVoxelMap)
-                        map.Close();
+                    {
+                        using (PinDelete())
+                            map.Close();
+                    }
                     else
                     {
                         map.Storage.Reset(MyStorageDataTypeFlags.All);
@@ -56,7 +72,7 @@ namespace Essentials.Commands
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
-            Context.Respond($"Reset {resetIds.Count} voxel maps.");
+            Context.Respond($"Reset {count} voxel maps.");
         }
 
         [Command("cleanup asteroids", "Resets all asteroids that don't have a grid or player nearby.")]
@@ -65,6 +81,7 @@ namespace Essentials.Commands
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelMap>();
 
             var resetIds = new List<long>();
+            int count = 0;
 
             foreach (var map in voxelMaps)
             {
@@ -72,6 +89,8 @@ namespace Essentials.Commands
                 {
                     if (map.StorageName == null || map.Storage.DataProvider == null)
                         continue;
+
+                    count++;
 
                     var s = map.PositionComp.WorldVolume;
                     var nearEntities = new List<MyEntity>();
@@ -84,7 +103,10 @@ namespace Essentials.Commands
                     long id = map.EntityId;
 
                     if (deleteStorage)
-                        map.Close();
+                    {
+                        using (PinDelete())
+                            map.Close();
+                    }
                     else
                     {
                         map.Storage.Reset(MyStorageDataTypeFlags.All);
@@ -99,7 +121,7 @@ namespace Essentials.Commands
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
-            Context.Respond($"Reset {resetIds.Count} voxel maps.");
+            Context.Respond($"Reset {count} voxel maps.");
         }
 
         [Command("cleanup distant", "Resets all asteroids that don't have a grid or player inside the specified radius.")]
@@ -109,6 +131,7 @@ namespace Essentials.Commands
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelMap>();
 
             var resetIds = new List<long>();
+            int count = 0;
             
             foreach (var map in voxelMaps)
             {
@@ -125,10 +148,15 @@ namespace Essentials.Commands
                     if (nearEntities.Any(e => e is MyCubeGrid || e is MyCharacter))
                         continue;
 
+                    count++;
+
                     long id = map.EntityId;
-                    
-                    if(deleteStorage)
-                        map.Close();
+
+                    if (deleteStorage)
+                    {
+                        using (PinDelete())
+                            map.Close();
+                    }
                     else
                     {
                         map.Storage.Reset(MyStorageDataTypeFlags.All);
@@ -143,7 +171,7 @@ namespace Essentials.Commands
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
-            Context.Respond($"Reset {resetIds.Count} voxel maps.");
+            Context.Respond($"Reset {count} voxel maps.");
         }
 
         [Command("reset planets", "Resets all planets.")]
@@ -199,6 +227,24 @@ namespace Essentials.Commands
                     Context.Respond($"Found {maps.Count} planets matching '{planetName}'. Please select from list:");
                     Context.Respond(string.Join("\r\n", maps.Select(m => m.StorageName)));
                     return;
+            }
+        }
+
+        private static LockToken PinDelete()
+        {
+            return new LockToken();
+        }
+
+        private class LockToken : IDisposable
+        {
+            public LockToken()
+            {
+                _deletingSet(GeneratorInstance, true);
+            }
+
+            public void Dispose()
+            {
+                _deletingSet(GeneratorInstance, false);
             }
         }
     }
