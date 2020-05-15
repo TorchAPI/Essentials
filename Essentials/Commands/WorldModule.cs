@@ -436,6 +436,12 @@ namespace Essentials.Commands
                 }
             }
 
+            //Add Factions with at least one member to valid identities
+            foreach (var faction in MySession.Static.Factions.Factions.Where(x=>x.Value.Members.Count > 0))
+            {
+                validIdentities.Add(faction.Key);
+            }
+
 
             //might not be necessary, but just in case
             validIdentities.Remove(0);
@@ -449,6 +455,7 @@ namespace Essentials.Commands
                 if (validIdentities.Contains(pair.RelateeId1) && validIdentities.Contains(pair.RelateeId2))
                     continue;
                 collection.Remove(pair);
+                result++;
             }
 
             foreach (var pair in collection1List)
@@ -456,6 +463,7 @@ namespace Essentials.Commands
                 if (validIdentities.Contains(pair.RelateeId1) && validIdentities.Contains(pair.RelateeId2))
                     continue;
                 collection2.Remove(pair);
+                result++;
             }
             
 
