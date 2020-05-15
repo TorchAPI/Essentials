@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using NLog;
 using Sandbox.Engine.Multiplayer;
+using Sandbox.Game;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.Gui;
@@ -27,7 +28,6 @@ using Torch.API.Session;
 using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.Network;
-using Sandbox.Game;
 
 namespace Essentials.Commands
 {
@@ -213,7 +213,7 @@ namespace Essentials.Commands
             var fac = MySession.Static.Factions.GetPlayerFaction(identity.IdentityId);
             if (fac == null)
                 return false;
-
+ 
             /* 
              * VisualScriptLogicProvider takes care of removal of faction if last 
              * identity is kicked, and promotes the next player in line to Founder 
@@ -446,6 +446,12 @@ namespace Essentials.Commands
                 }
             }
 
+            //Add Factions with at least one member to valid identities
+            foreach (var faction in MySession.Static.Factions.Factions.Where(x=>x.Value.Members.Count > 0))
+            {
+                validIdentities.Add(faction.Key);
+            }
+
 
             //might not be necessary, but just in case
             validIdentities.Remove(0);
@@ -459,6 +465,7 @@ namespace Essentials.Commands
                 if (validIdentities.Contains(pair.RelateeId1) && validIdentities.Contains(pair.RelateeId2))
                     continue;
                 collection.Remove(pair);
+                result++;
             }
 
             foreach (var pair in collection1List)
@@ -466,6 +473,7 @@ namespace Essentials.Commands
                 if (validIdentities.Contains(pair.RelateeId1) && validIdentities.Contains(pair.RelateeId2))
                     continue;
                 collection2.Remove(pair);
+                result++;
             }
             
 
