@@ -91,6 +91,31 @@ namespace Essentials.Commands
             Context.Respond($"Removed {count} old identities and {count2} grids owned by them.");
         }
 
+        [Command("identity clear", "Clear identity of specific player")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void PurgeIdentity (string playername) {
+            var count2 = 0;
+            var grids = MyEntities.GetEntities().OfType<MyCubeGrid>().ToList();
+            var idents = MySession.Static.Players.GetAllIdentities().ToList();
+            foreach (var identity in idents) {
+                if (identity.DisplayName == playername) {
+                    //MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
+                    RemoveFromFaction_Internal(identity);
+                    MySession.Static.Players.RemoveIdentity(identity.IdentityId);
+                    foreach (var grid in grids) {
+                        if (grid.BigOwners.Contains(identity.IdentityId)) {
+                            grid.Close();
+                            count2++;
+                        }
+                    }
+                }
+            }
+
+            RemoveEmptyFactions();
+            FixBlockOwnership();
+            Context.Respond($"Removed identity and {count2} grids owned by them.");
+        }
+
         [Command("rep wipe", "Resets the reputation on the server")]
         public void WipeReputation(bool removePlayerToFaction = true, bool removeFactionToFaction = true)
         {
