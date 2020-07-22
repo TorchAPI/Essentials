@@ -339,7 +339,7 @@ namespace Essentials.Commands
             }
             else
             {
-                var player = Utilities.GetPlayerByNameOrId(str);
+                var player = Utilities.GetIdentityByNameOrIds(str);
                 if (player == null)
                 {
                     if (long.TryParse(str, out long NPCId))
