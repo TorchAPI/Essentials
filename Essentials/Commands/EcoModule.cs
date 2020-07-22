@@ -40,7 +40,7 @@ namespace Essentials.Commands
             else {
                 foreach (var p in MySession.Static.Players.GetAllPlayers()) {
                     long IdentityID = MySession.Static.Players.TryGetIdentityId(p.SteamId);
-                    MyBankingSystem.RequestBalanceChange(IdentityID, amount);
+                    MyBankingSystem.ChangeBalance(IdentityID, amount);
                     ModCommunication.SendMessageTo(new NotificationMessage($"{amount} credits have been added to your virtual account", 10000, "Blue"), p.SteamId);
                 }
             }
@@ -64,7 +64,7 @@ namespace Essentials.Commands
                 foreach (var p in MySession.Static.Players.GetAllPlayers()) {
                     long IdentityID = MySession.Static.Players.TryGetIdentityId(p.SteamId);
                     long balance = MyBankingSystem.GetBalance(IdentityID);
-                    MyBankingSystem.RequestBalanceChange(IdentityID, -amount);
+                    MyBankingSystem.ChangeBalance(IdentityID, -amount);
                     ModCommunication.SendMessageTo(new NotificationMessage($"{amount} credits have been taken to your virtual account", 10000, "Blue"), p.SteamId);
                 }
             }
@@ -90,7 +90,7 @@ namespace Essentials.Commands
                     long IdentityID = MySession.Static.Players.TryGetIdentityId(p.SteamId);
                     long balance = MyBankingSystem.GetBalance(IdentityID);
                     long difference = (balance - amount);
-                    MyBankingSystem.RequestBalanceChange(IdentityID, -difference);
+                    MyBankingSystem.ChangeBalance(IdentityID, -difference);
                     ModCommunication.SendMessageTo(new NotificationMessage($"Your balance has been set to {amount} credits!", 10000, "Blue"), p.SteamId);
                 }
             }
@@ -116,7 +116,7 @@ namespace Essentials.Commands
                     long IdentityID = MySession.Static.Players.TryGetIdentityId(p.SteamId);
                     long balance = MyBankingSystem.GetBalance(IdentityID);
                     long difference = (balance - 10000);
-                    MyBankingSystem.RequestBalanceChange(IdentityID, -difference);
+                    MyBankingSystem.ChangeBalance(IdentityID, -difference);
                     ModCommunication.SendMessageTo(new NotificationMessage($"Your balance has been reset to 10,000 credits!", 10000, "Blue"), p.SteamId);
                 }
             }
