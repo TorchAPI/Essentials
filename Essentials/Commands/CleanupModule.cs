@@ -223,6 +223,37 @@ namespace Essentials.Commands
             return grid.BlocksPCU < pcu;
         }
 
+        [Condition("hasownertype", helpText: "Finds grids with the specified owner type (npc | player | nobody).")]
+        public bool HasOwnerType(MyCubeGrid grid, string ownerType)
+        {
+            if (string.IsNullOrEmpty(ownerType))
+                return false;
+
+            // Get the owner type of the grid.
+            var gridOwnerType = Utils.Ownership.GetOwnerType(grid);
+
+            // Check provided input string.
+            switch (ownerType.ToLower().Trim())
+            {
+                // Check if grid is owner by an NPC.
+                case "npc":
+                case "npcs":
+                    return gridOwnerType == Utils.Ownership.OwnerType.NPC;
+
+                // Check if the grid is owned by a Player.
+                case "player":
+                case "players":
+                    return gridOwnerType == Utils.Ownership.OwnerType.Player;
+
+                // Check if the grid is owned by Nobody.
+                case "nobody":
+                    return gridOwnerType == Utils.Ownership.OwnerType.Nobody;
+            }
+
+            // In all other cases, just return false.
+            return false;
+        }
+
         [Condition("blocksgreaterthan", helpText: "Finds grids with more than the given number of blocks.")]
         public bool BlocksGreaterThan(MyCubeGrid grid, int count)
         {
@@ -295,13 +326,20 @@ namespace Essentials.Commands
                 return grid.BigOwners.Count == 0;
             }
 
+            if (string.Compare(str, "npc", StringComparison.Ordinal) == 0)
+            {
+                return grid.BigOwners.Count > 0 &&
+                       MySession.Static.Factions.IsNpcFaction(grid.BigOwners.FirstOrDefault());
+            }
+            
+
             if (string.Compare(str, "pirates", StringComparison.InvariantCultureIgnoreCase) == 0)
             {
                 identityId = MyPirateAntennas.GetPiratesId();
             }
             else
             {
-                var player = Utilities.GetPlayerByNameOrId(str);
+                var player = Utilities.GetIdentityByNameOrIds(str);
                 if (player == null)
                 {
                     if (long.TryParse(str, out long NPCId))
@@ -318,6 +356,7 @@ namespace Essentials.Commands
 
             return grid.BigOwners.Contains(identityId);
         }
+        
 
         [Condition("hastype", "notype", "Finds grids containing blocks of the given type.")]
         public bool BlockType(MyCubeGrid grid, string str)
@@ -334,7 +373,7 @@ namespace Essentials.Commands
         [Condition("haspilot", "Finds grids with pilots")]
         public bool Piloted(MyCubeGrid grid)
         {
-            return grid.GetFatBlocks().OfType<MyCockpit>().Any(b => b.Pilot != null);
+            return grid.GetFatBlocks().OfType<MyShipController>().Any(b => b.Pilot != null);
         }
 
         /// <summary>

@@ -298,5 +298,36 @@ namespace Essentials.Commands
             var ms = new DialogMessage("Muted Users", content: sb.ToString());
             ModCommunication.SendMessageTo(ms, Context.Player.SteamUserId);
         }
+
+        [Command("give", "Insert an item with a specific quanity into a players inventory")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void give(string playerName, string itemType, string item, int quantity) {
+            string type = "MyObjectBuilder_" + itemType;
+            VRage.Game.MyDefinitionId.TryParse(type, item, out VRage.Game.MyDefinitionId defID);
+
+            if (defID.ToString().Contains("null")) {
+                Context.Respond("Invalid item type");
+                return;
+            }
+
+            if (playerName != "*") {
+                var p = Utilities.GetPlayerByNameOrId(playerName);
+                if (p == null) {
+                    Context.Respond("Player not found");
+                    return;
+                }
+                Sandbox.Game.MyVisualScriptLogicProvider.AddToPlayersInventory(p.IdentityId, defID, quantity);
+                ModCommunication.SendMessageTo(new NotificationMessage($"You have been given {quantity} {item} {itemType}", 5000, "Blue"), p.SteamUserId);
+            }
+
+            else {
+                foreach (var p in MySession.Static.Players.GetOnlinePlayers()) {
+                    var player = Utilities.GetPlayerByNameOrId(p.DisplayName);
+                    Sandbox.Game.MyVisualScriptLogicProvider.AddToPlayersInventory(p.Identity.IdentityId, defID, quantity);
+                    ModCommunication.SendMessageTo(new NotificationMessage($"You have been given {quantity} {item} {itemType}", 5000, "Blue"), player.SteamUserId);
+                }
+            }
+            Context.Respond("Item(s) given!");
+        }
     }
 }

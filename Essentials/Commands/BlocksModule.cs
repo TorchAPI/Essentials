@@ -65,8 +65,7 @@ namespace Essentials.Commands
                 foreach (var block in grid.GetFatBlocks().OfType<MyFunctionalBlock>())
                 {
                     var blockType = block.BlockDefinition.Id.TypeId.ToString().Substring(16);
-                    if (block != null && string.Compare(type, blockType, StringComparison.InvariantCultureIgnoreCase) ==
-                        0)
+                    if (block != null && string.Compare(type, blockType, StringComparison.InvariantCultureIgnoreCase) == 0 && block.Enabled == true)
                     {
                         block.Enabled = false;
                         count++;
