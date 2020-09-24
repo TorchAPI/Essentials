@@ -4,16 +4,20 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using NLog;
+using Sandbox;
 using Sandbox.Engine.Multiplayer;
+using Sandbox.Engine.Voxels;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.World;
 using Sandbox.Game.World.Generator;
 using Torch.Commands;
+using Torch.Commands.Permissions;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using Torch.Utils;
 using VRage.Game.Entity;
+using VRage.Game.ModAPI;
 using VRage.Network;
 using VRage.Voxels;
 using VRageMath;
@@ -229,6 +233,147 @@ namespace Essentials.Commands
                     return;
             }
         }
+
+
+        [Command("resetarea", "Resets voxel damange in specified radius from player")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void ResetVoxelArea(float Radius)
+        {
+
+            if (Context.Player == null || Radius <= 0)
+            {
+                _log.Info("Invalid Command Input!");
+                return;
+            }
+
+            MyVoxelBase voxelMap = MyEntities.GetEntities().OfType<MyVoxelBase>().MinBy(x => (float)Vector3D.Distance(x.PositionComp.GetPosition(), Context.Player.GetPosition()));
+            if (voxelMap == null)
+            {
+                Context.Respond("Couldnt find any nearest voxelmaps!");
+                return;
+            }
+
+            Context.Respond("Resetting voxels within " + Radius + "m of your current position!");
+
+            using (voxelMap.Pin())
+            {
+                if (voxelMap.MarkedForClose)
+                {
+                    return;
+                }
+
+
+                MyShapeSphere shape = new MyShapeSphere();
+                shape.Center = Context.Player.GetPosition();
+                shape.Radius = Radius;
+
+
+                Vector3I minCorner;
+                Vector3I maxCorner;
+                Vector3I numCells;
+
+
+                BoundingBoxD shapeAabb = shape.GetWorldBoundaries();
+                Vector3I StorageSize = voxelMap.Storage.Size;
+
+                MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxelMap.PositionLeftBottomCorner, ref shapeAabb.Min, out minCorner);
+                MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxelMap.PositionLeftBottomCorner, ref shapeAabb.Max, out maxCorner);
+                minCorner += voxelMap.StorageMin;
+                maxCorner += voxelMap.StorageMin;
+                maxCorner += 1;
+                StorageSize -= 1;
+                Vector3I.Clamp(ref minCorner, ref Vector3I.Zero, ref StorageSize, out minCorner);
+                Vector3I.Clamp(ref maxCorner, ref Vector3I.Zero, ref StorageSize, out maxCorner);
+                numCells = new Vector3I((maxCorner.X - minCorner.X) / 16, (maxCorner.Y - minCorner.Y) / 16, (maxCorner.Z - minCorner.Z) / 16);
+
+
+                minCorner = Vector3I.Max(Vector3I.One, minCorner);
+                maxCorner = Vector3I.Max(minCorner, maxCorner - Vector3I.One);
+                voxelMap.Storage.DeleteRange(MyStorageDataTypeFlags.ContentAndMaterial, minCorner, maxCorner, false);
+                BoundingBoxD cutOutBox = shape.GetWorldBoundaries();
+                MySandboxGame.Static.Invoke(delegate
+                {
+                    if (voxelMap.Storage != null)
+                    {
+                        voxelMap.Storage.NotifyChanged(minCorner, maxCorner, MyStorageDataTypeFlags.ContentAndMaterial);
+                        MyVoxelGenerator.NotifyVoxelChanged(MyVoxelBase.OperationType.Revert, voxelMap, ref cutOutBox);
+                    }
+                }, "RevertShape notify");
+            }
+
+            Context.Respond("Reset complete!");
+        }
+
+        [Command("resetareapoint", "Resets voxel damange in specified radius from given point")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void ResetVoxelArea(float X, float Y, float Z, float Radius)
+        {
+            Vector3D ResetTarget = new Vector3D(X, Y, Z);
+            if (Radius <= 0)
+            {
+                _log.Info("Invalid Radius Input!");
+                return;
+            }
+
+            MyVoxelBase voxelMap = MyEntities.GetEntities().OfType<MyVoxelBase>().MinBy(x => (float)Vector3D.Distance(x.PositionComp.GetPosition(), ResetTarget));
+            if (voxelMap == null)
+            {
+                Context.Respond("Couldnt find any nearest voxelmaps!");
+                return;
+            }
+
+            Context.Respond("Resetting voxels within " + Radius + "m of your current position!");
+
+            using (voxelMap.Pin())
+            {
+                if (voxelMap.MarkedForClose)
+                {
+                    return;
+                }
+
+
+                MyShapeSphere shape = new MyShapeSphere();
+                shape.Center = Context.Player.GetPosition();
+                shape.Radius = Radius;
+
+
+                Vector3I minCorner;
+                Vector3I maxCorner;
+                Vector3I numCells;
+
+
+                BoundingBoxD shapeAabb = shape.GetWorldBoundaries();
+                Vector3I StorageSize = voxelMap.Storage.Size;
+
+                MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxelMap.PositionLeftBottomCorner, ref shapeAabb.Min, out minCorner);
+                MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxelMap.PositionLeftBottomCorner, ref shapeAabb.Max, out maxCorner);
+                minCorner += voxelMap.StorageMin;
+                maxCorner += voxelMap.StorageMin;
+                maxCorner += 1;
+                StorageSize -= 1;
+                Vector3I.Clamp(ref minCorner, ref Vector3I.Zero, ref StorageSize, out minCorner);
+                Vector3I.Clamp(ref maxCorner, ref Vector3I.Zero, ref StorageSize, out maxCorner);
+                numCells = new Vector3I((maxCorner.X - minCorner.X) / 16, (maxCorner.Y - minCorner.Y) / 16, (maxCorner.Z - minCorner.Z) / 16);
+
+
+                minCorner = Vector3I.Max(Vector3I.One, minCorner);
+                maxCorner = Vector3I.Max(minCorner, maxCorner - Vector3I.One);
+                voxelMap.Storage.DeleteRange(MyStorageDataTypeFlags.ContentAndMaterial, minCorner, maxCorner, false);
+                BoundingBoxD cutOutBox = shape.GetWorldBoundaries();
+                MySandboxGame.Static.Invoke(delegate
+                {
+                    if (voxelMap.Storage != null)
+                    {
+                        voxelMap.Storage.NotifyChanged(minCorner, maxCorner, MyStorageDataTypeFlags.ContentAndMaterial);
+                        MyVoxelGenerator.NotifyVoxelChanged(MyVoxelBase.OperationType.Revert, voxelMap, ref cutOutBox);
+                    }
+                }, "RevertShape notify");
+            }
+
+            Context.Respond("Reset complete!");
+        }
+
+
 
         private static LockToken PinDelete()
         {
