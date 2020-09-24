@@ -235,7 +235,7 @@ namespace Essentials.Commands
         }
 
 
-        [Command("resetarea", "Resets voxel damange in specified radius from player")]
+        [Command("reset area", "Resets voxel damange in specified radius from player")]
         [Permission(MyPromoteLevel.Admin)]
         public void ResetVoxelArea(float Radius)
         {
@@ -304,7 +304,7 @@ namespace Essentials.Commands
             Context.Respond("Reset complete!");
         }
 
-        [Command("resetareapoint", "Resets voxel damange in specified radius from given point")]
+        [Command("reset gps", "Resets voxel damange in specified radius from given point")]
         [Permission(MyPromoteLevel.Admin)]
         public void ResetVoxelArea(float X, float Y, float Z, float Radius)
         {
@@ -372,8 +372,6 @@ namespace Essentials.Commands
 
             Context.Respond("Reset complete!");
         }
-
-
 
         private static LockToken PinDelete()
         {
