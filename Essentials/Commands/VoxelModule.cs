@@ -290,8 +290,6 @@ namespace Essentials.Commands
             {
                 BoundingSphereD Sphere = new BoundingSphereD(Center, Radius);
                 List<MyVoxelBase> Maps = MyEntities.GetEntitiesInSphere(ref Sphere).OfType<MyVoxelBase>().ToList();
-
-                _log.Info(Maps.Count());
                 if (Maps.Count == 0)
                     return true;
 
