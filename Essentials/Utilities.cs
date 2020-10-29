@@ -10,6 +10,7 @@ using Torch;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.Utils;
+using Newtonsoft.Json;
 
 namespace Essentials
 {
@@ -102,6 +103,14 @@ namespace Essentials
         {
             string p = MyUtils.FormatByteSizePrefix(ref size);
             return $"{size:N}{p}B";
+        }
+
+        public static string DictionaryToJson(Dictionary<string, object> dict) {
+            return JsonConvert.SerializeObject(dict, Formatting.Indented);
+        }
+
+        public static Dictionary<string, object> JsonToDictionary(string json) {
+            return JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
         }
     }
 }

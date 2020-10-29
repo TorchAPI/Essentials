@@ -36,6 +36,12 @@ namespace Essentials
         private string _motd;
         public string Motd { get => _motd; set => SetValue(ref _motd, value); }
 
+        private bool _enabledHomes = false;
+        public bool EnabledHomes { get => _enabledHomes; set => SetValue(ref _enabledHomes, value); }
+
+        private int _maxHomes = 3;
+        public int MaxHomes { get => _maxHomes; set => SetValue(ref _maxHomes, value); }
+
         private string _newUserMotd;
         public string NewUserMotd { get => _newUserMotd; set => SetValue(ref _newUserMotd, value); }
 

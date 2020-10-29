@@ -30,12 +30,15 @@ using VRage.Game;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRageMath;
+using Newtonsoft.Json;
 
 namespace Essentials
 {
     public class EssentialsPlugin : TorchPluginBase, IWpfPlugin
     {
         public EssentialsConfig Config => _config?.Data;
+        public string homeDataPath = "";
+        public string rankDataPath = "";
 
         private TorchSessionManager _sessionManager;
 
@@ -47,6 +50,8 @@ namespace Essentials
         private PatchContext _context;
 
         public static EssentialsPlugin Instance { get; private set; }
+        public PlayerAccountModule AccModule = new PlayerAccountModule();
+
 
         /// <inheritdoc />
         public UserControl GetControl() => _control ?? (_control = new PropertyGrid(){DataContext=Config/*, IsEnabled = false*/});
@@ -68,6 +73,21 @@ namespace Essentials
                 _sessionManager.SessionStateChanged += SessionChanged;
             else
                 Log.Warn("No session manager.  MOTD won't work");
+            Log.Info("Attempting reading of player data");
+            homeDataPath = Path.Combine(StoragePath, "players.json");
+            if (!File.Exists(homeDataPath)) {
+                File.Create(homeDataPath);
+            }
+            
+
+
+            Log.Info("Attempting reading of rank data");
+            rankDataPath = Path.Combine(StoragePath, "ranks.json");
+            if (!File.Exists(rankDataPath)) {
+                File.Create(rankDataPath);
+            }
+            
+
 
             Instance = this;
             _pm = torch.Managers.GetManager<PatchManager>();
@@ -80,7 +100,23 @@ namespace Essentials
             var mpMan = Torch.CurrentSession.Managers.GetManager<IMultiplayerManagerServer>();
             switch (state)
             {
+                case TorchSessionState.Loading:
+                    string homeData = File.ReadAllText(homeDataPath);
+                    if (!string.IsNullOrEmpty(homeData)) {
+                        PlayerAccountModule.PlayersAccounts = JsonConvert.DeserializeObject<List<PlayerAccountModule.PlayerAccountData>>(File.ReadAllText(homeDataPath));
+                    }
+
+                    string rankdata = File.ReadAllText(rankDataPath);
+                    if (!string.IsNullOrEmpty(rankdata)) {
+                        PlayerAccountModule.PlayersAccounts = JsonConvert.DeserializeObject<List<PlayerAccountModule.PlayerAccountData>>(File.ReadAllText(rankDataPath));
+                    }
+
+                    RanksAndPermissionsModule RAP = new RanksAndPermissionsModule();
+                    RAP.GenerateRank("Default");
+                    break;
+
                 case TorchSessionState.Loaded:
+                    mpMan.PlayerJoined += AccModule.GenerateAccount;
                     mpMan.PlayerJoined += MotdOnce;
                     mpMan.PlayerLeft += ResetMotdOnce;
                     MyEntities.OnEntityAdd += EntityAdded;
