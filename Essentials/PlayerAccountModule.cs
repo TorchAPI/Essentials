@@ -7,6 +7,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Torch.Commands;
+using Torch.Mod;
+using Torch.Mod.Messages;
 using VRage.Game.ModAPI;
 using VRage.Groups;
 using VRageMath;
@@ -14,6 +17,7 @@ using VRageMath;
 namespace Essentials {
     public class PlayerAccountModule {
         public static List<PlayerAccountData> PlayersAccounts = new List<PlayerAccountData>();
+        public RanksAndPermissionsModule RanksAndPermissions = new RanksAndPermissionsModule();
         public static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         public class PlayerAccountData {

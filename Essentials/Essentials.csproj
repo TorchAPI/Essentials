@@ -159,7 +159,6 @@
     <Compile Include="GridFinder.cs" />
     <Compile Include="InfoCommand.cs" />
     <Compile Include="Commands\InfoModule.cs" />
-    <Compile Include="Patches\CommandPermissionPatch.cs" />
     <Compile Include="Patches\SessionDownloadPatch.cs" />
     <Compile Include="PlayerAccountModule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
