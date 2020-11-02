@@ -28,7 +28,7 @@ namespace Essentials {
             public Dictionary<string, Vector3D> Homes { get; set; } = new Dictionary<string, Vector3D>();
         }
 
-        public void UpdateHomeObject(PlayerAccountData obj) {
+        public void UpdatePlayerAccount(PlayerAccountData obj) {
             var objectToRepalce = PlayersAccounts.Where(i => i.SteamID == obj.SteamID).First();
             var index = PlayersAccounts.IndexOf(objectToRepalce);
             if (index != -1)

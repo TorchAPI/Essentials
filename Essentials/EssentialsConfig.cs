@@ -36,6 +36,9 @@ namespace Essentials
         private string _motd;
         public string Motd { get => _motd; set => SetValue(ref _motd, value); }
 
+        public string _defaultRank = "Default";
+        public string DefaultRank { get => _defaultRank; set => SetValue(ref _defaultRank, value); }
+
         private bool _enabledHomes = false;
         public bool EnabledHomes { get => _enabledHomes; set => SetValue(ref _enabledHomes, value); }
 

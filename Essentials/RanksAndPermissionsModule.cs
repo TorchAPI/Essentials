@@ -15,6 +15,7 @@ using Sandbox.ModAPI;
 using Sandbox.Game.World;
 
 namespace Essentials {
+    //Possibly build extension plugin which will sync discord roles with custom roles?
     public class RanksAndPermissionsModule {
         public static List<RankData> Ranks = new List<RankData>();
         public static PlayerAccountModule PlayerAccountModule = new PlayerAccountModule();
@@ -136,7 +137,7 @@ namespace Essentials {
 
             if (hasPermission && !hasPerm) {
                 hasPermissionOverride = hasPerm;
-                Log.Info($"{player.SteamUserId} tried to use the blocked command '{cmd}'");
+                Log.Info($"{player.DisplayName} tried to use the blocked command '{cmd}'");
                 ModCommunication.SendMessageTo(new NotificationMessage($"You do not have permission to use that command!", 10000, "Red"), player.SteamUserId);
             }
         }
@@ -188,10 +189,10 @@ namespace Essentials {
             Log.Info($"The following ranks have been assiged to {player.Name}: {Ranks}");
         }
 
-        public void UpdateRegisteredPlayersRanks(string oldName, string newName) {
+        public void UpdateRegisteredPlayersRanks(string newName) {
             foreach (var player in PlayerAccountModule.PlayersAccounts) {
                 player.Rank = newName;
-                PlayerAccountModule.UpdateHomeObject(player);
+                PlayerAccountModule.UpdatePlayerAccount(player);
                 //Log.Info($"Binding ranks to {player.}'s session (Expires when server restarts)");
                 RankData MainRank = GetRankData(PlayerAccountModule.GetRank(player.SteamID));
                 if (!PlayersInheritedRanksStore.ContainsKey(player.SteamID)) {

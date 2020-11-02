@@ -59,12 +59,53 @@ namespace Essentials.Commands {
             }
             rank.RankName = newName;
             RanksAndPermissions.UpdateRankObject(rank);
+            RanksAndPermissions.UpdateRegisteredPlayersRanks(newName);
         }
 
         [Command("setdefaultrank")]
         [Permission(MyPromoteLevel.Admin)]
         public void SetDefaultRank(string name) {
+            RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(name);
+            if (rank == null) {
+                Context.Respond($"Rank '{name}' does not exist!");
+                return;
+            }
+            EssentialsPlugin.Instance.Config.DefaultRank = name;
+            EssentialsPlugin.Instance.Save();
+            Context.Respond($"Default rank set to '{name}'!");
+            Log.Info($"Default rank set to '{name}'!");
+        }
 
+        [Command("setrank")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void SetRank(string playerName, string rankName) {
+            RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
+            IMyPlayer player = Utilities.GetPlayerByNameOrId(playerName);
+            if (player == null) {
+                Context.Respond("Player does not exist!");
+                return;
+            }
+
+            if (rank == null) {
+                Context.Respond("Rank does not exist!");
+                return;
+            }
+
+            PlayerAccountModule.PlayerAccountData data = new PlayerAccountModule.PlayerAccountData();
+            var RegisteredPlayers = PlayerAccountModule.PlayersAccounts.Select(o => o.SteamID).ToList();
+            if (!RegisteredPlayers.Contains(player.SteamUserId)) {
+                Log.Warn($"Player {player.DisplayName} does have registered player object... Creating one");
+                data.Player = player.DisplayName;
+                data.SteamID = player.SteamUserId;
+                data.Rank = rank.RankName;
+                AccModule.UpdatePlayerAccount(data);
+                Context.Respond($"{player.DisplayName}'s rank set to {rank.RankName}");
+                Log.Info($"{player.DisplayName}'s rank set to {rank.RankName}");
+                return;
+            }
+            data = PlayerAccountModule.PlayersAccounts.Single(a => a.SteamID == player.SteamUserId);
+            data.Rank = rank.RankName;
+            AccModule.UpdatePlayerAccount(data);
         }
 
         [Command("addperm")]

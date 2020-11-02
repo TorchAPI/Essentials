@@ -63,7 +63,7 @@ namespace Essentials.Commands {
                 }
 
                 data.Homes.Add(name, Context.Player.GetPosition());
-                AccModule.UpdateHomeObject(data);
+                AccModule.UpdatePlayerAccount(data);
                 Context.Respond($"Added home '{name}'");
                 return;
             }
@@ -97,7 +97,7 @@ namespace Essentials.Commands {
                 }
 
                 data.Homes.Remove(name);
-                AccModule.UpdateHomeObject(data);
+                AccModule.UpdatePlayerAccount(data);
                 Context.Respond($"Removed home '{name}'");
                 return;
             }

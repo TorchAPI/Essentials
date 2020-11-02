@@ -110,7 +110,7 @@ namespace Essentials
                         RanksAndPermissionsModule.Ranks = JsonConvert.DeserializeObject<List<RanksAndPermissionsModule.RankData>>(File.ReadAllText(rankDataPath));
                     }
 
-                    RanksAndPermissions.GenerateRank("Default");
+                    RanksAndPermissions.GenerateRank(Config.DefaultRank);
                     break;
 
                 case TorchSessionState.Loaded:
