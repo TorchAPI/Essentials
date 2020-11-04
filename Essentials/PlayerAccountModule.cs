@@ -21,10 +21,15 @@ namespace Essentials {
         public static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         public class PlayerAccountData {
+            [JsonProperty(Order = 1)]
             public string Player { get; set; }
+            [JsonProperty(Order = 2)]
             public ulong SteamID { get; set; }
+            [JsonProperty(Order = 3)]
             public string Rank { get; set; } = "Default";
-            public int MaxHomes { get; set; }
+            [JsonProperty(Order = 4)]
+            public RanksAndPermissionsModule.Permissions Permissions = new RanksAndPermissionsModule.Permissions();
+            [JsonProperty(Order = 5)]
             public Dictionary<string, Vector3D> Homes { get; set; } = new Dictionary<string, Vector3D>();
         }
 
@@ -55,7 +60,6 @@ namespace Essentials {
                 Log.Info($"Creating new account object for {player.Name}");
                 data.SteamID = steamid;
                 data.Player = player.Name;
-                data.MaxHomes = EssentialsPlugin.Instance.Config.MaxHomes;
                 PlayersAccounts.Add(data);
                 SaveHomeData();
                 return;
@@ -71,6 +75,18 @@ namespace Essentials {
                 }
             }
             return data.Rank;
+        }
+
+        public PlayerAccountData GetAccount (ulong steamID) {
+            PlayerAccountData data = new PlayerAccountData();
+            data = null;
+            foreach (var Account in PlayersAccounts) {
+                if (Account.SteamID == steamID) {
+                    data = Account;
+                    break;
+                }
+            }
+            return data;
         }
     }
 }

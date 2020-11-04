@@ -80,11 +80,11 @@ namespace Essentials.Commands {
         [Permission(MyPromoteLevel.Admin)]
         public void SetRank(string playerName, string rankName) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
-            IMyPlayer player = Utilities.GetPlayerByNameOrId(playerName);
+            /*IMyPlayer player = Utilities.GetPlayerByNameOrId(playerName);
             if (player == null) {
                 Context.Respond("Player does not exist!");
                 return;
-            }
+            }*/
 
             if (rank == null) {
                 Context.Respond("Rank does not exist!");
@@ -92,20 +92,58 @@ namespace Essentials.Commands {
             }
 
             PlayerAccountModule.PlayerAccountData data = new PlayerAccountModule.PlayerAccountData();
-            var RegisteredPlayers = PlayerAccountModule.PlayersAccounts.Select(o => o.SteamID).ToList();
-            if (!RegisteredPlayers.Contains(player.SteamUserId)) {
-                Log.Warn($"Player {player.DisplayName} does have registered player object... Creating one");
-                data.Player = player.DisplayName;
-                data.SteamID = player.SteamUserId;
+            var RegisteredPlayers = PlayerAccountModule.PlayersAccounts.Select(o => o.Player).ToList();
+            if (!RegisteredPlayers.Contains(playerName)) {
+                Log.Warn($"Player {playerName} does have registered player object... Creating one");
+                data.Player = playerName;
+                //data.SteamID = playerName;
                 data.Rank = rank.RankName;
                 AccModule.UpdatePlayerAccount(data);
-                Context.Respond($"{player.DisplayName}'s rank set to {rank.RankName}");
-                Log.Info($"{player.DisplayName}'s rank set to {rank.RankName}");
+                Context.Respond($"{playerName}'s rank set to {rank.RankName}");
+                Log.Info($"{playerName}'s rank set to {rank.RankName}");
                 return;
             }
-            data = PlayerAccountModule.PlayersAccounts.Single(a => a.SteamID == player.SteamUserId);
+            data = PlayerAccountModule.PlayersAccounts.Single(a => a.Player == playerName);
             data.Rank = rank.RankName;
+            MySession.Static.SetUserPromoteLevel(data.SteamID, RanksAndPermissions.ParseMyPromoteLevel(rank.KeenLevelRank));
+
             AccModule.UpdatePlayerAccount(data);
+        }
+
+        [Command("addinheritance")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void AddInheritance(string rankName, string inheritanceName) {
+            RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
+            if (rank != null) {
+                RanksAndPermissionsModule.RankData InheritRank = RanksAndPermissions.GetRankData(inheritanceName);
+                if (InheritRank == null) {
+                    Context.Respond("The rank you are trying to add to the inheritance list does not exist!");
+                    return;
+                }
+                rank.Inherits.Add(inheritanceName);
+                RanksAndPermissions.UpdateRankObject(rank);
+                Context.Respond("Inheritance added!");
+                return;
+            }
+            Context.Respond("The rank you are trying to add inheritence to does not exist");
+        }
+
+        [Command("delinheritance")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void DelInheritance(string rankName, string inheritanceName) {
+            RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
+            if (rank != null) {
+                if (!rank.Inherits.Contains(inheritanceName)) {
+                    Context.Respond($"{rank.RankName} does not inherit {inheritanceName}");
+                    return;
+                }
+                rank.Inherits.Remove(inheritanceName);
+                RanksAndPermissions.UpdateRankObject(rank);
+                Context.Respond("Inheritance removed");
+                return;
+            }
+            Context.Respond("The rank you are trying to remove inheritence from does not exist");
+
         }
 
         [Command("addperm")]
@@ -128,16 +166,16 @@ namespace Essentials.Commands {
 
             if (command.Substring(0,1) == "-") {
                 string stringAfterChar = command.Substring(command.IndexOf("-") + 1);
-                if (data.Allowed.Contains(stringAfterChar)) {
-                    data.Allowed.Remove(stringAfterChar);
+                if (data.Permissions.Allowed.Contains(stringAfterChar)) {
+                    data.Permissions.Allowed.Remove(stringAfterChar);
                     Context.Respond($"Permission to use command '{command}' has been removed from the {data.RankName} rank!");
                     RanksAndPermissions.UpdateRankObject(data);
                     return;
                 }
             }
 
-            if (!data.Allowed.Contains(command)) {
-                data.Allowed.Add(command);
+            if (!data.Permissions.Allowed.Contains(command)) {
+                data.Permissions.Allowed.Add(command);
                 Context.Respond($"Permission to use command '{command}' has been added to the {data.RankName} rank!");
                 RanksAndPermissions.UpdateRankObject(data);
                 return;
@@ -166,22 +204,116 @@ namespace Essentials.Commands {
 
             if (command.Substring(0, 1) == "-") {
                 string stringAfterChar = command.Substring(command.IndexOf("-") + 1);
-                if (data.Disallowed.Contains(stringAfterChar)) {
-                    data.Disallowed.Remove(stringAfterChar);
+                if (data.Permissions.Disallowed.Contains(stringAfterChar)) {
+                    data.Permissions.Disallowed.Remove(stringAfterChar);
                     Context.Respond($"Updated rank");
                     RanksAndPermissions.UpdateRankObject(data);
                     return;
                 }
             }
 
-            if (!data.Disallowed.Contains(command)) {
-                data.Disallowed.Add(command);
+            if (!data.Permissions.Disallowed.Contains(command)) {
+                data.Permissions.Disallowed.Add(command);
                 Context.Respond($"Permission to use command '{command}' has been actively revoked from the {data.RankName} rank!");
                 RanksAndPermissions.UpdateRankObject(data);
                 return;
             }
 
             Context.Respond($"Permission to use command '{command}' is already being actively revoked from the {data.RankName} rank!");
+        }
+
+
+        [Command("addplayerperm")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void AddPlayerPermission(string playerName, string command) {
+            PlayerAccountModule.PlayerAccountData data = new PlayerAccountModule.PlayerAccountData();
+            bool found = false;
+            foreach (var player in PlayerAccountModule.PlayersAccounts) {
+                if (player.Player == playerName) {
+                    data = player;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                Context.Respond($"Player '{playerName}' does not have a registered account!");
+                return;
+            }
+
+            if (command.Substring(0, 1) == "-") {
+                string stringAfterChar = command.Substring(command.IndexOf("-") + 1);
+                if (data.Permissions.Allowed.Contains(stringAfterChar)) {
+                    data.Permissions.Allowed.Remove(stringAfterChar);
+                    Context.Respond($"Permission to use command '{command}' has been removed from {data.Player}'s account!");
+                    AccModule.UpdatePlayerAccount(data);
+                    return;
+                }
+            }
+
+            if (!data.Permissions.Allowed.Contains(command)) {
+                data.Permissions.Allowed.Add(command);
+                Context.Respond($"Permission to use command '{command}' has been added to {data.Player}'s account!");
+                AccModule.UpdatePlayerAccount(data);
+                return;
+            }
+
+            Context.Respond($"The player '{data.Player}' already has permission to use '{command}'");
+        }
+
+        [Command("delplayerperm")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void RemovePlayerPermission(string playerName, string command) {
+            PlayerAccountModule.PlayerAccountData data = new PlayerAccountModule.PlayerAccountData();
+            bool found = false;
+            foreach (var player in PlayerAccountModule.PlayersAccounts) {
+                if (player.Player == playerName) {
+                    data = player;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                Context.Respond($"Player '{playerName}' does not have a registered account!");
+                return;
+            }
+
+            if (command.Substring(0, 1) == "-") {
+                string stringAfterChar = command.Substring(command.IndexOf("-") + 1);
+                if (data.Permissions.Disallowed.Contains(stringAfterChar)) {
+                    data.Permissions.Disallowed.Remove(stringAfterChar);
+                    Context.Respond($"Updated rank");
+                    AccModule.UpdatePlayerAccount(data);
+                    return;
+                }
+            }
+
+            if (!data.Permissions.Disallowed.Contains(command)) {
+                data.Permissions.Disallowed.Add(command);
+                Context.Respond($"Permission to use command '{command}' has been actively revoked from  {data.Player}'s account!");
+                AccModule.UpdatePlayerAccount(data);
+                return;
+            }
+
+            Context.Respond($"Permission to use command '{command}' is already being actively revoked from  {data.Player}'s account!");
+        }
+
+        [Command("listranks")]
+        [Permission(MyPromoteLevel.None)]
+        public void ListRanks() {
+            bool found = false;
+            string Ranks = "Ranks: ";
+            foreach (var rank in RanksAndPermissionsModule.Ranks) {
+                found = true;
+                Ranks += ($"{rank.RankName},");
+            }
+            if(!found) {
+                Context.Respond("No ranks found");
+                return;
+            }
+            Ranks = Ranks.TrimEnd(',');
+            Context.Respond(Ranks);
         }
     }
 }

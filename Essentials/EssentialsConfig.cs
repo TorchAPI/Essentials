@@ -36,13 +36,20 @@ namespace Essentials
         private string _motd;
         public string Motd { get => _motd; set => SetValue(ref _motd, value); }
 
+        public bool _enableRanks = false;
+        [Display(Name = "Enable custom ranks", GroupName = "Custom Ranks", Order = 0, Description = "Enable the custom ranks system for this server.")]
+        public bool EnableRanks { get => _enableRanks; set => SetValue(ref _enableRanks, value); }
+
         public string _defaultRank = "Default";
+        [Display(Name = "Default rank assignment", GroupName = "Custom Ranks", Order = 1, Description = "The rank users will get when they first join the server.")]
         public string DefaultRank { get => _defaultRank; set => SetValue(ref _defaultRank, value); }
 
-        private bool _enabledHomes = false;
-        public bool EnabledHomes { get => _enabledHomes; set => SetValue(ref _enabledHomes, value); }
+        public bool _overridePerms = false;
+        [Display(Name = "Override vanilla Torch/Plugin Permissions", GroupName = "Custom Ranks", Order = 2, Description = "Enabling this will cause the custom rank permissions system to overide any vanilla permissions... MAKE SURE RANKS HAVE PERMS SET BEFORE ENABLING")]
+        public bool OverrideVanillaPerms { get => _overridePerms; set => SetValue(ref _overridePerms, value); }
 
         private int _maxHomes = 3;
+        [Display(Name = "Default Max Homes", GroupName = "Custom Ranks", Order = 3, Description = "Default amount of homes a created rank will get")]
         public int MaxHomes { get => _maxHomes; set => SetValue(ref _maxHomes, value); }
 
         private string _newUserMotd;

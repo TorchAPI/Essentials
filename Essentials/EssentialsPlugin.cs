@@ -110,13 +110,15 @@ namespace Essentials
                         RanksAndPermissionsModule.Ranks = JsonConvert.DeserializeObject<List<RanksAndPermissionsModule.RankData>>(File.ReadAllText(rankDataPath));
                     }
 
-                    RanksAndPermissions.GenerateRank(Config.DefaultRank);
                     break;
 
                 case TorchSessionState.Loaded:
                     mpMan.PlayerJoined += AccModule.GenerateAccount;
                     mpMan.PlayerJoined += MotdOnce;
-                    mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
+                    if (Config.EnableRanks) {
+                        RanksAndPermissions.GenerateRank(Config.DefaultRank);
+                        mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
+                    }
                     mpMan.PlayerLeft += ResetMotdOnce;
                     cmdMan.OnCommandExecuting +=RanksAndPermissions.HasCommandPermission;
                     MyEntities.OnEntityAdd += EntityAdded;
