@@ -165,6 +165,9 @@ namespace Essentials {
         }
 
         public void HasCommandPermission(Command command, IMyPlayer player, bool hasPermission, ref bool? hasPermissionOverride) {
+            if (EssentialsPlugin.Instance.Config.EnableRanks)
+                return;
+
             string playersRank = PlayerAccountModule.GetRank(player.SteamUserId);
             string cmd = "";
             foreach (var part in command.Path) {
