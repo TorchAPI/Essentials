@@ -41,7 +41,7 @@ def test_with_torch(branch)
 	}
 }
 
-node {
+node('windows') {
 	stage('Checkout') {
 		checkout scm
 		bat 'git pull --tags'
