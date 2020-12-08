@@ -316,6 +316,14 @@ namespace Essentials.Commands
             return false;
         }
 
+        [Condition("centerdistancelessthan", "centerdistancegreaterthan", "Finds grids that are further than the given distance from center.")]
+        public bool CenterDistanceLessThan(MyCubeGrid grid, double dist)
+        {
+            dist *= dist;
+            
+            return Vector3D.DistanceSquared(Vector3D.Zero, grid.PositionComp.GetPosition()) < dist;
+        }
+
         [Condition("ownedby", helpText: "Finds grids owned by the given player. Can specify player name, IdentityId, 'nobody', or 'pirates'.")]
         public bool OwnedBy(MyCubeGrid grid, string str)
         {

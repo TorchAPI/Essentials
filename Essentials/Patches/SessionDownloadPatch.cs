@@ -571,10 +571,6 @@ namespace Essentials.Patches
                 _checkpoint.Gps.Dictionary.Add(player.IdentityId, bGps);
             }
 
-            if (MyFakes.ENABLE_MISSION_TRIGGERS)
-                //usually empty, so meh
-                _checkpoint.MissionTriggers = MySessionComponentMissionTriggers.Static.GetObjectBuilder();
-
             //bunch of allocations in here, but can't replace the logic easily because private types
             _checkpoint.Factions = MySession.Static.Factions.GetObjectBuilder();
 
