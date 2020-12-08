@@ -34,11 +34,14 @@ namespace Essentials {
             public int MaxHomes { get; set; } = EssentialsPlugin.Instance.Config.MaxHomes;
 
             [JsonProperty(Order = 3)]
-            public string KeenLevelRank { get; set; } = "None";
+            public bool ReservedSlot { get; set; } = false;
 
             [JsonProperty(Order = 4)]
-            public Permissions Permissions = new Permissions();
+            public string KeenLevelRank { get; set; } = "None";
+
             [JsonProperty(Order = 5)]
+            public Permissions Permissions = new Permissions();
+            [JsonProperty(Order = 6)]
             public List<string> Inherits { get; set; } = new List<string>();
         }
 

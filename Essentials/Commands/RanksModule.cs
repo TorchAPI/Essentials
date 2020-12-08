@@ -80,12 +80,15 @@ namespace Essentials.Commands {
         [Permission(MyPromoteLevel.Admin)]
         public void SetRank(string playerName, string rankName) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
-            /*IMyPlayer player = Utilities.GetPlayerByNameOrId(playerName);
-            if (player == null) {
-                Context.Respond("Player does not exist!");
-                return;
-            }*/
 
+            ulong.TryParse(playerName, out var id);
+            id = Utilities.GetPlayerByNameOrId(playerName)?.SteamUserId ?? id;
+            /*IMyPlayer player = Utilities.GetPlayerByNameOrId(playerName);*/
+            if (id == 0) {
+                Context.Respond($"Player '{playerName}' not found or ID is invalid.");
+                return;
+            }
+            var player = Utilities.GetPlayerByNameOrId(playerName);
             if (rank == null) {
                 Context.Respond("Rank does not exist!");
                 return;
@@ -96,17 +99,22 @@ namespace Essentials.Commands {
             if (!RegisteredPlayers.Contains(playerName)) {
                 Log.Warn($"Player {playerName} does have registered player object... Creating one");
                 data.Player = playerName;
-                //data.SteamID = playerName;
-                data.Rank = rank.RankName;
-                AccModule.UpdatePlayerAccount(data);
-                Context.Respond($"{playerName}'s rank set to {rank.RankName}");
-                Log.Info($"{playerName}'s rank set to {rank.RankName}");
-                return;
+                data.SteamID = player.SteamUserId;
             }
-            data = PlayerAccountModule.PlayersAccounts.Single(a => a.Player == playerName);
-            data.Rank = rank.RankName;
-            MySession.Static.SetUserPromoteLevel(data.SteamID, RanksAndPermissions.ParseMyPromoteLevel(rank.KeenLevelRank));
+            
+            if(RegisteredPlayers.Contains(playerName)) {
+                data = PlayerAccountModule.PlayersAccounts.Single(a => a.Player == playerName);
+            } 
 
+            data.Rank = rank.RankName;
+            if (rank.ReservedSlot && !MySandboxGame.ConfigDedicated.Reserved.Contains(player.SteamUserId)) {
+                MySandboxGame.ConfigDedicated.Reserved.Add(player.SteamUserId);
+            } else if (!rank.ReservedSlot && MySandboxGame.ConfigDedicated.Reserved.Contains(player.SteamUserId)) {
+
+            }
+            MySession.Static.SetUserPromoteLevel(data.SteamID, RanksAndPermissions.ParseMyPromoteLevel(rank.KeenLevelRank));
+            Context.Respond($"{playerName}'s rank set to {rank.RankName}");
+            Log.Info($"{playerName}'s rank set to {rank.RankName}");
             AccModule.UpdatePlayerAccount(data);
         }
 
@@ -301,7 +309,7 @@ namespace Essentials.Commands {
 
         [Command("listranks")]
         [Permission(MyPromoteLevel.None)]
-        public void ListRanks() {
+        public void ListRanks(string listRankName) {
             bool found = false;
             string Ranks = "Ranks: ";
             foreach (var rank in RanksAndPermissionsModule.Ranks) {
