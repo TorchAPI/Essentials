@@ -49,6 +49,18 @@ namespace Essentials.Commands {
 
         }
 
+        [Command("reservedslot")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void SetReservedSlot(string rankName, string boolVal) {
+            RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
+            if (rank == null) {
+                Context.Respond($"Rank '{rankName}' does not exist!");
+                return;
+            }
+            rank.ReservedSlot = bool.Parse(boolVal);
+            RanksAndPermissions.UpdateRankObject(rank);
+        }
+
         [Command("renamerank")]
         [Permission(MyPromoteLevel.Admin)]
         public void RenameRank(string oldName, string newName) {

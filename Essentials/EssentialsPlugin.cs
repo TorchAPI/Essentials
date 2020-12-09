@@ -133,6 +133,8 @@ namespace Essentials
                     InfoModule.Init();
                     break;
                 case TorchSessionState.Unloading:
+                    Log.Info("Unloading rank data into JSON");
+                    RanksAndPermissions.SaveRankData();
                     mpMan.PlayerLeft -= ResetMotdOnce;
                     mpMan.PlayerJoined -= MotdOnce;
                     MyEntities.OnEntityAdd -= EntityAdded;
