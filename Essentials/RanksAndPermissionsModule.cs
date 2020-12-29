@@ -31,7 +31,7 @@ namespace Essentials {
             [JsonProperty(Order = 1)]
             public string RankName { get; set; }
             [JsonProperty(Order = 2)]
-            public int MaxHomes { get; set; } = EssentialsPlugin.Instance.Config.MaxHomes;
+            public int MaxHomes { get; set; } = 3;
 
             [JsonProperty(Order = 3)]
             public bool ReservedSlot { get; set; } = false;

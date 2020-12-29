@@ -140,6 +140,7 @@
     <Compile Include="AutoCommand.cs" />
     <Compile Include="AutoCommands.cs" />
     <Compile Include="Commands\EcoModule.cs" />
+    <Compile Include="Commands\HomeModule.cs" />
     <Compile Include="Commands\RanksModule.cs" />
     <Compile Include="Commands\VotingModule.cs" />
     <Compile Include="Commands\AdminModule.cs" />

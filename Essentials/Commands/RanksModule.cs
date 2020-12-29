@@ -49,9 +49,25 @@ namespace Essentials.Commands {
 
         }
 
+        [Command("setmaxhomes")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void SetMaxHomes(string rankName, int value) {
+            RanksAndPermissionsModule.RankData Rank = RanksAndPermissions.GetRankData(rankName);
+            if (Rank == null) {
+                Context.Respond($"Rank '{rankName}' does not exist!");
+                return;
+            }
+
+            Rank.MaxHomes = value;
+            Context.Respond($"Anyone with the rank '{Rank.RankName}' can now only set {value} homes");
+        }
+
         [Command("reservedslot")]
         [Permission(MyPromoteLevel.Admin)]
         public void SetReservedSlot(string rankName, string boolVal) {
+            if (boolVal != "true" || boolVal != "false") {
+                Context.Respond("Argument is not a valid bool type");
+            }
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
             if (rank == null) {
                 Context.Respond($"Rank '{rankName}' does not exist!");
@@ -59,6 +75,7 @@ namespace Essentials.Commands {
             }
             rank.ReservedSlot = bool.Parse(boolVal);
             RanksAndPermissions.UpdateRankObject(rank);
+
         }
 
         [Command("renamerank")]
