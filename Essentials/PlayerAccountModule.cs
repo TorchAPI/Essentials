@@ -41,11 +41,21 @@ namespace Essentials {
             SaveHomeData();
         }
 
+        public void UpdatePlayerAccount(List<PlayerAccountData> PlayerObjects) {
+            foreach(PlayerAccountData Account in PlayerObjects.ToList()) {
+                UpdatePlayerAccount(Account);
+            }
+        }
+
         public void ValidateRanks() {
-            foreach(PlayerAccountData Player in PlayersAccounts) {
+            Log.Info("Validating player ranks");
+            List<PlayerAccountData> PlayerObjectsToUpdate = new List<PlayerAccountData>();
+            foreach (PlayerAccountData Player in PlayersAccounts.ToList()) {
                 if (RanksAndPermissions.GetRankData(Player.Rank) == null) {
-                    Log.Error($"{Player.SteamID} does not have a valid rank... Setting to default!");
+                    Log.Error($"{Player.Player} does not have a valid rank... Setting to default! ({EssentialsPlugin.Instance.Config.DefaultRank})");
                     Player.Rank = EssentialsPlugin.Instance.Config.DefaultRank;
+                    PlayerObjectsToUpdate.Add(Player);
+
                     UpdatePlayerAccount(Player);
                 }
             }

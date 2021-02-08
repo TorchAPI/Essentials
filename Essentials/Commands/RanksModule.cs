@@ -107,43 +107,48 @@ namespace Essentials.Commands {
 
         [Command("setrank")]
         [Permission(MyPromoteLevel.Admin)]
-        public void SetRank(string playerName, string rankName) {
+        public void SetRank(string playerNameOrID, string rankName) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
 
-            ulong.TryParse(playerName, out var id);
-            id = Utilities.GetPlayerByNameOrId(playerName)?.SteamUserId ?? id;
+            ulong.TryParse(playerNameOrID, out var id);
+            id = Utilities.GetPlayerByNameOrId(playerNameOrID)?.SteamUserId ?? id;
             /*IMyPlayer player = Utilities.GetPlayerByNameOrId(playerName);*/
             if (id == 0) {
-                Context.Respond($"Player '{playerName}' not found or ID is invalid.");
+                Context.Respond($"Player '{playerNameOrID}' not found or ID is invalid.");
                 return;
             }
-            var player = Utilities.GetPlayerByNameOrId(playerName);
+            var player = Utilities.GetPlayerByNameOrId(playerNameOrID);
             if (rank == null) {
                 Context.Respond("Rank does not exist!");
                 return;
             }
 
             PlayerAccountModule.PlayerAccountData data = new PlayerAccountModule.PlayerAccountData();
-            var RegisteredPlayers = PlayerAccountModule.PlayersAccounts.Select(o => o.Player).ToList();
-            if (!RegisteredPlayers.Contains(playerName)) {
-                Log.Warn($"Player {playerName} does have registered player object... Creating one");
-                data.Player = playerName;
+            var RegisteredPlayerNames = PlayerAccountModule.PlayersAccounts.Select(o => o.Player).ToList();
+            var RegisteredPlayerSteamIDs = PlayerAccountModule.PlayersAccounts.Select(o => o.SteamID).ToList();
+            if (!RegisteredPlayerNames.Contains(playerNameOrID) && !RegisteredPlayerSteamIDs.Contains(id)) {
+                Log.Warn($"Player {playerNameOrID} does have registered player object... Creating one");
+                data.Player = playerNameOrID;
                 data.SteamID = player.SteamUserId;
             }
             
-            if(RegisteredPlayers.Contains(playerName)) {
-                data = PlayerAccountModule.PlayersAccounts.Single(a => a.Player == playerName);
+            if(RegisteredPlayerNames.Contains(playerNameOrID)) {
+                data = PlayerAccountModule.PlayersAccounts.Single(a => a.Player == playerNameOrID);
             } 
 
-            data.Rank = rank.RankName;
-            if (rank.ReservedSlot && !MySandboxGame.ConfigDedicated.Reserved.Contains(player.SteamUserId)) {
-                MySandboxGame.ConfigDedicated.Reserved.Add(player.SteamUserId);
-            } else if (!rank.ReservedSlot && MySandboxGame.ConfigDedicated.Reserved.Contains(player.SteamUserId)) {
+            if(RegisteredPlayerSteamIDs.Contains(id)) {
+                data = PlayerAccountModule.PlayersAccounts.Single(a => a.SteamID == id);
+            }
 
+            data.Rank = rank.RankName;
+            if (rank.ReservedSlot && !MySandboxGame.ConfigDedicated.Reserved.Contains(id)) {
+                MySandboxGame.ConfigDedicated.Reserved.Add(id);
+            } else if (!rank.ReservedSlot && MySandboxGame.ConfigDedicated.Reserved.Contains(id)) {
+                MySandboxGame.ConfigDedicated.Reserved.Remove(id);
             }
             MySession.Static.SetUserPromoteLevel(data.SteamID, RanksAndPermissions.ParseMyPromoteLevel(rank.KeenLevelRank));
-            Context.Respond($"{playerName}'s rank set to {rank.RankName}");
-            Log.Info($"{playerName}'s rank set to {rank.RankName}");
+            Context.Respond($"{data.Player}'s rank set to {rank.RankName}");
+            Log.Info($"{data.Player}'s rank set to {rank.RankName}");
             AccModule.UpdatePlayerAccount(data);
         }
 
