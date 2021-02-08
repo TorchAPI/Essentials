@@ -118,6 +118,7 @@ namespace Essentials
                     if (Config.EnableRanks) {
                         RanksAndPermissions.GenerateRank(Config.DefaultRank);
                         mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
+                        AccModule.ValidateRanks();
                     }
                     mpMan.PlayerLeft += ResetMotdOnce;
                     cmdMan.OnCommandExecuting +=RanksAndPermissions.HasCommandPermission;

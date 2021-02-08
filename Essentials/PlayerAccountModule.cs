@@ -41,6 +41,16 @@ namespace Essentials {
             SaveHomeData();
         }
 
+        public void ValidateRanks() {
+            foreach(PlayerAccountData Player in PlayersAccounts) {
+                if (RanksAndPermissions.GetRankData(Player.Rank) == null) {
+                    Log.Error($"{Player.SteamID} does not have a valid rank... Setting to default!");
+                    Player.Rank = EssentialsPlugin.Instance.Config.DefaultRank;
+                    UpdatePlayerAccount(Player);
+                }
+            }
+        }
+
         public void SaveHomeData() {
             File.WriteAllText(EssentialsPlugin.Instance.homeDataPath, JsonConvert.SerializeObject(PlayersAccounts, Formatting.Indented));
         }
