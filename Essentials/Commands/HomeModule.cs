@@ -20,6 +20,8 @@ using Sandbox.Game.Entities;
 using Torch.Mod.Messages;
 using VRage.Game.ModAPI;
 using VRageRender.Utils;
+using VRage.Game;
+using VRage.Game.ObjectBuilders.Definitions;
 
 namespace Essentials.Commands {
     [Category("home")]
@@ -128,8 +130,15 @@ namespace Essentials.Commands {
                 return;
             }
 
+            var player = MySession.Static.Players.GetOnlinePlayers().Where(i => i.Identity.IdentityId == Context.Player.Identity.IdentityId).First();
+
+            float hydrogenLevel = Context.Player.Character.GetSuitGasFillLevel(new MyDefinitionId(typeof(MyObjectBuilder_GasProperties), "Hydrogen"));
 
             targetEntity.SetPosition(targetPos);
+
+            for (int i = 0; i != 10; i++) {
+                Context.Player.Character.Physics.SetSpeeds(Vector3.Zero, Vector3.Zero);
+            }
             Context.Respond($"Teleported to '{homeName}'");
         }
     }

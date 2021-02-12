@@ -30,18 +30,26 @@ namespace Essentials {
         public class RankData {
             [JsonProperty(Order = 1)]
             public string RankName { get; set; }
+
             [JsonProperty(Order = 2)]
-            public int MaxHomes { get; set; } = 3;
+            public string Prefix { get; set; } = "";
 
             [JsonProperty(Order = 3)]
-            public bool ReservedSlot { get; set; } = false;
+            public bool DisplayPrefix { get; set; } = false;
 
             [JsonProperty(Order = 4)]
-            public string KeenLevelRank { get; set; } = "None";
+            public int MaxHomes { get; set; } = 3;
 
             [JsonProperty(Order = 5)]
-            public Permissions Permissions = new Permissions();
+            public bool ReservedSlot { get; set; } = false;
+
             [JsonProperty(Order = 6)]
+            public string KeenLevelRank { get; set; } = "None";
+
+            [JsonProperty(Order = 7)]
+            public Permissions Permissions = new Permissions();
+
+            [JsonProperty(Order = 8)]
             public List<string> Inherits { get; set; } = new List<string>();
         }
 
