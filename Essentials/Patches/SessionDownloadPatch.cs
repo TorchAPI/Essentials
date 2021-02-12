@@ -375,7 +375,8 @@ namespace Essentials.Patches
         private static MyObjectBuilder_Checkpoint GetClientCheckpoint(ulong steamId)
         {
             Log.Info($"Saving checkpoint...");
-            var cpid = new MyObjectBuilder_Checkpoint.PlayerId(steamId);
+            var cpid = new MyObjectBuilder_Checkpoint.PlayerId();
+            cpid.ClientId = steamId;
             var ppid = new MyPlayer.PlayerId(steamId);
 
             if (_checkpoint == null)
