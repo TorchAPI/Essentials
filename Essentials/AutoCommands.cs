@@ -11,6 +11,8 @@ using Sandbox.Game.World;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
+using Torch.Session;
+using Torch.Managers;
 using VRage.Game.ModAPI;
 using static Essentials.Gtl;
 
@@ -43,10 +45,10 @@ namespace Essentials
                 case Trigger.Disabled:
                     return  false;
                 case Trigger.OnStart:
-		                    var a = Math.Max(TimeSpan.Parse(command.Interval).TotalSeconds, 60);
-		                    var b = ((ITorchServer)TorchBase.Instance).ElapsedPlayTime;
-		                    if  ((a - b.TotalSeconds) <= 1 && (a - b.TotalSeconds > 0))
-		                        command.RunNow();
+                    if (command.Completed || MySession.Static?.Ready == false)break;
+                    command.Completed = true;
+                    command.RunNow();
+
                     break;
                 case Trigger.Vote:
                     break;
@@ -68,15 +70,16 @@ namespace Essentials
                             throw new Exception("meh");
                     }
                 case Trigger.PlayerCount:
-                    switch (command.Compare)
+
+                    if (command.Compare == GreaterThan)
                     {
-                        case GreaterThan:
-                            return MySession.Static.Players.GetOnlinePlayerCount() >= command.TriggerCount;
-                        case LessThan:
-                            return MySession.Static.Players.GetOnlinePlayerCount() <= command.TriggerCount;
-                        default:
-                            throw new Exception("meh");
+                        return MySession.Static.Players.GetOnlinePlayerCount() > command.TriggerCount;
                     }
+                    else if (command.Compare == LessThan)
+                    {
+                        return MySession.Static.Players.GetOnlinePlayerCount() < command.TriggerCount;
+                    }
+                    break;
 
                 case Trigger.SimSpeed:
                     var commandActive = _simSpeedCheck.TryGetValue(command, out var time);
