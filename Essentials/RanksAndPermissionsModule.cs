@@ -51,6 +51,9 @@ namespace Essentials {
 
             [JsonProperty(Order = 8)]
             public List<string> Inherits { get; set; } = new List<string>();
+
+            [JsonProperty(Order = 9)]
+            public Dictionary<Guid, object> PluginData { get; set; } = new Dictionary<Guid, object>();
         }
 
         public void UpdateRankObject(RankData obj) {

@@ -114,12 +114,12 @@ namespace Essentials
 
                 case TorchSessionState.Loaded:
                     mpMan.PlayerJoined += AccModule.GenerateAccount;
+                    mpMan.PlayerJoined += AccModule.CheckIp;
                     mpMan.PlayerJoined += MotdOnce;
-                    if (Config.EnableRanks) {
-                        RanksAndPermissions.GenerateRank(Config.DefaultRank);
-                        mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
-                        AccModule.ValidateRanks();
-                    }
+                    RanksAndPermissions.GenerateRank(Config.DefaultRank);
+                    mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
+                    AccModule.ValidateRanks();
+
                     mpMan.PlayerLeft += ResetMotdOnce;
                     cmdMan.OnCommandExecuting +=RanksAndPermissions.HasCommandPermission;
                     MyEntities.OnEntityAdd += EntityAdded;

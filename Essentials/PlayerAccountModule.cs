@@ -2,15 +2,18 @@
 using NLog;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Torch.Commands;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using VRage.Game.ModAPI;
+using VRage.GameServices;
 using VRage.Groups;
 using VRageMath;
 
@@ -25,11 +28,20 @@ namespace Essentials {
             public string Player { get; set; }
             [JsonProperty(Order = 2)]
             public ulong SteamID { get; set; }
+
             [JsonProperty(Order = 3)]
-            public string Rank { get; set; } = "Default";
+            public long IdentityId { get; set; } = 0L;
+
             [JsonProperty(Order = 4)]
-            public RanksAndPermissionsModule.Permissions Permissions = new RanksAndPermissionsModule.Permissions();
+            public string Rank { get; set; } = "Default";
+
             [JsonProperty(Order = 5)]
+            public List<string> KnownIps = new List<string>();
+            
+            [JsonProperty(Order = 6)]
+            public RanksAndPermissionsModule.Permissions Permissions = new RanksAndPermissionsModule.Permissions();
+
+            [JsonProperty(Order = 7)]
             public Dictionary<string, Vector3D> Homes { get; set; } = new Dictionary<string, Vector3D>();
         }
 
@@ -38,7 +50,7 @@ namespace Essentials {
             var index = PlayersAccounts.IndexOf(objectToRepalce);
             if (index != -1)
                 PlayersAccounts[index] = obj;
-            SaveHomeData();
+            SaveAccountData();
         }
 
         public void UpdatePlayerAccount(List<PlayerAccountData> PlayerObjects) {
@@ -61,16 +73,29 @@ namespace Essentials {
             }
         }
 
-        public void SaveHomeData() {
+        public void SaveAccountData() {
             File.WriteAllText(EssentialsPlugin.Instance.homeDataPath, JsonConvert.SerializeObject(PlayersAccounts, Formatting.Indented));
         }
 
         public void GenerateAccount(Torch.API.IPlayer player) {
+            var state = new MyP2PSessionState();
+            Sandbox.Engine.Networking.MyGameService.Peer2Peer.GetSessionState(player.SteamId, ref state);
+            var ip = new IPAddress(BitConverter.GetBytes(state.RemoteIP).Reverse().ToArray());
+
             ulong steamid = player.SteamId;
             PlayerAccountData data = new PlayerAccountData();
             bool found = false;
             foreach (var Account in PlayersAccounts) {
                 if (Account.SteamID == steamid) {
+
+                    if (!Account.KnownIps.Contains(ip.ToString())) {
+                        Account.KnownIps.Add(ip.ToString());
+                    }
+
+                    if (Account.IdentityId == 0L) {
+                        Account.IdentityId = Utilities.GetIdentityByNameOrIds(Account.Player).IdentityId;
+                        UpdatePlayerAccount(Account);
+                    }
                     found = true;
                     break;
                 }
@@ -80,10 +105,24 @@ namespace Essentials {
                 Log.Info($"Creating new account object for {player.Name}");
                 data.SteamID = steamid;
                 data.Player = player.Name;
+                data.KnownIps.Add(ip.ToString());
                 PlayersAccounts.Add(data);
-                SaveHomeData();
+                SaveAccountData();
                 return;
             }
+        }
+
+        public void CheckIp(Torch.API.IPlayer Player) {
+            var state = new MyP2PSessionState();
+            Sandbox.Engine.Networking.MyGameService.Peer2Peer.GetSessionState(Player.SteamId, ref state);
+            var ip = new IPAddress(BitConverter.GetBytes(state.RemoteIP).Reverse().ToArray());
+
+            foreach (var account in PlayersAccounts) {
+                if (account.KnownIps.Contains(ip.ToString()) && account.Player != Player.Name) {
+                    Log.Warn($"WARNING! {Player.Name} shares the same IP address as {account.Player}");
+                }
+            }
+
         }
 
         public string GetRank(ulong steamID) {

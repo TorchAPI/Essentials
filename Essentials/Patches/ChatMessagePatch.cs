@@ -1,35 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿
 using System.Reflection;
-using System.Text;
-using Torch.Commands;
-using System.Threading.Tasks;
 using Torch.Managers.PatchManager;
 using NLog;
-using Torch.Mod;
-using Torch.Mod.Messages;
-using Torch.API.Managers;
 using VRage.Network;
 using Sandbox.Engine.Multiplayer;
-using Sandbox.Game.Multiplayer;
 using Torch.Managers.ChatManager;
 using VRage.Game;
 using Torch.Utils;
+using Sandbox.Game.Gui;
+using System;
+using Sandbox.Game.World;
 
 namespace Essentials.Patches {
     [PatchShim]
     public static class ChatMessagePatch {
         public static PlayerAccountModule PlayerAccountData = new PlayerAccountModule();
         public static RanksAndPermissionsModule RanksAndPermissions = new RanksAndPermissionsModule();
+        public static bool debug = false;
 
         public static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
-        public static readonly MethodInfo[] methods = typeof(ChatManagerServer).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic);
-
-        public static MethodInfo FindOverLoadMethod(string name, int parameterLenth) {
+        public static MethodInfo FindOverLoadMethod( MethodInfo[] methodInfo,string name, int parameterLenth) {
             MethodInfo method = null;
-            foreach (var DecalredMethod in methods) {
+            foreach (var DecalredMethod in methodInfo) {
+                if (debug)
+                    Log.Info($"Method name: {DecalredMethod.Name}");
                 if (DecalredMethod.GetParameters().Length == parameterLenth && DecalredMethod.Name == name) {
                     method = DecalredMethod;
                     break;
@@ -39,33 +34,22 @@ namespace Essentials.Patches {
         }
 
         public static void Patch(PatchContext ctx) {
-            var target = FindOverLoadMethod("RaiseMessageRecieved", 2);
-            var patchMethod = typeof(ChatMessagePatch).GetMethod(nameof(ChatPrefixProcessing), BindingFlags.Static | BindingFlags.NonPublic);
+            var target = FindOverLoadMethod(typeof(MyMultiplayerBase).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static), "OnChatMessageReceived_Server", 1);
+            var patchMethod = typeof(ChatMessagePatch).GetMethod(nameof(OnChatMessageReceived_Server), BindingFlags.Static | BindingFlags.NonPublic);
             ctx.GetPattern(target).Prefixes.Add(patchMethod);
-            Log.Info("Patched RaiseMessageRecieved!");
+
+            Log.Info("Patched OnChatMessageReceived_Server!");
         }
 
-        private static bool ChatPrefixProcessing(ChatMsg message) {
-
-            var Account = PlayerAccountData.GetAccount(message.Author);
+        private static bool OnChatMessageReceived_Server(ref ChatMsg msg) {
+            var Account = PlayerAccountData.GetAccount(msg.Author);
             var Rank = RanksAndPermissions.GetRankData(Account.Rank);
             if (Rank.DisplayPrefix) {
-
-                var scripted = new ScriptedChatMsg() {
-                    Author = $"{Rank.Prefix}{Account.Player}",
-                    Text = message.Text,
-                    Target = 0,
-                    Font = MyFontEnum.White,
-                    Color = ColorUtils.TranslateColor("White")
-            };
-
-               
-                MyMultiplayerBase.SendScriptedChatMessage(ref scripted);
-                Log.Info($"{scripted.Author}: {scripted.Text}");
-                return false;
+                msg.Author = 0;
+                msg.CustomAuthorName = $"{Rank.Prefix}{Account.Player}";
             }
-
             return true;
         }
+      
     }
 }
