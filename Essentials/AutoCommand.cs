@@ -84,6 +84,14 @@ namespace Essentials
                 }
 
 
+                if (CommandTrigger == Trigger.Scheduled)
+                {
+                    _nextRun = DateTime.Now.Date + _interval;
+                    if (_nextRun < DateTime.Now) _nextRun += TimeSpan.FromDays(1);
+                }
+
+
+
             }
         }
 
