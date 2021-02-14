@@ -83,6 +83,12 @@ namespace Essentials
                     _nextRun = DateTime.Now + _interval;
                 }
 
+                if (CommandTrigger == Trigger.Scheduled)
+                {
+                    _nextRun = DateTime.Now.Date + _interval;
+                    if (_nextRun < DateTime.Now) _nextRun += TimeSpan.FromDays(1);
+                }
+
 
             }
         }
@@ -225,7 +231,6 @@ namespace Essentials
         Equal
     }
 
-    //TODO Remove Scheduled
     public enum Trigger
     {
         Disabled,
