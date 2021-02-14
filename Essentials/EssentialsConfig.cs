@@ -34,6 +34,7 @@ namespace Essentials
         public ObservableCollection<InfoCommand> InfoCommands { get; } = new ObservableCollection<InfoCommand>();
 
         private string _motd;
+        [Display(Name = "Motd", Description = "Message displayed to players upon connection")]
         public string Motd { get => _motd; set => SetValue(ref _motd, value); }
 
         public bool _enableRanks = false;
