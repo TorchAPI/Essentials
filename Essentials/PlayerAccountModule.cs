@@ -30,19 +30,34 @@ namespace Essentials {
             public ulong SteamID { get; set; }
 
             [JsonProperty(Order = 3)]
-            public long IdentityId { get; set; } = 0L;
+            public long IdentityID { get; set; } = 0L;
 
             [JsonProperty(Order = 4)]
             public string Rank { get; set; } = "Default";
 
             [JsonProperty(Order = 5)]
             public List<string> KnownIps = new List<string>();
-            
+
             [JsonProperty(Order = 6)]
+            public DiscordData DiscordData = new DiscordData();
+            
+            [JsonProperty(Order = 7)]
             public RanksAndPermissionsModule.Permissions Permissions = new RanksAndPermissionsModule.Permissions();
 
-            [JsonProperty(Order = 7)]
+            [JsonProperty(Order = 8)]
             public Dictionary<string, Vector3D> Homes { get; set; } = new Dictionary<string, Vector3D>();
+        }
+
+
+        public class DiscordData {
+            [JsonProperty(Order = 1)]
+            public string DiscordName { get; set; }
+
+            [JsonProperty(Order = 2)]
+            public ulong DiscordID { get; set; } = 0L;
+
+            [JsonProperty(Order = 3)]
+            public Dictionary<ulong,string> Roles { get; set; } = new Dictionary<ulong, string>();
         }
 
         public void UpdatePlayerAccount(PlayerAccountData obj) {
@@ -77,6 +92,25 @@ namespace Essentials {
             File.WriteAllText(EssentialsPlugin.Instance.homeDataPath, JsonConvert.SerializeObject(PlayersAccounts, Formatting.Indented));
         }
 
+        public static void InsertDiscord(ulong steamID, string discordID, string discordName, Dictionary<ulong, string> RoleData) {
+            Log.Info($"DiscordID for {steamID} received from SEDB!... Inserting into player account ({discordID})");
+            var AccModule = new PlayerAccountModule();
+            var account = AccModule.GetAccount(steamID);
+
+            account.DiscordData.DiscordID = ulong.Parse(discordID);
+            account.DiscordData.DiscordName = discordName;
+            foreach (var role in RoleData) {
+                if (account.DiscordData.DiscordID == ulong.Parse(discordID)) {
+                    account.DiscordData.DiscordName = discordName;
+                }
+                else {
+                    account.DiscordData.Roles.Add(role.Key, role.Value);
+                }
+            } 
+
+            AccModule.UpdatePlayerAccount(account);
+        }
+
         public void GenerateAccount(Torch.API.IPlayer player) {
             var state = new MyP2PSessionState();
             Sandbox.Engine.Networking.MyGameService.Peer2Peer.GetSessionState(player.SteamId, ref state);
@@ -92,8 +126,8 @@ namespace Essentials {
                         Account.KnownIps.Add(ip.ToString());
                     }
 
-                    if (Account.IdentityId == 0L) {
-                        Account.IdentityId = Utilities.GetIdentityByNameOrIds(Account.Player).IdentityId;
+                    if (Account.IdentityID == 0L) {
+                        Account.IdentityID = Utilities.GetIdentityByNameOrIds(Account.Player).IdentityId;
                         UpdatePlayerAccount(Account);
                     }
                     found = true;

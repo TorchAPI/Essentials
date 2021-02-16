@@ -172,6 +172,12 @@ namespace Essentials
             bags.Add(b);
         }
 
+
+        public static void InsertDiscordID(ulong steamID, string discordID, string discordName, Dictionary<ulong,string> RoleData) {
+            PlayerAccountModule.InsertDiscord(steamID, discordID, discordName, RoleData);
+            
+        }
+
         private void ProcessBags()
         { 
             //bags don't have inventory in the Add event, so we wait until the next tick. I hate everything.

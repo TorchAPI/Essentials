@@ -50,6 +50,7 @@ namespace Essentials.Commands {
             }
 
             Account.Homes.Add(homeName, Context.Player.GetPosition());
+            PlayerAccounts.UpdatePlayerAccount(Account);
             Context.Respond("Home successfully added!");
         }
 
@@ -71,6 +72,7 @@ namespace Essentials.Commands {
             if (Account.Homes.ContainsKey(homeName)) {
                 Account.Homes.Remove(homeName);
                 Context.Respond("Home successfully removed!");
+                PlayerAccounts.UpdatePlayerAccount(Account);
                 return;
             }
 
@@ -132,11 +134,9 @@ namespace Essentials.Commands {
 
             var player = MySession.Static.Players.GetOnlinePlayers().Where(i => i.Identity.IdentityId == Context.Player.Identity.IdentityId).First();
 
-            float hydrogenLevel = Context.Player.Character.GetSuitGasFillLevel(new MyDefinitionId(typeof(MyObjectBuilder_GasProperties), "Hydrogen"));
-
             targetEntity.SetPosition(targetPos);
 
-            for (int i = 0; i != 10; i++) {
+            for (int i = 0; i != 5000; i++) {
                 Context.Player.Character.Physics.SetSpeeds(Vector3.Zero, Vector3.Zero);
             }
             Context.Respond($"Teleported to '{homeName}'");
