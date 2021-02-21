@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 using NLog;
 using Torch;
 using Torch.API;
@@ -31,15 +32,17 @@ namespace Essentials
         private float _triggerRatio;
         private double _triggerCount;
 
+        [XmlIgnore]
+        public bool Completed { get; set; }
 
-        [Display(Name = "Trigger", Description ="Choose a trigger for the command")]
+        [Display(Order = 3, Name = "Trigger", Description ="Choose a trigger for the command")]
         public Trigger CommandTrigger
         {
             get => _trigger;
             set => SetValue(ref _trigger, value);
         }
         
-        [Display(Name = "Trigger Operator", Description ="Choose a Ratio Comparer for the command")]
+        [Display(Order = 6, Name = "Trigger Operator", Description ="Choose a comparer for the command")]
         public Gtl Compare
         {
             get => _comparer;
@@ -47,14 +50,15 @@ namespace Essentials
         }
 
         
-        [Display(Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to trigger the command from ingame or from other auto commands.")]
+        [Display(Order = 1, Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to trigger the command from ingame or from other auto commands.")]
         public string Name
         {
             get => _name;
             set => SetValue(ref _name, value);
         }
 
-        [Display(Name = "Scheduled Time", GroupName = "Schedule", Description = "Sets a time of day for this command to be run. Format is HH:MM:SS. MUST use 24 hour format! Will be reset to zero if Interval is set.")]
+        //[Display(Name = "Scheduled Time", GroupName = "Schedule", Description = "Sets a time of day for this command to be run. Format is HH:MM:SS. MUST use 24 hour format! Will be reset to zero if Interval is set.")]
+        [Display(Visible = false)]
         public string ScheduledTime
         {
             get => _scheduledTime.ToString();
@@ -62,14 +66,10 @@ namespace Essentials
             {
                 _scheduledTime = TimeSpan.Parse(value);
                 OnPropertyChanged();
-                if (CommandTrigger != Trigger.Scheduled) return;
-                _nextRun = DateTime.Now.Date + _scheduledTime;
-                if (_nextRun < DateTime.Now)
-                    _nextRun += TimeSpan.FromDays(1);
             }
         }
 
-        [Display(Description = "Sets an interval for this command to be repeated. Format is HH:MM:SS. Will be reset to zero if Scheduled Time is set!")]
+        [Display(Order = 2, Description = "Sets an interval/Time for this command to be repeated. Format is HH:MM:SS.")]
         public string Interval
         {
             get => _interval.ToString();
@@ -83,10 +83,19 @@ namespace Essentials
                     _nextRun = DateTime.Now + _interval;
                 }
 
+
+                if (CommandTrigger == Trigger.Scheduled)
+                {
+                    _nextRun = DateTime.Now.Date + _interval;
+                    if (_nextRun < DateTime.Now) _nextRun += TimeSpan.FromDays(1);
+                }
+
+
+
             }
         }
 
-        [Display(Name = "Trigger Ratio", Description = "Ratio for Sim Speed or Vote Trigger. 0.5 is equivalent to 50%")]
+        [Display(Order = 5, Name = "Trigger Ratio", Description = "Ratio for Sim Speed or Vote Trigger. 0.5 is equivalent to 50%")]
         public float TriggerRatio
         {
             get => _triggerRatio;
@@ -94,7 +103,7 @@ namespace Essentials
 
         }
         
-        [Display(Name = "Trigger Count", Description = "Only use with GridCount or PlayerCount Trigger")]
+        [Display(Order = 4, Name = "Trigger Count", Description = "Only use with GridCount or PlayerCount Trigger")]
         public double TriggerCount
         {
             get => _triggerCount;
@@ -109,7 +118,7 @@ namespace Essentials
             set => SetValue(ref _day, value);
         }
 
-        [Display(Description = "Sub-command steps that will be iterated through once the Interval or Scheduled time is reached.")]
+        [Display(Order = 7, Description = "Sub-command steps that will be iterated through once the Interval or Scheduled time is reached.")]
         public ObservableCollection<CommandStep> Steps { get; } = new ObservableCollection<CommandStep>();
 
         public AutoCommand()
@@ -130,7 +139,7 @@ namespace Essentials
                     RunNow();
                     _nextRun = DateTime.Now + _interval;
                     return;
-                case Trigger.Scheduled when Interval == TimeSpan.Zero.ToString() && DayOfWeek != DayOfWeek.All && DateTime.Now.DayOfWeek != (System.DayOfWeek)(int)DayOfWeek:
+                case Trigger.Scheduled when  DayOfWeek != DayOfWeek.All && DateTime.Now.DayOfWeek != (System.DayOfWeek)(int)DayOfWeek:
                     //adding one day because I can't be bothered to calculate exact interval
                     _nextRun += TimeSpan.FromDays(1);
                     return;
@@ -148,8 +157,8 @@ namespace Essentials
 
             if (_currentStep < Steps.Count) return;
             _currentStep = 0;
-            _nextRun = _scheduledTime != TimeSpan.Zero
-                    ? DateTime.Now.Date + _scheduledTime + TimeSpan.FromDays(1)
+            _nextRun = _trigger == Trigger.Scheduled
+                    ? DateTime.Now.Date + _interval + TimeSpan.FromDays(1)
                     : _nextRun = DateTime.Now + _interval;
         }
 
@@ -224,6 +233,7 @@ namespace Essentials
         Equal
     }
 
+    //TODO Remove Scheduled
     public enum Trigger
     {
         Disabled,
