@@ -152,6 +152,46 @@ namespace Essentials.Commands {
             AccModule.UpdatePlayerAccount(data);
         }
 
+        [Command("populate")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void Populate(string rank, string level) {
+
+            Context.Respond("Command disabled");
+            return;
+
+            var commandManager = EssentialsPlugin.Instance.CommandManager;
+            if (commandManager == null) {
+                Context.Respond("Must have an attached session to list commands");
+                return;
+            }
+            commandManager.Commands.GetNode(Context.Args, out CommandTree.CommandNode node);
+
+            if (node != null) {
+                var command = node.Command;
+                var children = node.Subcommands.Where(e => e.Value.Command?.MinimumPromoteLevel.ToString() == level).Select(x => x.Key);
+
+                var sb = new StringBuilder();
+
+                if (command != null && (Context.Player == null || command.MinimumPromoteLevel <= Context.Player.PromoteLevel)) {
+                    sb.AppendLine($"Syntax: {command.SyntaxHelp}");
+                    sb.Append(command.HelpText);
+                }
+
+                if (node.Subcommands.Count() != 0)
+                    sb.Append($"\nSubcommands: {string.Join(", ", children)}");
+
+                Context.Respond(sb.ToString());
+            }
+            else {
+                var sb = new StringBuilder();
+                foreach (var command in commandManager.Commands.WalkTree()) {
+                    if (command.IsCommand && (Context.Player == null || command.Command.MinimumPromoteLevel <= Context.Player.PromoteLevel))
+                        sb.AppendLine($"{command.Command.SyntaxHelp}\n    {command.Command.HelpText}");
+                }
+                Context.Respond($"Available commands: {sb}");
+            }
+        }
+
         [Command("addinheritance")]
         [Permission(MyPromoteLevel.Admin)]
         public void AddInheritance(string rankName, string inheritanceName) {

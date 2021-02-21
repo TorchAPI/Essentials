@@ -21,6 +21,7 @@ namespace Essentials {
         public static PlayerAccountModule PlayerAccountModule = new PlayerAccountModule();
         public static readonly Logger Log = LogManager.GetCurrentClassLogger();
         public Dictionary<ulong, List<RankData>> PlayersInheritedRanksStore = new Dictionary<ulong, List<RankData>>();
+        public bool debug = true;
 
         public class Permissions {
             public List<string> Allowed { get; set; } = new List<string>();
@@ -130,6 +131,9 @@ namespace Essentials {
                 else if ((InheritedPerms["Disallowed"].Contains(cmd))) {
                     hasPermission = false;
                 }
+
+                if (hasPermission)
+                    return hasPermission;
             }
 
             /*
@@ -152,6 +156,9 @@ namespace Essentials {
             else if (data.Permissions.Disallowed.Contains(cmd)) {
                 hasPermission = false;
             }
+
+            if (hasPermission)
+                return hasPermission;
 
 
             /*
@@ -189,6 +196,12 @@ namespace Essentials {
             }
             cmd = cmd.TrimEnd();
             bool hasPerm = RankHasPermission(playersRank, cmd, player.SteamUserId);
+            if(!debug) {
+                Log.Error($"HasPerm returned {hasPerm}");
+            }
+
+            if (EssentialsPlugin.Instance.Config.OverrideVanillaPerms && hasPerm)
+                hasPermissionOverride = hasPerm;
 
             if (hasPermission && !hasPerm) {
                 hasPermissionOverride = hasPerm;

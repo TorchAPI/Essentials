@@ -49,7 +49,7 @@ namespace Essentials
         public bool OverrideVanillaPerms { get => _overridePerms; set => SetValue(ref _overridePerms, value); }
 
         public bool _enableHomes = false;
-        [Display(Name = "Enable homes functionality", GroupName = "Custom Ranks", Order = 3, Description = "Enable the custom homes system for this server.")]
+        [Display(Name = "Enable homes functionality", GroupName = "Custom Ranks", Order = 3, Description = "Enable the custom homes system for this server.", Enabled = false)]
         public bool EnableHomes { get => _enableHomes; set => SetValue(ref _enableHomes, value); }
 
         private string _newUserMotd;

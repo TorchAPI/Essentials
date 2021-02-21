@@ -41,6 +41,7 @@ namespace Essentials
         public string rankDataPath = "";
 
         private TorchSessionManager _sessionManager;
+        public CommandManager CommandManager;
 
         private UserControl _control;
         private Persistent<EssentialsConfig> _config;
@@ -97,6 +98,8 @@ namespace Essentials
         {
             var mpMan = Torch.CurrentSession.Managers.GetManager<IMultiplayerManagerServer>();
             var cmdMan = Torch.CurrentSession.Managers.GetManager<CommandManager>();
+            CommandManager = cmdMan;
+
             switch (state)
             {
                 case TorchSessionState.Loading:

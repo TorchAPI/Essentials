@@ -102,9 +102,9 @@ namespace Essentials {
             foreach (var role in RoleData) {
                 if (account.DiscordData.DiscordID == ulong.Parse(discordID)) {
                     account.DiscordData.DiscordName = discordName;
-                }
-                else {
-                    account.DiscordData.Roles.Add(role.Key, role.Value);
+                    if (!account.DiscordData.Roles.ContainsKey(role.Key)) {
+                        account.DiscordData.Roles.Add(role.Key, role.Value);
+                    }
                 }
             } 
 
@@ -122,7 +122,7 @@ namespace Essentials {
             foreach (var Account in PlayersAccounts) {
                 if (Account.SteamID == steamid) {
 
-                    if (!Account.KnownIps.Contains(ip.ToString())) {
+                    if (!Account.KnownIps.Contains(ip.ToString()) && ip.ToString() != "0.0.0.0") {
                         Account.KnownIps.Add(ip.ToString());
                     }
 
@@ -139,6 +139,7 @@ namespace Essentials {
                 Log.Info($"Creating new account object for {player.Name}");
                 data.SteamID = steamid;
                 data.Player = player.Name;
+                data.Rank = EssentialsPlugin.Instance.Config.DefaultRank;
                 data.KnownIps.Add(ip.ToString());
                 PlayersAccounts.Add(data);
                 SaveAccountData();
