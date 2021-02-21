@@ -68,7 +68,6 @@ namespace Essentials
             string path = Path.Combine(StoragePath, "Essentials.cfg");
             Log.Info($"Attempting to load config from {path}");
             _config = Persistent<EssentialsConfig>.Load(path);
-            ConvertScheduleTime();
             _sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged += SessionChanged;
@@ -298,19 +297,6 @@ namespace Essentials
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged -= SessionChanged;
             _sessionManager = null;
-        }
-
-        //Todo Remove This method next update
-        public void ConvertScheduleTime()
-        {
-            foreach (var command in _config.Data.AutoCommands)
-            {
-                if (command.ScheduledTime == TimeSpan.Zero.ToString() || command.CommandTrigger != Trigger.Scheduled) continue;
-                command.Interval = command.ScheduledTime;
-                command.ScheduledTime = TimeSpan.Zero.ToString();
-            }
-            _config.Save();
-
         }
     }
 }
