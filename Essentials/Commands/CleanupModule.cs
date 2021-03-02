@@ -223,6 +223,28 @@ namespace Essentials.Commands
             return grid.BlocksPCU < pcu;
         }
 
+        [Condition("hasgridtype", helpText: "Finds grids with the specified grid type (large | small | ship | static).")]
+        public bool HasGridType(MyCubeGrid grid, string gridType) 
+        {
+            if (string.IsNullOrEmpty(gridType))
+                return false;
+
+            if (string.Compare(gridType, "static", StringComparison.InvariantCultureIgnoreCase) == 0)
+                return grid.IsStatic;
+
+            if (string.Compare(gridType, "ship", StringComparison.InvariantCultureIgnoreCase) == 0) 
+                return !grid.IsStatic;
+
+            if (string.Compare(gridType, "large", StringComparison.InvariantCultureIgnoreCase) == 0)
+                return grid.GridSizeEnum == VRage.Game.MyCubeSize.Large;
+
+            if (string.Compare(gridType, "small", StringComparison.InvariantCultureIgnoreCase) == 0) 
+                return grid.GridSizeEnum == VRage.Game.MyCubeSize.Small;
+
+            // In all other cases, just return false.
+            return false;
+        }
+
         [Condition("hasownertype", helpText: "Finds grids with the specified owner type (npc | player | nobody).")]
         public bool HasOwnerType(MyCubeGrid grid, string ownerType)
         {
