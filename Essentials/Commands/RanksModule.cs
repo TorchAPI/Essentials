@@ -49,6 +49,35 @@ namespace Essentials.Commands {
 
         }
 
+        [Command("setmaxhomes")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void SetMaxHomes(string rankName, int value) {
+            RanksAndPermissionsModule.RankData Rank = RanksAndPermissions.GetRankData(rankName);
+            if (Rank == null) {
+                Context.Respond($"Rank '{rankName}' does not exist!");
+                return;
+            }
+
+            Rank.MaxHomes = value;
+            Context.Respond($"Anyone with the rank '{Rank.RankName}' can now only set {value} homes");
+        }
+
+        [Command("reservedslot")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void SetReservedSlot(string rankName, string boolVal) {
+            if (boolVal != "true" || boolVal != "false") {
+                Context.Respond("Argument is not a valid bool type");
+            }
+            RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
+            if (rank == null) {
+                Context.Respond($"Rank '{rankName}' does not exist!");
+                return;
+            }
+            rank.ReservedSlot = bool.Parse(boolVal);
+            RanksAndPermissions.UpdateRankObject(rank);
+
+        }
+
         [Command("renamerank")]
         [Permission(MyPromoteLevel.Admin)]
         public void RenameRank(string oldName, string newName) {
@@ -78,36 +107,89 @@ namespace Essentials.Commands {
 
         [Command("setrank")]
         [Permission(MyPromoteLevel.Admin)]
-        public void SetRank(string playerName, string rankName) {
+        public void SetRank(string playerNameOrID, string rankName) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
-            /*IMyPlayer player = Utilities.GetPlayerByNameOrId(playerName);
-            if (player == null) {
-                Context.Respond("Player does not exist!");
-                return;
-            }*/
 
+            ulong.TryParse(playerNameOrID, out var id);
+            id = Utilities.GetPlayerByNameOrId(playerNameOrID)?.SteamUserId ?? id;
+            /*IMyPlayer player = Utilities.GetPlayerByNameOrId(playerName);*/
+            if (id == 0) {
+                Context.Respond($"Player '{playerNameOrID}' not found or ID is invalid.");
+                return;
+            }
+            var player = Utilities.GetPlayerByNameOrId(playerNameOrID);
             if (rank == null) {
                 Context.Respond("Rank does not exist!");
                 return;
             }
 
             PlayerAccountModule.PlayerAccountData data = new PlayerAccountModule.PlayerAccountData();
-            var RegisteredPlayers = PlayerAccountModule.PlayersAccounts.Select(o => o.Player).ToList();
-            if (!RegisteredPlayers.Contains(playerName)) {
-                Log.Warn($"Player {playerName} does have registered player object... Creating one");
-                data.Player = playerName;
-                //data.SteamID = playerName;
-                data.Rank = rank.RankName;
-                AccModule.UpdatePlayerAccount(data);
-                Context.Respond($"{playerName}'s rank set to {rank.RankName}");
-                Log.Info($"{playerName}'s rank set to {rank.RankName}");
+            var RegisteredPlayerNames = PlayerAccountModule.PlayersAccounts.Select(o => o.Player).ToList();
+            var RegisteredPlayerSteamIDs = PlayerAccountModule.PlayersAccounts.Select(o => o.SteamID).ToList();
+            if (!RegisteredPlayerNames.Contains(playerNameOrID) && !RegisteredPlayerSteamIDs.Contains(id)) {
+                Log.Warn($"Player {playerNameOrID} does have registered player object... Creating one");
+                data.Player = playerNameOrID;
+                data.SteamID = player.SteamUserId;
+            }
+            
+            if(RegisteredPlayerNames.Contains(playerNameOrID)) {
+                data = PlayerAccountModule.PlayersAccounts.Single(a => a.Player == playerNameOrID);
+            } 
+
+            if(RegisteredPlayerSteamIDs.Contains(id)) {
+                data = PlayerAccountModule.PlayersAccounts.Single(a => a.SteamID == id);
+            }
+
+            data.Rank = rank.RankName;
+            if (rank.ReservedSlot && !MySandboxGame.ConfigDedicated.Reserved.Contains(id)) {
+                MySandboxGame.ConfigDedicated.Reserved.Add(id);
+            } else if (!rank.ReservedSlot && MySandboxGame.ConfigDedicated.Reserved.Contains(id)) {
+                MySandboxGame.ConfigDedicated.Reserved.Remove(id);
+            }
+            MySession.Static.SetUserPromoteLevel(data.SteamID, RanksAndPermissions.ParseMyPromoteLevel(rank.KeenLevelRank));
+            Context.Respond($"{data.Player}'s rank set to {rank.RankName}");
+            Log.Info($"{data.Player}'s rank set to {rank.RankName}");
+            AccModule.UpdatePlayerAccount(data);
+        }
+
+        [Command("populate")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void Populate(string rank, string level) {
+
+            Context.Respond("Command disabled");
+            return;
+
+            var commandManager = EssentialsPlugin.Instance.CommandManager;
+            if (commandManager == null) {
+                Context.Respond("Must have an attached session to list commands");
                 return;
             }
-            data = PlayerAccountModule.PlayersAccounts.Single(a => a.Player == playerName);
-            data.Rank = rank.RankName;
-            MySession.Static.SetUserPromoteLevel(data.SteamID, RanksAndPermissions.ParseMyPromoteLevel(rank.KeenLevelRank));
+            commandManager.Commands.GetNode(Context.Args, out CommandTree.CommandNode node);
 
-            AccModule.UpdatePlayerAccount(data);
+            if (node != null) {
+                var command = node.Command;
+                var children = node.Subcommands.Where(e => e.Value.Command?.MinimumPromoteLevel.ToString() == level).Select(x => x.Key);
+
+                var sb = new StringBuilder();
+
+                if (command != null && (Context.Player == null || command.MinimumPromoteLevel <= Context.Player.PromoteLevel)) {
+                    sb.AppendLine($"Syntax: {command.SyntaxHelp}");
+                    sb.Append(command.HelpText);
+                }
+
+                if (node.Subcommands.Count() != 0)
+                    sb.Append($"\nSubcommands: {string.Join(", ", children)}");
+
+                Context.Respond(sb.ToString());
+            }
+            else {
+                var sb = new StringBuilder();
+                foreach (var command in commandManager.Commands.WalkTree()) {
+                    if (command.IsCommand && (Context.Player == null || command.Command.MinimumPromoteLevel <= Context.Player.PromoteLevel))
+                        sb.AppendLine($"{command.Command.SyntaxHelp}\n    {command.Command.HelpText}");
+                }
+                Context.Respond($"Available commands: {sb}");
+            }
         }
 
         [Command("addinheritance")]
@@ -301,7 +383,7 @@ namespace Essentials.Commands {
 
         [Command("listranks")]
         [Permission(MyPromoteLevel.None)]
-        public void ListRanks() {
+        public void ListRanks(string listRankName) {
             bool found = false;
             string Ranks = "Ranks: ";
             foreach (var rank in RanksAndPermissionsModule.Ranks) {

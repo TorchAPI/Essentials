@@ -21,6 +21,7 @@ namespace Essentials {
         public static PlayerAccountModule PlayerAccountModule = new PlayerAccountModule();
         public static readonly Logger Log = LogManager.GetCurrentClassLogger();
         public Dictionary<ulong, List<RankData>> PlayersInheritedRanksStore = new Dictionary<ulong, List<RankData>>();
+        public bool debug = true;
 
         public class Permissions {
             public List<string> Allowed { get; set; } = new List<string>();
@@ -30,16 +31,30 @@ namespace Essentials {
         public class RankData {
             [JsonProperty(Order = 1)]
             public string RankName { get; set; }
+
             [JsonProperty(Order = 2)]
-            public int MaxHomes { get; set; } = EssentialsPlugin.Instance.Config.MaxHomes;
+            public string Prefix { get; set; } = "";
 
             [JsonProperty(Order = 3)]
-            public string KeenLevelRank { get; set; } = "None";
+            public bool DisplayPrefix { get; set; } = false;
 
             [JsonProperty(Order = 4)]
-            public Permissions Permissions = new Permissions();
+            public int MaxHomes { get; set; } = 3;
+
             [JsonProperty(Order = 5)]
+            public bool ReservedSlot { get; set; } = false;
+
+            [JsonProperty(Order = 6)]
+            public string KeenLevelRank { get; set; } = "None";
+
+            [JsonProperty(Order = 7)]
+            public Permissions Permissions = new Permissions();
+
+            [JsonProperty(Order = 8)]
             public List<string> Inherits { get; set; } = new List<string>();
+
+            [JsonProperty(Order = 9)]
+            public Dictionary<Guid, object> PluginData { get; set; } = new Dictionary<Guid, object>();
         }
 
         public void UpdateRankObject(RankData obj) {
@@ -116,6 +131,9 @@ namespace Essentials {
                 else if ((InheritedPerms["Disallowed"].Contains(cmd))) {
                     hasPermission = false;
                 }
+
+                if (hasPermission)
+                    return hasPermission;
             }
 
             /*
@@ -138,6 +156,9 @@ namespace Essentials {
             else if (data.Permissions.Disallowed.Contains(cmd)) {
                 hasPermission = false;
             }
+
+            if (hasPermission)
+                return hasPermission;
 
 
             /*
@@ -175,6 +196,12 @@ namespace Essentials {
             }
             cmd = cmd.TrimEnd();
             bool hasPerm = RankHasPermission(playersRank, cmd, player.SteamUserId);
+            if(!debug) {
+                Log.Error($"HasPerm returned {hasPerm}");
+            }
+
+            if (EssentialsPlugin.Instance.Config.OverrideVanillaPerms && hasPerm)
+                hasPermissionOverride = hasPerm;
 
             if (hasPermission && !hasPerm) {
                 hasPermissionOverride = hasPerm;
@@ -285,9 +312,13 @@ namespace Essentials {
         }
 
         public void GetInheritedRanks(RankData toplevel, ulong steamID) {
-            foreach (var rank in toplevel.Inherits) {
-                PlayersInheritedRanksStore[steamID].Add(GetRankData(rank));
-                GetInheritedRanks(GetRankData(rank), steamID);
+            if (toplevel != null) {
+                foreach (var rank in toplevel.Inherits) {
+                    PlayersInheritedRanksStore[steamID].Add(GetRankData(rank));
+                    GetInheritedRanks(GetRankData(rank), steamID);
+                }
+            } else {
+                Log.Warn("GetInheritedRanks was passed a null RankData Object!");
             }
         } 
     }

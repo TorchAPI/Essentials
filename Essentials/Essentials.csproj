@@ -140,6 +140,7 @@
     <Compile Include="AutoCommand.cs" />
     <Compile Include="AutoCommands.cs" />
     <Compile Include="Commands\EcoModule.cs" />
+    <Compile Include="Commands\HomeModule.cs" />
     <Compile Include="Commands\RanksModule.cs" />
     <Compile Include="Commands\VotingModule.cs" />
     <Compile Include="Commands\AdminModule.cs" />
@@ -158,11 +159,13 @@
     <Compile Include="GridFinder.cs" />
     <Compile Include="InfoCommand.cs" />
     <Compile Include="Commands\InfoModule.cs" />
+    <Compile Include="Patches\ChatMessagePatch.cs" />
     <Compile Include="Patches\SessionDownloadPatch.cs" />
     <Compile Include="PlayerAccountModule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RanksAndPermissionsModule.cs" />
     <Compile Include="Utilities.cs" />
+    <Compile Include="Utils\Events.cs" />
     <Compile Include="Utils\Ownership.cs" />
     <Compile Include="Utils\TypedObjectPool.cs" />
   </ItemGroup>
