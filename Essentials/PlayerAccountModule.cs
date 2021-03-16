@@ -75,6 +75,32 @@ namespace Essentials {
         }
 
         public void ValidateRanks() {
+            Dictionary<RanksAndPermissionsModule.RankData, List<string>> InheritsToRemove = new Dictionary<RanksAndPermissionsModule.RankData, List<string>>(); ;
+            foreach (RanksAndPermissionsModule.RankData rank in RanksAndPermissionsModule.Ranks) {
+                List<string> ValuesToRemove = new List<string>();
+                foreach (string inheritedRank in rank.Inherits) {
+                    if (RanksAndPermissions.GetRankData(inheritedRank) == null && !ValuesToRemove.Contains(inheritedRank)) {
+                        ValuesToRemove.Add(inheritedRank);
+                    }
+                }
+                if(ValuesToRemove.Count > 0) {
+                    Log.Error($"The rank '{rank.RankName}' was found to have {ValuesToRemove.Count} Non-existing rank(s) in its 'Inherits' List... Queuing invalid values for removal!");
+                    InheritsToRemove.Add(rank, ValuesToRemove);
+                }
+            }
+
+            if(InheritsToRemove.Count > 0) {
+                Log.Info("Removing mis-configured values...");
+                foreach(var data in InheritsToRemove) {
+                    foreach(string InheritedRank in data.Value) {
+                        data.Key.Inherits.Remove(InheritedRank);
+                    }
+                    RanksAndPermissions.UpdateRankObject(data.Key);
+                }
+                Log.Info("Removed mis-configured values!");
+            }
+
+
             Log.Info("Validating player ranks");
             List<PlayerAccountData> PlayerObjectsToUpdate = new List<PlayerAccountData>();
             foreach (PlayerAccountData Player in PlayersAccounts.ToList()) {
@@ -112,38 +138,43 @@ namespace Essentials {
         }
 
         public void GenerateAccount(Torch.API.IPlayer player) {
-            var state = new MyP2PSessionState();
-            Sandbox.Engine.Networking.MyGameService.Peer2Peer.GetSessionState(player.SteamId, ref state);
-            var ip = new IPAddress(BitConverter.GetBytes(state.RemoteIP).Reverse().ToArray());
+            try {
+                var state = new MyP2PSessionState();
+                Sandbox.Engine.Networking.MyGameService.Peer2Peer.GetSessionState(player.SteamId, ref state);
+                var ip = new IPAddress(BitConverter.GetBytes(state.RemoteIP).Reverse().ToArray());
 
-            ulong steamid = player.SteamId;
-            PlayerAccountData data = new PlayerAccountData();
-            bool found = false;
-            foreach (var Account in PlayersAccounts) {
-                if (Account.SteamID == steamid) {
+                ulong steamid = player.SteamId;
+                PlayerAccountData data = new PlayerAccountData();
+                bool found = false;
+                foreach (var Account in PlayersAccounts) {
+                    if (Account.SteamID == steamid) {
 
-                    if (!Account.KnownIps.Contains(ip.ToString()) && ip.ToString() != "0.0.0.0") {
-                        Account.KnownIps.Add(ip.ToString());
+                        if (!Account.KnownIps.Contains(ip.ToString()) && ip.ToString() != "0.0.0.0") {
+                            Account.KnownIps.Add(ip.ToString());
+                        }
+
+                        if (Account.IdentityID == 0L && Account.Player != string.Empty) {
+                            Account.IdentityID = Utilities.GetIdentityByNameOrIds(Account.Player).IdentityId;
+                            UpdatePlayerAccount(Account);
+                        }
+                        found = true;
+                        break;
                     }
+                }
 
-                    if (Account.IdentityID == 0L) {
-                        Account.IdentityID = Utilities.GetIdentityByNameOrIds(Account.Player).IdentityId;
-                        UpdatePlayerAccount(Account);
-                    }
-                    found = true;
-                    break;
+                if (!found) {
+                    Log.Info($"Creating new account object for {player.Name}");
+                    data.SteamID = steamid;
+                    data.Player = player.Name;
+                    data.Rank = EssentialsPlugin.Instance.Config.DefaultRank;
+                    data.KnownIps.Add(ip.ToString());
+                    PlayersAccounts.Add(data);
+                    SaveAccountData();
+                    return;
                 }
             }
-
-            if (!found) {
-                Log.Info($"Creating new account object for {player.Name}");
-                data.SteamID = steamid;
-                data.Player = player.Name;
-                data.Rank = EssentialsPlugin.Instance.Config.DefaultRank;
-                data.KnownIps.Add(ip.ToString());
-                PlayersAccounts.Add(data);
-                SaveAccountData();
-                return;
+            catch (Exception e) {
+                Log.Error($"Exception creating account for {player.Name} {e.ToString()}");
             }
         }
 

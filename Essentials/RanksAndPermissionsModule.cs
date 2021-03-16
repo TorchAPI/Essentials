@@ -312,9 +312,13 @@ namespace Essentials {
         }
 
         public void GetInheritedRanks(RankData toplevel, ulong steamID) {
-            foreach (var rank in toplevel.Inherits) {
-                PlayersInheritedRanksStore[steamID].Add(GetRankData(rank));
-                GetInheritedRanks(GetRankData(rank), steamID);
+            if (toplevel != null) {
+                foreach (var rank in toplevel.Inherits) {
+                    PlayersInheritedRanksStore[steamID].Add(GetRankData(rank));
+                    GetInheritedRanks(GetRankData(rank), steamID);
+                }
+            } else {
+                Log.Warn("GetInheritedRanks was passed a null RankData Object!");
             }
         } 
     }
