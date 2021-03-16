@@ -345,6 +345,17 @@ namespace Essentials.Commands
 
         private static LockToken PinDelete()
         {
+            /* 
+             * If SEWorldGenerator Plugin is used or Procedural Seed is 0 there 
+             * will be no GeneratorInstance. In this case this Method will NRE.
+             * 
+             * However we still would like to delete stuff. So just return null. 
+             * Because when there is no GeneratorInstance we dont have to tell it
+             * entities are being deleted.
+             */
+            if (GeneratorInstance == null)
+                return null;
+
             return new LockToken();
         }
 
