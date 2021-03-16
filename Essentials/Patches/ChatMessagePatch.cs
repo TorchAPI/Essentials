@@ -43,10 +43,12 @@ namespace Essentials.Patches {
 
         private static bool OnChatMessageReceived_Server(ref ChatMsg msg) {
             var Account = PlayerAccountData.GetAccount(msg.Author);
-            var Rank = RanksAndPermissions.GetRankData(Account.Rank);
-            if (Rank.DisplayPrefix) {
-                msg.Author = 0;
-                msg.CustomAuthorName = $"{Rank.Prefix}{Account.Player}";
+            if (Account != null) {
+                var Rank = RanksAndPermissions.GetRankData(Account.Rank);
+                if (Rank.DisplayPrefix) {
+                    msg.Author = 0;
+                    msg.CustomAuthorName = $"{Rank.Prefix}{Account.Player}";
+                }
             }
             return true;
         }
