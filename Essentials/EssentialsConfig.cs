@@ -48,9 +48,9 @@ namespace Essentials
         [Display(Name = "Override vanilla Torch/Plugin Permissions", GroupName = "Custom Ranks", Order = 2, Description = "Enabling this will cause the custom rank permissions system to overide any vanilla permissions... MAKE SURE RANKS HAVE PERMS SET BEFORE ENABLING")]
         public bool OverrideVanillaPerms { get => _overridePerms; set => SetValue(ref _overridePerms, value); }
 
-        private int _maxHomes = 3;
-        [Display(Name = "Default Max Homes", GroupName = "Custom Ranks", Order = 3, Description = "Default amount of homes a created rank will get")]
-        public int MaxHomes { get => _maxHomes; set => SetValue(ref _maxHomes, value); }
+        public bool _enableHomes = false;
+        [Display(Name = "Enable homes functionality", GroupName = "Custom Ranks", Order = 3, Description = "Enable the custom homes system for this server.", Enabled = false)]
+        public bool EnableHomes { get => _enableHomes; set => SetValue(ref _enableHomes, value); }
 
         private string _newUserMotd;
         public string NewUserMotd { get => _newUserMotd; set => SetValue(ref _newUserMotd, value); }
