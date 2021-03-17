@@ -34,23 +34,24 @@ namespace Essentials.Patches {
         }
 
         public static void Patch(PatchContext ctx) {
-            if (EssentialsPlugin.Instance.Config.EnableRanks) {
-                var target = FindOverLoadMethod(typeof(MyMultiplayerBase).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static), "OnChatMessageReceived_Server", 1);
-                var patchMethod = typeof(ChatMessagePatch).GetMethod(nameof(OnChatMessageReceived_Server), BindingFlags.Static | BindingFlags.NonPublic);
-                ctx.GetPattern(target).Prefixes.Add(patchMethod);
+            var target = FindOverLoadMethod(typeof(MyMultiplayerBase).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static), "OnChatMessageReceived_Server", 1);
+            var patchMethod = typeof(ChatMessagePatch).GetMethod(nameof(OnChatMessageReceived_Server), BindingFlags.Static | BindingFlags.NonPublic);
+            ctx.GetPattern(target).Prefixes.Add(patchMethod);
 
-                Log.Info("Patched OnChatMessageReceived_Server!");
-            }
+            Log.Info("Patched OnChatMessageReceived_Server!");
         }
 
         private static bool OnChatMessageReceived_Server(ref ChatMsg msg) {
-            var Account = PlayerAccountData.GetAccount(msg.Author);
-            if (Account != null) {
-                var Rank = RanksAndPermissions.GetRankData(Account.Rank);
-                if (Rank.DisplayPrefix) {
-                    msg.Author = 0;
-                    msg.CustomAuthorName = $"{Rank.Prefix}{Account.Player}";
+            if (EssentialsPlugin.Instance.Config.EnableRanks) {
+                var Account = PlayerAccountData.GetAccount(msg.Author);
+                if (Account != null) {
+                    var Rank = RanksAndPermissions.GetRankData(Account.Rank);
+                    if (Rank.DisplayPrefix) {
+                        msg.Author = 0;
+                        msg.CustomAuthorName = $"{Rank.Prefix}{Account.Player}";
+                    }
                 }
+                return true;
             }
             return true;
         }
