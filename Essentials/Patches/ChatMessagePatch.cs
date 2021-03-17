@@ -34,11 +34,16 @@ namespace Essentials.Patches {
         }
 
         public static void Patch(PatchContext ctx) {
-            var target = FindOverLoadMethod(typeof(MyMultiplayerBase).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static), "OnChatMessageReceived_Server", 1);
-            var patchMethod = typeof(ChatMessagePatch).GetMethod(nameof(OnChatMessageReceived_Server), BindingFlags.Static | BindingFlags.NonPublic);
-            ctx.GetPattern(target).Prefixes.Add(patchMethod);
+            try {
+                var target = FindOverLoadMethod(typeof(MyMultiplayerBase).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static), "OnChatMessageReceived_Server", 1);
+                var patchMethod = typeof(ChatMessagePatch).GetMethod(nameof(OnChatMessageReceived_Server), BindingFlags.Static | BindingFlags.NonPublic);
+                ctx.GetPattern(target).Prefixes.Add(patchMethod);
 
-            Log.Info("Patched OnChatMessageReceived_Server!");
+                Log.Info("Patched OnChatMessageReceived_Server!");
+            }
+            catch {
+                Log.Error("Failed to patch!");
+            }
         }
 
         private static bool OnChatMessageReceived_Server(ref ChatMsg msg) {
