@@ -303,7 +303,11 @@ namespace Essentials {
                         GetInheritedRanks(rankData, player.SteamID);
                     }
                 }
-                MySession.Static.SetUserPromoteLevel(player.SteamID, ParseMyPromoteLevel(MainRank.KeenLevelRank));
+                //Only Re-apply users rank if perm override is enabled.
+                if (EssentialsPlugin.Instance.Config.OverrideVanillaPerms) {
+                    MySession.Static.SetUserPromoteLevel(player.SteamID, ParseMyPromoteLevel(MainRank.KeenLevelRank));
+                }
+
                 string Ranks = ($"{MainRank.RankName},");
                 foreach (RankData inherited in PlayersInheritedRanksStore[player.SteamID]) {
                     Ranks += ($"{inherited.RankName},");
