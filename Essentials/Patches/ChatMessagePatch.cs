@@ -34,12 +34,15 @@ namespace Essentials.Patches {
         }
 
         public static void Patch(PatchContext ctx) {
-            if (EssentialsPlugin.Instance.Config.EnableRanks) {
+            try {
                 var target = FindOverLoadMethod(typeof(MyMultiplayerBase).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static), "OnChatMessageReceived_Server", 1);
                 var patchMethod = typeof(ChatMessagePatch).GetMethod(nameof(OnChatMessageReceived_Server), BindingFlags.Static | BindingFlags.NonPublic);
                 ctx.GetPattern(target).Prefixes.Add(patchMethod);
 
                 Log.Info("Patched OnChatMessageReceived_Server!");
+            }
+            catch {
+                Log.Error("Failed to patch!");
             }
         }
 
