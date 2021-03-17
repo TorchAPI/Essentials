@@ -250,7 +250,9 @@ namespace Essentials {
                     GetInheritedRanks(rankData, steamID);
                 }
             }
-            MySession.Static.SetUserPromoteLevel(steamID, ParseMyPromoteLevel(MainRank.KeenLevelRank));
+            if (EssentialsPlugin.Instance.Config.OverrideVanillaPerms) {
+                MySession.Static.SetUserPromoteLevel(steamID, ParseMyPromoteLevel(MainRank.KeenLevelRank));
+            }
             string Ranks =($"{MainRank.RankName},");
             foreach (RankData inherited in PlayersInheritedRanksStore[steamID]) {
                 Ranks += ($"{inherited.RankName},");
