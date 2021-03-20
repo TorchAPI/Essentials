@@ -41,6 +41,7 @@ namespace Essentials
         public string rankDataPath = "";
 
         private TorchSessionManager _sessionManager;
+        public CommandManager CommandManager;
 
         private UserControl _control;
         private Persistent<EssentialsConfig> _config;
@@ -68,7 +69,6 @@ namespace Essentials
             string path = Path.Combine(StoragePath, "Essentials.cfg");
             Log.Info($"Attempting to load config from {path}");
             _config = Persistent<EssentialsConfig>.Load(path);
-            ConvertScheduleTime();
             _sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged += SessionChanged;
@@ -98,6 +98,8 @@ namespace Essentials
         {
             var mpMan = Torch.CurrentSession.Managers.GetManager<IMultiplayerManagerServer>();
             var cmdMan = Torch.CurrentSession.Managers.GetManager<CommandManager>();
+            CommandManager = cmdMan;
+
             switch (state)
             {
                 case TorchSessionState.Loading:
@@ -115,11 +117,12 @@ namespace Essentials
 
                 case TorchSessionState.Loaded:
                     mpMan.PlayerJoined += AccModule.GenerateAccount;
+                    mpMan.PlayerJoined += AccModule.CheckIp;
                     mpMan.PlayerJoined += MotdOnce;
-                    if (Config.EnableRanks) {
-                        RanksAndPermissions.GenerateRank(Config.DefaultRank);
-                        mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
-                    }
+                    RanksAndPermissions.GenerateRank(Config.DefaultRank);
+                    mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
+                    AccModule.ValidateRanks();
+
                     mpMan.PlayerLeft += ResetMotdOnce;
                     cmdMan.OnCommandExecuting +=RanksAndPermissions.HasCommandPermission;
                     MyEntities.OnEntityAdd += EntityAdded;
@@ -134,6 +137,8 @@ namespace Essentials
                     InfoModule.Init();
                     break;
                 case TorchSessionState.Unloading:
+                    Log.Info("Unloading rank data into JSON");
+                    RanksAndPermissions.SaveRankData();
                     mpMan.PlayerLeft -= ResetMotdOnce;
                     mpMan.PlayerJoined -= MotdOnce;
                     MyEntities.OnEntityAdd -= EntityAdded;
@@ -168,6 +173,12 @@ namespace Essentials
             }
 
             bags.Add(b);
+        }
+
+
+        public static void InsertDiscordID(ulong steamID, string discordID, string discordName, Dictionary<ulong,string> RoleData) {
+            PlayerAccountModule.InsertDiscord(steamID, discordID, discordName, RoleData);
+            
         }
 
         private void ProcessBags()
@@ -298,19 +309,6 @@ namespace Essentials
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged -= SessionChanged;
             _sessionManager = null;
-        }
-
-        //Todo Remove This method next update
-        public void ConvertScheduleTime()
-        {
-            foreach (var command in _config.Data.AutoCommands)
-            {
-                if (command.ScheduledTime == TimeSpan.Zero.ToString() || command.CommandTrigger != Trigger.Scheduled) continue;
-                command.Interval = command.ScheduledTime;
-                command.ScheduledTime = TimeSpan.Zero.ToString();
-            }
-            _config.Save();
-
         }
     }
 }
