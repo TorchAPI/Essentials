@@ -57,7 +57,6 @@ namespace Essentials
                 case Trigger.Scheduled:
                     return true;
                 case Trigger.GridCount:
-                    if (MySession.Static?.Ready == false) break;
                     var gridCount = MyEntities.GetEntities().OfType<IMyCubeGrid>().Count();
                     switch (command.Compare)
                     {
@@ -71,20 +70,18 @@ namespace Essentials
                             throw new Exception("meh");
                     }
                 case Trigger.PlayerCount:
-                    if (MySession.Static?.Ready == false) break;
 
                     if (command.Compare == GreaterThan)
                     {
-                        return MySession.Static != null && MySession.Static.Players.GetOnlinePlayerCount() > command.TriggerCount;
+                        return MySession.Static.Players.GetOnlinePlayerCount() > command.TriggerCount;
                     }
                     else if (command.Compare == LessThan)
                     {
-                        return MySession.Static != null && MySession.Static.Players.GetOnlinePlayerCount() < command.TriggerCount;
+                        return MySession.Static.Players.GetOnlinePlayerCount() < command.TriggerCount;
                     }
                     break;
 
                 case Trigger.SimSpeed:
-                    if (MySession.Static?.Ready == false) break;
                     var commandActive = _simSpeedCheck.TryGetValue(command, out var time);
                     switch (command.Compare)
                     {
