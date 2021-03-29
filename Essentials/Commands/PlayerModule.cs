@@ -109,13 +109,11 @@ namespace Essentials
             List<IMyPlayer> players = MySession?.Static?.Players?.GetOnlinePlayers();
             foreach (IMyPlayer player in players) {
 
-                if (player == null)
+                if (player != null)
                 {
-                    Context.Respond("Player not found.");
-                    return;
+                    Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>()?.KickPlayer(player.SteamUserId);
+                    Context.Respond($"Player '{player.DisplayName}' kicked.");
                 }
-                Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>()?.KickPlayer(player.SteamUserId);
-                Context.Respond($"Player '{player.DisplayName}' kicked.");
             }
             Context.Respond(players.Count + " Players removed");
         }
