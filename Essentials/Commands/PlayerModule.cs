@@ -107,7 +107,8 @@ namespace Essentials
         public void KickAll()
         {
             List<IMyPlayer> players = MySession?.Static?.Players?.GetOnlinePlayers();
-            foreach (IMyPlayer player in players) {
+            foreach (IMyPlayer player in players) 
+            {
 
                 if (player != null)
                 {
