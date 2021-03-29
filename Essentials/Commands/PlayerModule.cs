@@ -102,6 +102,24 @@ namespace Essentials
             Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsOther(message, Context.Player?.DisplayName ?? "Server", MyFontEnum.Red, player.SteamUserId);
         }
 
+        [Command("kickall", "Kick all the players from the game.")]
+        [Permission(MyPromoteLevel.Moderator)]
+        public void KickAll()
+        {
+            List<IMyPlayer> players = MySession?.Static?.Players?.GetOnlinePlayers();
+            foreach (IMyPlayer player in players) {
+
+                if (player == null)
+                {
+                    Context.Respond("Player not found.");
+                    return;
+                }
+                Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>()?.KickPlayer(player.SteamUserId);
+                Context.Respond($"Player '{player.DisplayName}' kicked.");
+            }
+            Context.Respond(players.Count + " Players removed");
+        }
+
         [Command("kick", "Kick a player from the game.")]
         [Permission(MyPromoteLevel.Moderator)]
         public void Kick(string playerName)
