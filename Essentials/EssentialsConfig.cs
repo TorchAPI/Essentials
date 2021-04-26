@@ -163,6 +163,14 @@ namespace Essentials
             set => SetValue(ref _packPlanets, value);
         }
 
+        private bool _cutGameTags;
+        [Display(Name = "Cut Game Tags", GroupName = "Client Join Tweaks", Order = 8, Description = "Cuts mods and blocks limits from matchmaking server info. Prevents from 'error downloading session settings'.")]
+        public bool CutGameTags
+        {
+            get => _cutGameTags;
+            set => SetValue(ref _cutGameTags, value);
+        }
+
         private MyObjectBuilder_Toolbar _vanillaBacking;
 
         [XmlIgnore]

@@ -92,6 +92,9 @@ namespace Essentials
             _pm = torch.Managers.GetManager<PatchManager>();
             _context = _pm.AcquireContext();
             SessionDownloadPatch.Patch(_context);
+            
+            if (Config.CutGameTags)
+                GameTagsPatch.Patch(_context);
         }
 
         private void SessionChanged(ITorchSession session, TorchSessionState state)
