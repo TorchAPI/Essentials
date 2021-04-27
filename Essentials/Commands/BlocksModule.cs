@@ -92,7 +92,7 @@ namespace Essentials.Commands
             }
 
             foreach (var x in toRemove)
-                x.CubeGrid.RazeBlock(x.Position);
+                x.CubeGrid?.RemoveBlock(x);
             Context.Respond($"Removed {toRemove.Count} blocks of subtype {subtype}.");
         }
 
@@ -111,7 +111,7 @@ namespace Essentials.Commands
             }
 
             foreach (var x in toRemove)
-                x.CubeGrid.RazeBlock(x.Position);
+                x.CubeGrid?.RemoveBlock(x);
             Context.Respond($"Removed {toRemove.Count} blocks of type {type}.");
         }
 
