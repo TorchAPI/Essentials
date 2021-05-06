@@ -41,6 +41,10 @@
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
+    <Reference Include="ProtoBuf.Net.Core">
+      <HintPath>$(SolutionDir)\GameBinaries\ProtoBuf.Net.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Sandbox.Common">
       <HintPath>$(SolutionDir)\GameBinaries\Sandbox.Common.dll</HintPath>
       <Private>False</Private>
