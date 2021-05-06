@@ -164,7 +164,7 @@
     <Compile Include="PlayerAccountModule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RanksAndPermissionsModule.cs" />
-	<Compile Include="GameTagsPatch.cs" />
+    <Compile Include="Patches\GameTagsPatch.cs" />
     <Compile Include="Utilities.cs" />
     <Compile Include="Utils\Events.cs" />
     <Compile Include="Utils\Ownership.cs" />
