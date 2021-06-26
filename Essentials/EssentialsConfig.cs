@@ -122,7 +122,7 @@ namespace Essentials
             set => SetValue(ref _loadingText, string.IsNullOrEmpty(value) ? null : value);
         }
 
-        private bool _enableClientTweaks = true;
+        private bool _enableClientTweaks = false;
 
         [Display(Name = "Enable", GroupName = "Client Join Tweaks", Order = 0, Description = "Enables the client join tweak system. None of the options in this section will work if this is unchecked.")]
         public bool EnableClientTweaks
@@ -161,6 +161,14 @@ namespace Essentials
         {
             get => _packPlanets;
             set => SetValue(ref _packPlanets, value);
+        }
+
+        private bool _cutGameTags;
+        [Display(Name = "Cut Game Tags", GroupName = "Client Join Tweaks", Order = 8, Description = "Cuts mods and blocks limits from matchmaking server info. Prevents from 'error downloading session settings'.")]
+        public bool CutGameTags
+        {
+            get => _cutGameTags;
+            set => SetValue(ref _cutGameTags, value);
         }
 
         private MyObjectBuilder_Toolbar _vanillaBacking;
