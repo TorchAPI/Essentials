@@ -36,6 +36,7 @@ namespace Essentials
 {
     public class EssentialsPlugin : TorchPluginBase, IWpfPlugin
     {
+        //Here to trigger rebuild
         public EssentialsConfig Config => _config?.Data;
         public string homeDataPath = "";
         public string rankDataPath = "";
