@@ -122,7 +122,7 @@ namespace Essentials
             set => SetValue(ref _loadingText, string.IsNullOrEmpty(value) ? null : value);
         }
 
-        private bool _enableClientTweaks = true;
+        private bool _enableClientTweaks = false;
 
         [Display(Name = "Enable", GroupName = "Client Join Tweaks", Order = 0, Description = "Enables the client join tweak system. None of the options in this section will work if this is unchecked.")]
         public bool EnableClientTweaks
