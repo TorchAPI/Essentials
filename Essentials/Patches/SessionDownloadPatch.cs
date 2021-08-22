@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Essentials.Utils;
 using NLog;
+using ParallelTasks;
 using Sandbox;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Physics;
@@ -35,12 +36,14 @@ using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
+using VRage.Game.ObjectBuilders.Components;
 using VRage.GameServices;
 using VRage.Network;
 using VRage.ObjectBuilders;
 using VRage.Replication;
 using VRage.Serialization;
 using VRageMath;
+using Parallel = ParallelTasks.Parallel;
 
 namespace Essentials.Patches
 {
@@ -56,322 +59,100 @@ namespace Essentials.Patches
     {
         private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
-        private static ITorchSessionManager _sessionManager;
-
-        [ReflectedMethod(Name = "RaiseClientLeft")]
-        private static Action<MyMultiplayerBase, ulong, MyChatMemberStateChangeEnum> _raseClientLeft;
-
-        [ReflectedGetter(Name = "TransportLayer")]
-        private static Func<MySyncLayer, object> _transportLayer;
-
-        [ReflectedMethod(Name = "SendFlush", TypeName = "Sandbox.Engine.Multiplayer.MyTransportLayer, Sandbox.Game")]
-        private static Action<object, ulong> _sendFlush;
-
-        private static int _lastSize = 0x8000;
-
-        [ReflectedGetter(Name = "m_callback")]
-        private static Func<MyReplicationServer, IReplicationServerCallback> _getCallback;
-        
-        private static readonly TypedObjectPool Pool = new TypedObjectPool();
-
-        [ReflectedGetter(Name = "m_sessionComponents")]
-        private static Func<MySession, CachingDictionary<Type, MySessionComponentBase>> SessionComponents_Getter;
-
-        [ReflectedGetter(Name = "Cameras")]
-        private static Func<MySession, object> Camera_Getter;
-
-        [ReflectedGetter(Name = "m_entityCameraSettings", TypeName = "Sandbox.Game.Multiplayer.MyCameraCollection, Sandbox.Game")]
-        private static Func<object, Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>>> EntityCameraSettings_Getter;
-
-        private static MyObjectBuilder_Checkpoint _checkpoint;
-        private static MyObjectBuilder_Gps bGps;
-
-        [ReflectedGetter(Name = "m_objectFactory", TypeName = "Sandbox.Game.Entities.MyEntityFactory, Sandbox.Game")]
-        private static Func<MyObjectFactory<MyEntityTypeAttribute, MyEntity>> ObjectFactory_Getter;
-
-        [ReflectedGetter(Name = "m_players")]
-        private static Func<MyPlayerCollection, ConcurrentDictionary<MyPlayer.PlayerId, MyPlayer>> Players_Getter;
-
-        [ReflectedGetter(Name = "m_playerIdentityIds")]
-        private static Func<MyPlayerCollection, ConcurrentDictionary<MyPlayer.PlayerId, long>> PlayerIdentities_Getter;
-
-        private static List<CameraControllerSettings> _cameraSettings;
-
-        [ReflectedMethod(Name = "SaveInternal")]
-        private static Action<MyStorageBase, Stream> _saveInternal;
-
-        private static ITorchSessionManager SessionManager => _sessionManager ?? (_sessionManager = EssentialsPlugin.Instance.Torch.Managers.GetManager<ITorchSessionManager>());
-
-        private static Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>> EntityCameraSettings => EntityCameraSettings_Getter(Camera_Getter(MySession.Static));
 
         public static void Patch(PatchContext ctx)
         {
-            ctx.GetPattern(typeof(MyMultiplayerServerBase).GetMethod("OnWorldRequest", BindingFlags.NonPublic | BindingFlags.Instance)).Prefixes.Add(typeof(SessionDownloadPatch).GetMethod(nameof(PatchGetWorld), BindingFlags.NonPublic | BindingFlags.Static));
-            SessionManager.OverrideModsChanged += OverrideModsChanged;
+            ctx.GetPattern(typeof(MyMultiplayerServerBase).GetMethod("CleanUpData", BindingFlags.NonPublic | BindingFlags.Static)).Suffixes.Add(typeof(SessionDownloadPatch).GetMethod(nameof(CleanupClientWorld), BindingFlags.NonPublic | BindingFlags.Static));
         }
 
-        public static MyObjectBuilder_World GetClientWorld(EndpointId sender)
+
+        private static void CleanupClientWorld(MyObjectBuilder_World worldData, ulong playerId, long senderIdentity)
         {
-            //if (!EssentialsPlugin.Instance.Config.EnableClientTweaks)
-            //    return MySession.Static.GetWorld(false);
+            /*
+             * The entire client join code can be cleaned up massively to reduce server load. However, that needs to be in another plugin or keen
+             * 
+             * 
+             * This is being ran directly after the original cleanup. Original removes:
+             * 1. Station store items
+             * 2. Player relations (keeps only theirs)
+             * 3. Player Faction relations (keeps only theres)
+             * 
+             */
 
-            Log.Info($"Preparing world for {sender.Value}...");
 
-            //var ob = MySession.Static.GetWorld(false);
-            //ob.Sector = GetClientSector(sender.Value);
 
-            //Log.Warn("Custom checkpoint generation disabled. Using vanilla system until rework is finished.");
-
-            var ob = new MyObjectBuilder_World
+            //I know ALEs stuff removes this, but lets just add it in essentials too
+            foreach (var Identity in worldData.Checkpoint.Identities)
             {
-                Checkpoint = GetClientCheckpoint(sender.Value),
-                Sector = GetClientSector(sender.Value),
-                Planets = MySession.Static.GetPlanetObjectBuilders()
-            };
+                //Clear all put sender identity last death position
+                if (Identity.IdentityId != senderIdentity)
+                    Identity.LastDeathPosition = null;
 
-            if (EssentialsPlugin.Instance.Config.PackPlanets)
-            {
-                Stopwatch stopwatch = Stopwatch.StartNew();
-                ob.VoxelMaps = new SerializableDictionary<string, byte[]>(GetUncompressedVoxels(true));
-                stopwatch.Stop();
-                Log.Info($"Voxel snapshot took {stopwatch.Elapsed.TotalMilliseconds}ms");
-            }
-            else
-            {
-                ob.VoxelMaps = new SerializableDictionary<string, byte[]>();
             }
 
-            ob.Planets = MySession.Static.GetPlanetObjectBuilders();
 
-            return ob;
-        }
-
-        /// <summary>
-        /// Gets uncompressed storage data for all planets in the world.
-        /// Data is wrapped in a no-compression gzip stream for vanilla client compatibility.
-        /// </summary>
-        /// <param name="includeChanged"></param>
-        /// <returns></returns>
-        public static Dictionary<string, byte[]> GetUncompressedVoxels(bool includeChanged)
-        {
-            var voxelCache = new Dictionary<string, byte[]>(MySession.Static.VoxelMaps.Instances.Count);
-            var i = 0;
-            Log.Info("Taking voxel snapshots");
-            foreach (MyVoxelBase voxelMap in MySession.Static.VoxelMaps.Instances)
+            //I dont trust keen to do it
+            worldData.Checkpoint.Gps.Dictionary.TryGetValue(senderIdentity, out MyObjectBuilder_Gps value);
+            worldData.Checkpoint.Gps.Dictionary.Clear();
+            if (value != null)
             {
-                if (!(voxelMap is MyPlanet))
-                    continue;
-
-                if (includeChanged == false && (voxelMap.ContentChanged || voxelMap.BeforeContentChanged))
-                    continue;
-
-                if (voxelMap.Save == false)
-                    continue;
-
-                if (voxelCache.ContainsKey(voxelMap.StorageName))
-                    continue;
-
-                Log.Info($"{i++}: {voxelMap.StorageName}");
-                SaveUncompressed((MyStorageBase)voxelMap.Storage, out byte[] data);
-                voxelCache.Add(voxelMap.StorageName, data);
+                worldData.Checkpoint.Gps.Dictionary.Add(senderIdentity, value);
             }
-            Log.Info("Voxel snapshot finished");
-            return voxelCache;
-        }
 
-        /// <summary>
-        /// Gets the uncompressed, gzip-wrapped storage data for a given voxel map.
-        /// </summary>
-        /// <param name="storage"></param>
-        /// <param name="data"></param>
-        private static void SaveUncompressed(MyStorageBase storage, out byte[] data)
-        {
-            if (storage.CachedWrites)
-                storage.WritePending(true);
 
-            using (var ms = new MemoryStream(0x8000))
-            using (var gz = new GZipStream(ms, CompressionLevel.NoCompression))
-            using (var bf = new BufferedStream(gz, 0x8000))
+
+            foreach (var SessionComponent in worldData.Checkpoint.SessionComponents)
             {
-                string name;
-                int version;
-                if (storage is MyOctreeStorage)
+
+                if (SessionComponent is MyObjectBuilder_SessionComponentResearch)
                 {
-                    name = "Octree";
-                    version = 1;
+                    MyObjectBuilder_SessionComponentResearch Component = (MyObjectBuilder_SessionComponentResearch)SessionComponent;
+
+
+
+                    // Remove everyone elses research shit (quick and dirty)
+                    for(int i = Component.Researches.Count-1; i >= 0; i--)
+                    {
+                        if (Component.Researches[i].IdentityId == senderIdentity)
+                            continue;
+
+                        Component.Researches.RemoveAt(i);
+                    }
+
+
+
+
+
+
+
                 }
-                else
-                    throw new InvalidBranchException("Keen what are you DOING");
-                bf.WriteNoAlloc(name);
-                bf.Write7BitEncodedInt(version);
 
-                _saveInternal(storage, bf);
 
-                bf.Flush();
-                gz.Flush();
 
-                data = ms.ToArray();
+
             }
+
+
+            foreach (var Player in worldData.Checkpoint.AllPlayersData.Dictionary)
+            {
+
+                if (Player.Value.IdentityId == senderIdentity)
+                    continue;
+
+
+                //Clear toolbar junk for other players. Seriously keen what the FUCK
+                Player.Value.Toolbar = null;
+
+            }
+
+
         }
 
-        /// <summary>
-        /// Event handler for injected client mods.
-        /// Needed because we cache the checkpoint and are too lazy to update this list all the time
-        /// </summary>
-        /// <param name="args"></param>
-        private static void OverrideModsChanged(CollectionChangeEventArgs args)
-        {
-            switch (args.Action)
-            {
-                case CollectionChangeAction.Add:
-                    _checkpoint?.Mods.Add((MyObjectBuilder_Checkpoint.ModItem)args.Element);
-                    break;
-                case CollectionChangeAction.Remove:
-                    _checkpoint?.Mods.Remove((MyObjectBuilder_Checkpoint.ModItem)args.Element);
-                    break;
-            }
-        }
-
-        //private static void Init()
-        //{
-        //    MySession.Static.Factions.FactionStateChanged += (change, l, arg3, arg4, arg5) => _dirty = true;
-        //    MySession.Static.Factions.FactionCreated += id => _dirty = true;
-        //    MySession.Static.Factions.FactionEdited += id => _dirty = true;
-        //    MySession.Static.Factions.FactionAutoAcceptChanged += (l, b, arg3) => _dirty = true;
-
-        //    MySession.Static.ChatSystem.FactionHistoryDeleted += () => _dirty = true;
-        //    MySession.Static.ChatSystem.FactionMessageReceived += id => _dirty = true;
-        //    MySession.Static.ChatSystem.PlayerMessageReceived += id => _dirty = true;
-        //}
 
 
-        /// <summary>
-        /// Main entry point to this class. Prefix on MyMultiplayerBase.OnWorldRequest.
-        /// Effectively replaces all client join logic.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <returns></returns>
-        private static bool PatchGetWorld(EndpointId sender)
-        {
-            if (!EssentialsPlugin.Instance.Config.EnableClientTweaks)
-                return true;
 
-            Log.Info($"World request received: {MyMultiplayer.Static.GetMemberName(sender.Value)}");
 
-            if (MyMultiplayer.Static.KickedClients.ContainsKey(sender.Value) || MyMultiplayer.Static.BannedClients.Contains(sender.Value) || MySandboxGame.ConfigDedicated?.Banned.Contains(sender.Value) == true)
-            {
-                //a hacked client or a plugin can request world data without properly joining the server
-                Log.Error("Banned client requested world. This is bad.");
-                _raseClientLeft(MyMultiplayer.Static, sender.Value, MyChatMemberStateChangeEnum.Banned);
-                return false;
-            }
-
-            if (MySession.Static == null)
-            {
-                Log.Error("World is not loaded!");
-                return false;
-            }
-
-            //taking a session snapshot is the only thing that must be done synchronously
-            MyObjectBuilder_World worldData = GetClientWorld(sender);
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            worldData.Checkpoint.WorkshopId = null;
-            stopwatch.Stop();
-            Log.Info($"World checkpoint took {stopwatch.Elapsed.TotalMilliseconds}ms");
-
-            if (worldData.Clusters == null)
-                worldData.Clusters = new List<BoundingBoxD>();
-            worldData.Clusters.Clear();
-            MyPhysics.SerializeClusters(worldData.Clusters);
-
-            //serializing, compressing, and sending the data can all be dumped into a thread
-            if (EssentialsPlugin.Instance.Config.AsyncJoin)
-                Task.Run(() => PackAndSend(worldData, sender));
-            else
-                PackAndSend(worldData, sender);
-
-            return false;
-        }
-
-        /// <summary>
-        /// Utility to serialize, compress, and send the world data
-        /// </summary>
-        /// <param name="worldData"></param>
-        /// <param name="sender"></param>
-        private static void PackAndSend(MyObjectBuilder_World worldData, EndpointId sender)
-        {
-            Log.Info("Beginning world compression...");
-            try
-            {
-                using (var worldStream = new MemoryStream())
-                {
-                    SerializeZipped(worldStream, worldData, EssentialsPlugin.Instance.Config.CompressionLevel, _lastSize);
-                    _sendFlush(_transportLayer(MyMultiplayer.Static.SyncLayer), sender.Value);
-
-                    Stopwatch stopwatch = Stopwatch.StartNew();
-                    byte[] buffer = worldStream.ToArray();
-                    Log.Info($"Sending {Utilities.FormatDataSize(buffer.Length)} world data...");
-                    SendWorld(buffer, sender);
-                    stopwatch.Stop();
-                    Log.Info($"Data flush took {stopwatch.Elapsed.TotalMilliseconds}ms");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Failure during world compression!");
-            }
-        }
-
-        /// <summary>
-        /// Replacement for MyObjectBuilderSerializer that lets you set compression level.
-        /// </summary>
-        /// <param name="writeTo"></param>
-        /// <param name="obj"></param>
-        /// <param name="level"></param>
-        /// <param name="bufferSize"></param>
-        private static void SerializeZipped(Stream writeTo, MyObjectBuilder_Base obj, CompressionLevel level, int bufferSize = 0x8000)
-        {
-            var ms = new MemoryStream(bufferSize);
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            XmlSerializer serializer = MyXmlSerializerManager.GetSerializer(obj.GetType());
-            serializer.Serialize(ms, obj);
-            stopwatch.Stop();
-            Log.Info($"Serialization took {stopwatch.Elapsed.TotalMilliseconds}ms");
-            ms.Position = 0;
-            Log.Info($"Wrote {Utilities.FormatDataSize(ms.Length)}");
-            _lastSize = Math.Max(_lastSize, (int)ms.Length);
-            stopwatch.Restart();
-            using (var gz = new GZipStream(writeTo, level))
-            {
-                ms.CopyTo(gz);
-            }
-            stopwatch.Stop();
-            Log.Info($"Compression took {stopwatch.Elapsed.TotalMilliseconds}ms");
-            ms.Close();
-        }
-
-        /// <summary>
-        /// Replaces some truly awful Keencode that involves a handful of branches and callvirt
-        /// for *each byte* in the byte array. This is at least a 5x improvement in tests.
-        /// </summary>
-        /// <param name="worldData"></param>
-        /// <param name="sendTo"></param>
-        private static void SendWorld(byte[] worldData, EndpointId sendTo)
-        {
-            IReplicationServerCallback callback = _getCallback((MyReplicationServer)MyMultiplayer.Static.ReplicationLayer);
-            MyPacketDataBitStreamBase data = callback.GetBitStreamPacketData();
-            data.Stream.WriteVariant((uint)worldData.Length);
-            for (var i = 0; i < worldData.Length; i++)
-                data.Stream.WriteByte(worldData[i]);
-            callback.SendWorld(data, sendTo);
-        }
-
-        /// <summary>
-        /// Gets a session snapshot customized for an individual player. Removes data that player does not need,
-        /// which improves download times, and fixes some exploits.
-        /// </summary>
-        /// <param name="steamId"></param>
-        /// <returns></returns>
+        /*
         private static MyObjectBuilder_Checkpoint GetClientCheckpoint(ulong steamId)
         {
             Log.Info($"Saving checkpoint...");
@@ -633,111 +414,6 @@ namespace Essentials.Patches
             //else
             _checkpoint.ControlledObject = -1;
 
-            //SaveChatHistory(checkpoint);
-            /*
-            if (player != null && MySession.Static.ChatHistory.TryGetValue(player.IdentityId, out MyChatHistory playerChat))
-            {
-                var builder = Pool.AllocateOrCreate<MyObjectBuilder_ChatHistory>();
-                builder.IdentityId = playerChat.IdentityId;
-                if (builder.PlayerChatHistory != null)
-                    Pool.DeallocateAndClear(builder.PlayerChatHistory);
-                else
-                    builder.PlayerChatHistory = new List<MyObjectBuilder_PlayerChatHistory>();
-                foreach (MyPlayerChatHistory chat in playerChat.PlayerChatHistory.Values)
-                {
-                    var cb = Pool.AllocateOrCreate<MyObjectBuilder_PlayerChatHistory>();
-                    if (cb.Chat != null)
-                        Pool.DeallocateAndClear(cb.Chat);
-                    else
-                        cb.Chat = new List<MyObjectBuilder_PlayerChatItem>();
-                    cb.IdentityId = chat.IdentityId;
-                    foreach (MyPlayerChatItem m in chat.Chat)
-                    {
-                        var mb = Pool.AllocateOrCreate<MyObjectBuilder_PlayerChatItem>();
-                        mb.Text = m.Text;
-                        mb.IdentityIdUniqueNumber = MyEntityIdentifier.GetIdUniqueNumber(m.IdentityId);
-                        mb.TimestampMs = (long)m.Timestamp.TotalMilliseconds;
-                        mb.Sent = m.Sent;
-                        cb.Chat.Add(mb);
-                    }
-                    builder.PlayerChatHistory.Add(cb);
-                }
-
-                if (builder.GlobalChatHistory == null)
-                    builder.GlobalChatHistory = Pool.AllocateOrCreate<MyObjectBuilder_GlobalChatHistory>();
-                if (builder.GlobalChatHistory.Chat != null)
-                    Pool.DeallocateAndClear(builder.GlobalChatHistory.Chat);
-                else
-                    builder.GlobalChatHistory.Chat = new List<MyObjectBuilder_GlobalChatItem>();
-
-                foreach (MyGlobalChatItem g in playerChat.GlobalChatHistory.Chat)
-                {
-                    var gb = Pool.AllocateOrCreate<MyObjectBuilder_GlobalChatItem>();
-                    gb.Text = g.Text;
-                    gb.Font = g.AuthorFont;
-                    if (g.IdentityId == 0)
-                    {
-                        gb.IdentityIdUniqueNumber = 0;
-                        gb.Author = g.Author;
-                    }
-                    else
-                    {
-                        gb.IdentityIdUniqueNumber = MyEntityIdentifier.GetIdUniqueNumber(g.IdentityId);
-                        gb.Author = string.Empty;
-                    }
-                    builder.GlobalChatHistory.Chat.Add(gb);
-                }
-
-                _checkpoint.ChatHistory.Add(builder);
-            }
-
-            if (player != null)
-            {
-                IMyFaction pfac = MySession.Static.Factions.TryGetPlayerFaction(player.IdentityId);
-                if (pfac != null)
-                {
-                    foreach (MyFactionChatHistory history in MySession.Static.FactionChatHistory)
-                    {
-                        if (history.FactionId1 == pfac.FactionId || history.FactionId2 == pfac.FactionId)
-                        {
-                            var builder = Pool.AllocateOrCreate<MyObjectBuilder_FactionChatHistory>();
-                            if (builder.Chat != null)
-                                Pool.DeallocateAndClear(builder.Chat);
-                            else
-                                builder.Chat = new List<MyObjectBuilder_FactionChatItem>();
-
-                            builder.FactionId1 = history.FactionId1;
-                            builder.FactionId2 = history.FactionId2;
-
-                            foreach (MyFactionChatItem fc in history.Chat)
-                            {
-                                if (fc.PlayersToSendTo != null && fc.PlayersToSendTo.Count > 0)
-                                {
-                                    var fb = Pool.AllocateOrCreate<MyObjectBuilder_FactionChatItem>();
-                                    fb.Text = fc.Text;
-                                    fb.IdentityIdUniqueNumber = MyEntityIdentifier.GetIdUniqueNumber(fc.IdentityId);
-                                    fb.TimestampMs = (long)fc.Timestamp.TotalMilliseconds;
-                                    if (fb.PlayersToSendToUniqueNumber != null)
-                                        fb.PlayersToSendToUniqueNumber.Clear();
-                                    else
-                                        fb.PlayersToSendToUniqueNumber = new List<long>();
-                                    if (fb.IsAlreadySentTo != null)
-                                        fb.IsAlreadySentTo.Clear();
-                                    else
-                                        fb.IsAlreadySentTo = new List<bool>();
-                                    foreach (KeyValuePair<long, bool> pair in fc.PlayersToSendTo)
-                                    {
-                                        fb.PlayersToSendToUniqueNumber.Add(MyEntityIdentifier.GetIdUniqueNumber(pair.Key));
-                                        fb.IsAlreadySentTo.Add(pair.Value);
-                                    }
-                                    builder.Chat.Add(fb);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            */
 
             //_checkpoint.Clients = SaveMembers_Imp(MySession.Static, false);
             if (MyMultiplayer.Static.Members.Count() > 1)
@@ -781,49 +457,6 @@ namespace Essentials.Patches
             return _checkpoint;
         }
 
-        /// <summary>
-        /// Gets entities to pack into the session snapshot, customized for a given user
-        /// </summary>
-        /// <param name="steamId"></param>
-        /// <returns></returns>
-        private static MyObjectBuilder_Sector GetClientSector(ulong steamId)
-        {
-            MyObjectBuilder_Sector ob = MySession.Static.GetSector(false);
-
-            if (EssentialsPlugin.Instance.Config.PackRespawn)
-            {
-                ob.SectorObjects = new List<MyObjectBuilder_EntityBase>();
-                var grids = new HashSet<MyCubeGrid>();
-                /*
-                foreach (IMyMedicalRoomProvider room in MyMedicalRoomsSystem.GetMedicalRoomsInScene())
-                {
-                    if (room.Closed || !room.IsWorking || !(room.SetFactionToSpawnee || room.HasPlayerAccess(MySession.Static.Players.TryGetIdentityId(steamId))))
-                        continue;
-
-                    grids.Add(((MyMedicalRoom)room).CubeGrid);
-                }
-                */
-                foreach (var respawn in MyRespawnComponent.GetAllRespawns())
-                {
-                    if (respawn.Entity.Closed || !respawn.Entity.IsWorking || !respawn.CanPlayerSpawn(MySession.Static.Players.TryGetIdentityId(steamId), true))
-                        continue;
-
-                    grids.Add(respawn.Entity.CubeGrid);
-                }
-
-                if (EssentialsPlugin.Instance.Config.MaxPackedRespawnSize > 0)
-                {
-                    foreach (MyCubeGrid spawngrid in grids)
-                    {
-                        if (spawngrid.BlocksCount > EssentialsPlugin.Instance.Config.MaxPackedRespawnSize)
-                            continue;
-
-                        ob.SectorObjects.Add(spawngrid.GetObjectBuilder());
-                    }
-                }
-            }
-
-            return ob;
-        }
+        */
     }
 }
