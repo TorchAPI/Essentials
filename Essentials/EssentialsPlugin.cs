@@ -275,7 +275,7 @@ namespace Essentials
         {
             long playerId = player.Identity.IdentityId;
 
-            var motdUrl = MyGuiSandbox.IsUrlWhitelisted(Config.MotdUrl)
+            var motdUrl = MyGuiSandbox.IsUrlWhitelisted(Config.MotdUrl ?? "")
                 ? Config.MotdUrl
                 : $"https://steamcommunity.com/linkfilter/?url={Config.MotdUrl}";
             
