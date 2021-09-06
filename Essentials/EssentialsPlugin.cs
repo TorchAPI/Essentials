@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
+using System.Runtime.Remoting.Contexts;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
@@ -31,6 +33,8 @@ using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRageMath;
 using Newtonsoft.Json;
+using SpaceEngineers.Game.World;
+using VRage.Network;
 
 namespace Essentials
 {
@@ -259,7 +263,7 @@ namespace Essentials
                                               if (_motdOnce.Contains(player.SteamId))
                                                   return;
 
-                                              SendMotd(p);
+                                              SendMotd(p, true);
                                               _motdOnce.Add(player.SteamId);
                                           });
                              break;
@@ -267,43 +271,76 @@ namespace Essentials
                      });
         }
 
-        public void SendMotd(MyPlayer player)
+        public void SendMotd(MyPlayer player, bool onSessionChanged)
         {
             long playerId = player.Identity.IdentityId;
 
+            var motdUrl = MyGuiSandbox.IsUrlWhitelisted(Config.MotdUrl)
+                ? Config.MotdUrl
+                : $"https://steamcommunity.com/linkfilter/?url={Config.MotdUrl}";
+            
             if (!string.IsNullOrEmpty(Config.MotdUrl) && !Config.NewUserMotdUrl)
             {
-                if (MyGuiSandbox.IsUrlWhitelisted(Config.MotdUrl))
-                    MyVisualScriptLogicProvider.OpenSteamOverlay(Config.MotdUrl, playerId);
-                else
-                    MyVisualScriptLogicProvider.OpenSteamOverlay($"https://steamcommunity.com/linkfilter/?url={Config.MotdUrl}", playerId);
+                MyVisualScriptLogicProvider.OpenSteamOverlay(motdUrl, playerId);
+                return;
             }
 
             var id = player.Client.SteamUserId;
-            if (id <= 0) //can't remember if this returns 0 or -1 on error.
-                return;
+            if (id <= 0) return;
             
             string name = player.Identity?.DisplayName ?? "player";
 
-            bool newUser = !Config.KnownSteamIds.Contains(id);
-            if (newUser)
+            bool isNewUser = !Config.KnownSteamIds.Contains(id);
+            if (isNewUser)
+            {
                 Config.KnownSteamIds.Add(id);
-            if (!string.IsNullOrEmpty(Config.MotdUrl) && newUser && Config.NewUserMotdUrl)
+            }
+            
+            if (!string.IsNullOrEmpty(Config.MotdUrl) && isNewUser && Config.NewUserMotdUrl)
             {
-                if (MyGuiSandbox.IsUrlWhitelisted(Config.MotdUrl))
-                    MyVisualScriptLogicProvider.OpenSteamOverlay(Config.MotdUrl, playerId);
-                else
-                    MyVisualScriptLogicProvider.OpenSteamOverlay($"https://steamcommunity.com/linkfilter/?url={Config.MotdUrl}", playerId);
+                MyVisualScriptLogicProvider.OpenSteamOverlay(motdUrl, playerId);
+                return;
             }
 
-            if (newUser && !string.IsNullOrEmpty(Config.NewUserMotd))
+            if (isNewUser && !string.IsNullOrEmpty(Config.NewUserMotd))
             {
-                ModCommunication.SendMessageTo(new DialogMessage(MySession.Static.Name, "New User Message Of The Day", Config.NewUserMotd.Replace("%player%", name)), id);
-
+                var msg = new DialogMessage(MySession.Static.Name, "New User Message Of The Day", Config.NewUserMotd.Replace("%player%", name));
+                ModCommunication.SendMessageTo(msg, id);
+                return;
             }
-            else if (!string.IsNullOrEmpty(Config.Motd))
+
+            if (!string.IsNullOrEmpty(Config.Motd))
             {
-                ModCommunication.SendMessageTo(new DialogMessage(MySession.Static.Name, "Message Of The Day", Config.Motd.Replace("%player%", name)), id);
+                var msg = new DialogMessage(MySession.Static.Name, "Message Of The Day", Config.Motd.Replace("%player%", name));
+                ModCommunication.SendMessageTo(msg, id);
+                return;
+            }
+
+            if (!onSessionChanged) // otherwise default motd shows up twice on connection
+            {
+                var txt = GetDefaultMotdText();
+                var msg = new DialogMessage(MySession.Static.Name, "Message Of The Day", txt);
+                ModCommunication.SendMessageTo(msg, id);
+            }
+        }
+
+        static string GetDefaultMotdText()
+        {
+            try
+            {
+                var motdDataStruct = typeof(MySpaceRespawnComponent).GetNestedType("MOTDData", BindingFlags.NonPublic);
+                var motdConstructFunc = motdDataStruct.GetMethod("Construct", BindingFlags.Public | BindingFlags.Static);
+                var motdMessageField = motdDataStruct.GetField("Message", BindingFlags.Public | BindingFlags.Instance);
+                var motd = motdConstructFunc.Invoke(null, new object[0]);
+                var motdMessage = motdMessageField.GetValue(motd) as string;
+                return motdMessage;
+            }
+            catch (Exception e)
+            {
+                var tag = $"#{new Random().NextDouble() * 1000:0}";
+                Log.Info($"Failed to load MotD. Tag: {tag}. Error:");
+                Log.Error(e);
+                return $"Failed to load MotD. Contact admin.\nAdmin: text search in log: {tag}";
             }
         }
 
