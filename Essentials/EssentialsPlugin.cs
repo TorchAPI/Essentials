@@ -275,13 +275,10 @@ namespace Essentials
         {
             long playerId = player.Identity.IdentityId;
 
-            var motdUrl = MyGuiSandbox.IsUrlWhitelisted(Config.MotdUrl ?? "")
-                ? Config.MotdUrl
-                : $"https://steamcommunity.com/linkfilter/?url={Config.MotdUrl}";
-            
             if (!string.IsNullOrEmpty(Config.MotdUrl) && !Config.NewUserMotdUrl)
             {
-                MyVisualScriptLogicProvider.OpenSteamOverlay(motdUrl, playerId);
+                var url = MakeUrl(Config.MotdUrl);
+                MyVisualScriptLogicProvider.OpenSteamOverlay(url, playerId);
                 return;
             }
 
@@ -298,7 +295,8 @@ namespace Essentials
             
             if (!string.IsNullOrEmpty(Config.MotdUrl) && isNewUser && Config.NewUserMotdUrl)
             {
-                MyVisualScriptLogicProvider.OpenSteamOverlay(motdUrl, playerId);
+                var url = MakeUrl(Config.MotdUrl);
+                MyVisualScriptLogicProvider.OpenSteamOverlay(url, playerId);
                 return;
             }
 
@@ -322,6 +320,12 @@ namespace Essentials
                 var msg = new DialogMessage(MySession.Static.Name, "Message Of The Day", txt);
                 ModCommunication.SendMessageTo(msg, id);
             }
+        }
+
+        static string MakeUrl(string url)
+        {
+            if (MyGuiSandbox.IsUrlWhitelisted(url)) return url;
+            return $"https://steamcommunity.com/linkfilter/?url={url}";
         }
 
         static string GetDefaultMotdText()
