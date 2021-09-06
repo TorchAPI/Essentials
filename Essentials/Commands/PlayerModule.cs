@@ -178,7 +178,7 @@ namespace Essentials
         [Permission(MyPromoteLevel.None)]
         public void Motd()
         {
-            Plugin.SendMotd((MyPlayer)Context.Player);
+            Plugin.SendMotd((MyPlayer)Context.Player, false);
         }
     }
 }
