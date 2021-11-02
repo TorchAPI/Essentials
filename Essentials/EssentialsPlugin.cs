@@ -123,9 +123,11 @@ namespace Essentials
                     mpMan.PlayerJoined += AccModule.GenerateAccount;
                     mpMan.PlayerJoined += AccModule.CheckIp;
                     mpMan.PlayerJoined += MotdOnce;
-                    RanksAndPermissions.GenerateRank(Config.DefaultRank);
-                    mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
-                    AccModule.ValidateRanks();
+                    if (Config.EnableRanks) {
+                        RanksAndPermissions.GenerateRank(Config.DefaultRank);
+                        mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
+                        AccModule.ValidateRanks();
+                    }
 
                     mpMan.PlayerLeft += ResetMotdOnce;
                     cmdMan.OnCommandExecuting +=RanksAndPermissions.HasCommandPermission;
