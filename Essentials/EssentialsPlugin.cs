@@ -54,10 +54,13 @@ namespace Essentials
         private HashSet<ulong> _motdOnce = new HashSet<ulong>();
         private PatchManager _pm;
         private PatchContext _context;
+     
 
         public static EssentialsPlugin Instance { get; private set; }
         public PlayerAccountModule AccModule = new PlayerAccountModule();
         RanksAndPermissionsModule RanksAndPermissions = new RanksAndPermissionsModule();
+        private static bool _initilized = false;
+
 
         /// <inheritdoc />
         public UserControl GetControl() => _control ?? (_control = new PropertyGrid(){DataContext=Config/*, IsEnabled = false*/});
@@ -127,9 +130,11 @@ namespace Essentials
                     mpMan.PlayerJoined += AccModule.GenerateAccount;
                     mpMan.PlayerJoined += AccModule.CheckIp;
                     mpMan.PlayerJoined += MotdOnce;
-                    RanksAndPermissions.GenerateRank(Config.DefaultRank);
-                    mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
-                    AccModule.ValidateRanks();
+                    if (Config.EnableRanks) {
+                        RanksAndPermissions.GenerateRank(Config.DefaultRank);
+                        mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
+                        AccModule.ValidateRanks();
+                    }
 
                     mpMan.PlayerLeft += ResetMotdOnce;
                     cmdMan.OnCommandExecuting +=RanksAndPermissions.HasCommandPermission;
@@ -143,13 +148,25 @@ namespace Essentials
                                                });
                     AutoCommands.Instance.Start();
                     InfoModule.Init();
+                    _initilized = true;
+
+
                     break;
+
+
                 case TorchSessionState.Unloading:
-                    Log.Info("Unloading rank data into JSON");
-                    RanksAndPermissions.SaveRankData();
-                    mpMan.PlayerLeft -= ResetMotdOnce;
-                    mpMan.PlayerJoined -= MotdOnce;
-                    MyEntities.OnEntityAdd -= EntityAdded;
+
+                    if (_initilized)
+                    {
+                        //Dont try and remove these unless server was actually fully initlized
+                        Log.Info("Unloading rank data into JSON");
+                        RanksAndPermissions.SaveRankData();
+                        mpMan.PlayerLeft -= ResetMotdOnce;
+                        mpMan.PlayerJoined -= MotdOnce;
+                        MyEntities.OnEntityAdd -= EntityAdded;
+                    }
+
+
                     _bagTracker.Clear();
                     _removalTracker.Clear();
                     break;
