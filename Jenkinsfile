@@ -4,8 +4,8 @@ def test_with_torch(branch)
 		stage('Acquire Torch ' + branch) {
 			bat 'IF EXIST TorchBinaries RMDIR /S /Q TorchBinaries'
 			bat 'mkdir TorchBinaries'
-			step([$class: 'CopyArtifact', projectName: "Torch/Torch/${branch}", filter: "**/Torch*.dll", flatten: true, fingerprintArtifacts: true, target: "TorchBinaries"])
-			step([$class: 'CopyArtifact', projectName: "Torch/Torch/${branch}", filter: "**/Torch*.exe", flatten: true, fingerprintArtifacts: true, target: "TorchBinaries"])
+			step([$class: 'CopyArtifact', projectName: "Torch/${branch}", filter: "**/Torch*.dll", flatten: true, fingerprintArtifacts: true, target: "TorchBinaries"])
+			step([$class: 'CopyArtifact', projectName: "Torch/${branch}", filter: "**/Torch*.exe", flatten: true, fingerprintArtifacts: true, target: "TorchBinaries"])
 		}
 
 		stage('Build + Torch ' + branch) {
@@ -17,23 +17,9 @@ def test_with_torch(branch)
 		}
 
 	
-		/*stage('Test + Torch ' + branch) {
-			bat 'IF NOT EXIST reports MKDIR reports'
-			bat "\"packages/xunit.runner.console.2.2.0/tools/xunit.console.exe\" \"bin-test/x64/${buildMode}/Essentials.Tests.dll\" -parallel none -xml \"reports/Essentials.Tests.xml\""
-		    step([
-		        $class: 'XUnitBuilder',
-		        thresholdMode: 1,
-		        thresholds: [[$class: 'FailedThreshold', failureThreshold: '1']],
-		        tools: [[
-		            $class: 'XUnitDotNetTestType',
-		            deleteOutputFiles: true,
-		            failIfNotNew: true,
-		            pattern: 'reports/*.xml',
-		            skipNoTestFiles: false,
-		            stopProcessingIfError: true
-		        ]]
-		    ])
-		}*/
+		stage('Test + Torch ' + branch) {
+			
+		}
 
 		return true
 	} catch (e) {
@@ -44,7 +30,7 @@ def test_with_torch(branch)
 node('windows') {
 	stage('Checkout') {
 		checkout scm
-		bat 'git pull --tags'
+		bat 'git pull https://github.com/TorchAPI/Essentials/ master --tags'
 	}
 
 	stage('Acquire SE') {
@@ -54,15 +40,16 @@ node('windows') {
 	}
 
 	stage('Acquire NuGet Packages') {
-		bat 'nuget restore Essentials.sln'
+		bat 'cd C:\\Program Files\\Jenkins'
+		bat '"C:\\Program Files\\Jenkins\\nuget.exe" restore Essentials.sln'
 	}
 	
-	if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "Patron") {
+	if (env.BRANCH_NAME == "master") {
 		buildMode = "Release"
 	} else {
 		buildMode = "Debug"
 	}
-	result = test_with_torch(env.BRANCH_NAME)
+	result = test_with_torch("master")
 	if (result) {
 		currentBuild.result = "SUCCESS"
 		stage('Archive') {
@@ -74,16 +61,11 @@ node('windows') {
 			bat "IF EXIST ${zipFile} DEL ${zipFile}"
 			bat "IF EXIST ${packageDir} RMDIR /S /Q ${packageDir}"
 
-			bat "xcopy bin\\x64\\${buildMode} ${packageDir}"
+			bat "xcopy bin\\x64\\${buildMode}\\Essentials.* ${packageDir}"
 			powershell "(Get-Content manifest.xml).Replace('\${VERSION}', [System.Diagnostics.FileVersionInfo]::GetVersionInfo(\"\$PWD\\${packageDir}Essentials.dll\").ProductVersion) | Set-Content \"${packageDir}/manifest.xml\""
 			powershell "Add-Type -Assembly System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::CreateFromDirectory(\"\$PWD\\${packageDir}\", \"\$PWD\\${zipFile}\")"
 			archiveArtifacts artifacts: zipFile, caseSensitive: false, onlyIfSuccessful: true
 		}
-		stage('Release') {
-		          withCredentials([usernamePassword(credentialsId: 'jimmacle-plugin-publish', usernameVariable: 'USERNAME', passwordVariable: 'TOKEN')]) {
-						bat "Jenkins\\PluginPush.exe \"bin\\essentials.zip\" \"$USERNAME\" \"$TOKEN\""
-				    }
-		   }
 	}
 	else
 		currentBuild.result = "FAIL"
