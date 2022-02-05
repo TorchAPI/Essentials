@@ -92,7 +92,7 @@ namespace Essentials.Commands
             }
 
             foreach (var x in toRemove)
-                x.CubeGrid.RazeBlock(x.Position);
+                x.CubeGrid?.RemoveBlock(x);
             Context.Respond($"Removed {toRemove.Count} blocks of subtype {subtype}.");
         }
 
@@ -111,7 +111,7 @@ namespace Essentials.Commands
             }
 
             foreach (var x in toRemove)
-                x.CubeGrid.RazeBlock(x.Position);
+                x.CubeGrid?.RemoveBlock(x);
             Context.Respond($"Removed {toRemove.Count} blocks of type {type}.");
         }
 
@@ -211,7 +211,8 @@ namespace Essentials.Commands
                 case BlockCategory.Power:
                     return block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Reactor) ||
                            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
-                           block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_SolarPanel);
+                           block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_SolarPanel)  ||
+                           block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_FueledPowerProducer);
                 case BlockCategory.Production:
                     return block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Assembler) ||
                            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Refinery) ||
