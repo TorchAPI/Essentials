@@ -47,7 +47,7 @@ namespace Essentials
                 case Trigger.Disabled:
                     return  false;
                 case Trigger.OnStart:
-                    if (command.Completed)break;
+                    if (command.Completed || command.IsRunning())break;
                     command.Completed = true;
                     command.RunNow();
                     break;
