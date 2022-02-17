@@ -64,10 +64,17 @@ namespace Essentials.Commands
                 return;
             }
             StringBuilder sb = new StringBuilder();
-            foreach(var player in MySession.Static.Players.GetOnlinePlayers())
+            var players = MySession.Static.Players.GetOnlinePlayers();
+            if (players.Count == 0)
             {
-                sb.AppendLine();
-                sb.AppendLine($"{player.DisplayName}");
+                Context.Respond("No Players Online");
+                return;
+            }
+
+            sb.AppendLine($"Found {players.Count} Players on server");
+            foreach(var player in players)
+            {
+                sb.AppendLine($"{player.DisplayName} : {player.Id.SteamId}");
             }
             if (Context.Player == null)
                 Context.Respond(sb.ToString());
