@@ -64,16 +64,25 @@ namespace Essentials.Commands
                 return;
             }
             StringBuilder sb = new StringBuilder();
-            foreach(var player in MySession.Static.Players.GetOnlinePlayers())
+            var players = MySession.Static.Players.GetOnlinePlayers();
+            if (players.Count == 0)
             {
-                sb.AppendLine();
+                Context.Respond("No Players Online");
+                return;
+            }
+
+            sb.AppendLine($"Found {players.Count} Players on server");
+            foreach(var player in players)
+            {
                 sb.AppendLine($"{player.DisplayName}");
+                sb.AppendLine($">PlayerId: {player.Identity.IdentityId}");
+                sb.AppendLine($">SteamId: {player.Id.SteamId}");
             }
             if (Context.Player == null)
                 Context.Respond(sb.ToString());
             else if (Context?.Player?.SteamUserId > 0)
             {
-                ModCommunication.SendMessageTo(new DialogMessage("List of Online Players", null, sb.ToString()), Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("List of Online Players", $"{players.Count} players Online", sb.ToString()), Context.Player.SteamUserId);
             }
         }
 
