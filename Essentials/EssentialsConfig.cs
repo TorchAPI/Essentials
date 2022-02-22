@@ -23,7 +23,6 @@ namespace Essentials
         public EssentialsConfig()
         {
             AutoCommands.CollectionChanged += (sender, args) => OnPropertyChanged();
-            KnownSteamIds.CollectionChanged += (sender, args) => OnPropertyChanged();
             InfoCommands.CollectionChanged += (sender, args) => OnPropertyChanged();
         }
 
@@ -94,9 +93,6 @@ namespace Essentials
             get => _backpackLimit;
             set => SetValue(ref _backpackLimit, value);
         }
-
-        [Display(Visible=false)]
-        public ObservableCollection<ulong> KnownSteamIds { get; } = new ObservableCollection<ulong>();
 
         private bool _cutGameTags;
         [Display(Name = "Cut Game Tags", GroupName = "Client Join Tweaks", Order = 8, Description = "Cuts mods and blocks limits from matchmaking server info. Prevents from 'error downloading session settings'.")]
