@@ -203,9 +203,10 @@ namespace Essentials
             _cTokenSource = new CancellationTokenSource();
             var token = _cTokenSource.Token;
             _isRunning = true;
+            var steps = new List<CommandStep>(Steps);
             await Task.Run(() =>
             {
-                foreach (var step in Steps)
+                foreach (var step in steps)
                 {
                     if (token.IsCancellationRequested)
                     {
