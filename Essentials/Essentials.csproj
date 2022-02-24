@@ -164,6 +164,7 @@
     <Compile Include="GridFinder.cs" />
     <Compile Include="InfoCommand.cs" />
     <Compile Include="Commands\InfoModule.cs" />
+    <Compile Include="KnownIdsStorage.cs" />
     <Compile Include="Patches\ChatMessagePatch.cs" />
     <Compile Include="Patches\SessionDownloadPatch.cs" />
     <Compile Include="PlayerAccountModule.cs" />

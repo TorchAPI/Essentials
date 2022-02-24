@@ -40,15 +40,16 @@ namespace Essentials
 
         private bool CanRun(AutoCommand command)
         {
+            if (MySession.Static?.Ready == false) return false;
+
             switch (command.CommandTrigger)
             {
                 case Trigger.Disabled:
                     return  false;
                 case Trigger.OnStart:
-                    if (command.Completed || MySession.Static?.Ready == false)break;
+                    if (command.Completed || command.IsRunning())break;
                     command.Completed = true;
                     command.RunNow();
-
                     break;
                 case Trigger.Vote:
                     break;
@@ -73,11 +74,11 @@ namespace Essentials
 
                     if (command.Compare == GreaterThan)
                     {
-                        return MySession.Static.Players.GetOnlinePlayerCount() > command.TriggerCount;
+                        return MySession.Static?.Players.GetOnlinePlayerCount() > command.TriggerCount;
                     }
                     else if (command.Compare == LessThan)
                     {
-                        return MySession.Static.Players.GetOnlinePlayerCount() < command.TriggerCount;
+                        return MySession.Static?.Players.GetOnlinePlayerCount() < command.TriggerCount;
                     }
                     break;
 

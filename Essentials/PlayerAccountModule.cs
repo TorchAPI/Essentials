@@ -153,8 +153,8 @@ namespace Essentials {
                             Account.KnownIps.Add(ip.ToString());
                         }
 
-                        if (Account.IdentityID == 0L && Account.Player != string.Empty) {
-                            Account.IdentityID = Utilities.GetIdentityByNameOrIds(Account.Player).IdentityId;
+                        if (Account.IdentityID == 0L && !string.IsNullOrEmpty(Account.Player)) {
+                            Account.IdentityID = Utilities.GetIdentityByNameOrIds(Account.Player)?.IdentityId ?? 0L;
                             UpdatePlayerAccount(Account);
                         }
                         found = true;

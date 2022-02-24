@@ -64,32 +64,140 @@ namespace Essentials.Commands
                 return;
             }
             StringBuilder sb = new StringBuilder();
-            foreach(var player in MySession.Static.Players.GetOnlinePlayers())
+            var players = MySession.Static.Players.GetOnlinePlayers();
+            if (players.Count == 0)
             {
-                sb.AppendLine();
+                Context.Respond("No Players Online");
+                return;
+            }
+
+            sb.AppendLine($"Found {players.Count} Players on server");
+            foreach(var player in players)
+            {
                 sb.AppendLine($"{player.DisplayName}");
+                sb.AppendLine($">PlayerId: {player.Identity.IdentityId}");
+                sb.AppendLine($">SteamId: {player.Id.SteamId}");
             }
             if (Context.Player == null)
                 Context.Respond(sb.ToString());
             else if (Context?.Player?.SteamUserId > 0)
             {
-                ModCommunication.SendMessageTo(new DialogMessage("List of Online Players", null, sb.ToString()), Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("List of Online Players", $"{players.Count} players Online", sb.ToString()), Context.Player.SteamUserId);
             }
         }
 
 
-        [Command("runauto", "Runs the auto command with the given name immediately")]
+        [Command("runauto", "Runs the auto command with the given commandName immediately")]
         [Permission(MyPromoteLevel.Admin)]
         public void RunAuto(string name)
         {
             var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(name));
             if (command == null)
             {
-                Context.Respond($"Couldn't find an auto command with the name {name}");
+                Context.Respond($"Couldn't find an auto command with the commandName {name}");
+                return;
+            }
+            Context.Respond($"Running the autocommand {command.Name}");
+            command.RunNow();
+        }
+
+        [Command("cancelauto", "Cancels the auto command with the given commandName immediately")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void EndAuto(string commandName)
+        {
+            var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(commandName));
+            if (command == null)
+            {
+                Context.Respond($"Couldn't find an auto command with the commandName {commandName}");
+                return;
+            }
+            Context.Respond($"AutoCommand {command.Name} cancelled");
+            command.Cancel();
+        }
+
+        [Command("cancelautobyindex", "Cancels the auto command with the given index immediately")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void EndByOrder(int commandNumber = 0)
+        {
+            var commands = new List<AutoCommand>(EssentialsPlugin.Instance.Config.AutoCommands.Where(x=>x.IsRunning()));
+
+            if (commands.Count == 0)
+            {
+                Context.Respond("No active autocommand found");
                 return;
             }
 
-            command.RunNow();
+            if (commandNumber < 1 || commandNumber > commands.Count)
+            {
+                Context.Respond($"{commandNumber} number is out of range");
+                return;
+            }
+            var command = commands[commandNumber - 1];
+            if (command == null)
+            {
+                Context.Respond($"Couldn't find an auto command from provided number");
+                return;
+            }
+            Context.Respond($"AutoCommand {command.Name} cancelled");
+            command.Cancel();
+        }
+
+        [Command("listauto", "Lists all detected autocommands ")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void ListAuto()
+        {
+            var commands = EssentialsPlugin.Instance.Config.AutoCommands;
+            StringBuilder sb = new StringBuilder();
+            int count = 1;
+
+            foreach (var command in commands)
+            {
+                sb.AppendLine((count++) + " " + command.Name);
+            }
+
+            if (Context.Player == null)
+            {
+                Context.Respond("Current AutoCommands:");
+                Context.Respond(sb.ToString());
+
+            }
+
+            else
+            {
+                ModCommunication.SendMessageTo(new DialogMessage("Current AutoCommands",$"Found {commands.Count} Commands",sb.ToString()), Context.Player.SteamUserId);
+            }
+        }
+
+        [Command("listrunningauto", "Lists all running autocommands ")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void ListAutoRunning()
+        {
+            var commands = new List<AutoCommand>(EssentialsPlugin.Instance.Config.AutoCommands.Where(x=>x.IsRunning()));
+
+            if (commands.Count == 0)
+            {
+                Context.Respond("No active autocommand found");
+                return;
+            }
+            StringBuilder sb = new StringBuilder();
+            int count = 1;
+
+            foreach (var command in commands)
+            {
+                sb.AppendLine((count++) + " " + command.Name);
+            }
+
+            if (Context.Player == null)
+            {
+                Context.Respond("Current AutoCommands:");
+                Context.Respond(sb.ToString());
+
+            }
+
+            else
+            {
+                ModCommunication.SendMessageTo(new DialogMessage("Current AutoCommands",$"Found {commands.Count} Commands",sb.ToString()), Context.Player.SteamUserId);
+            }
         }
 
         [Command("set toolbar", "Makes your current toolbar the new default toolbar for new players.")]

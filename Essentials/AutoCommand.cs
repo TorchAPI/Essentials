@@ -31,6 +31,7 @@ namespace Essentials
         private string _name;
         private float _triggerRatio;
         private double _triggerCount;
+        private bool _isRunning;
 
         [XmlIgnore]
         public bool Completed { get; set; }
@@ -57,18 +58,6 @@ namespace Essentials
             set => SetValue(ref _name, value);
         }
 
-        //[Display(Name = "Scheduled Time", GroupName = "Schedule", Description = "Sets a time of day for this command to be run. Format is HH:MM:SS. MUST use 24 hour format! Will be reset to zero if Interval is set.")]
-        [Display(Visible = false)]
-        public string ScheduledTime
-        {
-            get => _scheduledTime.ToString();
-            set
-            {
-                _scheduledTime = TimeSpan.Parse(value);
-                OnPropertyChanged();
-            }
-        }
-
         [Display(Order = 2, Description = "Sets an interval/Time for this command to be repeated. Format is HH:MM:SS.")]
         public string Interval
         {
@@ -79,7 +68,6 @@ namespace Essentials
                 OnPropertyChanged();
                 if (CommandTrigger == Trigger.Timed)
                 {
-                    //ScheduledTime = TimeSpan.Zero.ToString(); //I hate myself for this **FIXED!!!***
                     _nextRun = DateTime.Now + _interval;
                 }
 
@@ -157,6 +145,7 @@ namespace Essentials
 
             if (_currentStep < Steps.Count) return;
             _currentStep = 0;
+            _cTokenSource?.Dispose();
             _nextRun = _trigger == Trigger.Scheduled
                     ? DateTime.Now.Date + _interval + TimeSpan.FromDays(1)
                     : _nextRun = DateTime.Now + _interval;
@@ -204,25 +193,52 @@ namespace Essentials
             }
         }
 
+        private CancellationTokenSource _cTokenSource;
 
         /// <summary>
         /// Runs the command and all steps immediately, in a new thread
         /// </summary>
-        internal void RunNow()
+        internal async void RunNow()
         {
-            Task.Run(() =>
+            _cTokenSource = new CancellationTokenSource();
+            var token = _cTokenSource.Token;
+            _isRunning = true;
+            var steps = new List<CommandStep>(Steps);
+            await Task.Run(() =>
             {
-                foreach (var step in Steps)
+                foreach (var step in steps)
                 {
+                    if (token.IsCancellationRequested)
+                    {
+                        break;
+                    }
                     step.RunStep();
                     Thread.Sleep(step.DelaySpan);
                 }
-            });
+            }, token);
+            
+            _cTokenSource.Dispose();
+            _isRunning = false;
+        }
+
+        internal void Cancel()
+        {
+            Log.Info($"Cancelling autocommand {_name}");
+            _cTokenSource?.Cancel();
+            _currentStep = 0;
+            _nextRun = _trigger == Trigger.Scheduled
+                ? DateTime.Now.Date + _interval + TimeSpan.FromDays(1)
+                : _nextRun = DateTime.Now + _interval;
         }
 
         public override string ToString()
         {
             return $"{Name} : {_trigger.ToString()} : {Steps.Count}";
+        }
+
+        internal bool IsRunning()
+        {
+            return _currentStep > 0 || _isRunning;
         }
     }
     
@@ -233,7 +249,6 @@ namespace Essentials
         Equal
     }
 
-    //TODO Remove Scheduled
     public enum Trigger
     {
         Disabled,

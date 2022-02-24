@@ -54,7 +54,7 @@ namespace Essentials
         private HashSet<ulong> _motdOnce = new HashSet<ulong>();
         private PatchManager _pm;
         private PatchContext _context;
-     
+        private KnownIdsStorage _knownIds;
 
         public static EssentialsPlugin Instance { get; private set; }
         public PlayerAccountModule AccModule = new PlayerAccountModule();
@@ -77,6 +77,8 @@ namespace Essentials
             string path = Path.Combine(StoragePath, "Essentials.cfg");
             Log.Info($"Attempting to load config from {path}");
             _config = Persistent<EssentialsConfig>.Load(path);
+            _knownIds = new KnownIdsStorage(Path.Combine(StoragePath, "Essentials.KnownSteamIds.txt"));
+            _knownIds.Read();
             _sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged += SessionChanged;
@@ -304,10 +306,10 @@ namespace Essentials
             
             string name = player.Identity?.DisplayName ?? "player";
 
-            bool isNewUser = !Config.KnownSteamIds.Contains(id);
+            bool isNewUser = !_knownIds.Contains(id);
             if (isNewUser)
             {
-                Config.KnownSteamIds.Add(id);
+                _knownIds.Add(id);
             }
             
             if (!string.IsNullOrEmpty(Config.MotdUrl) && isNewUser && Config.NewUserMotdUrl)
