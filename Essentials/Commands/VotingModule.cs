@@ -116,6 +116,29 @@ namespace Essentials.Commands
                 Context.Respond("A vote is not in progress");
         }
 
+        [Command("vote list", "Lists all possible vote commands")]
+        [Permission(MyPromoteLevel.None)]
+        public void VoteList()
+        {
+            StringBuilder sb = new StringBuilder();
+            var voteCommands = new List<AutoCommand>(EssentialsPlugin.Instance.Config.AutoCommands.Where(x=>x.CommandTrigger == Trigger.Vote));
+            if (Context.Player == null)sb.AppendLine($"Found {voteCommands.Count}");
+            var c = 1;
+            foreach (var command in voteCommands)
+            {
+                if (string.IsNullOrEmpty(command.Name)) continue;
+                sb.AppendLine($"{c}. {command.Name}");
+                c++;
+            }
+
+            if (Context.Player == null)
+            {
+                Context.Respond(sb.ToString());
+                return;
+            }
+            ModCommunication.SendMessageTo(new DialogMessage("Vote Commands", $"Found {voteCommands.Count} vote commands", sb.ToString()),Context.Player.SteamUserId);
+        }
+
         [Command("no", "cancel your casted vote")]
         [Permission(MyPromoteLevel.None)]
         public void VoteNo()
