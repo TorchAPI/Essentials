@@ -30,9 +30,7 @@ namespace Essentials.Commands
         }
 
         private static readonly Logger Log = LogManager.GetLogger("Essentials Voting");
-        private static readonly Random rnd = new Random();
         private static AutoCommand _command;
-        private static readonly int _cooldown = rnd.Next(5, 30);
         private static string voteInProgress;
         private static readonly Dictionary<ulong, DateTime> _voteReg = new Dictionary<ulong, DateTime>();
         private static readonly Dictionary<ulong, DateTime> _voteCooldown = new Dictionary<ulong, DateTime>();
@@ -48,7 +46,10 @@ namespace Essentials.Commands
         public void Vote(string name)
         {
             if (Context.Player == null)
+            {
+                Context.Respond("This is an in-game command");
                 return;
+            }
 
             if (VoteStatus == Status.voteInProgress)
             {
@@ -57,17 +58,16 @@ namespace Essentials.Commands
                 return;
             }
 
-            _command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => !string.IsNullOrEmpty(c.Name) && c.Name.Equals(name));
+            _command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => !string.IsNullOrEmpty(c.Name) 
+                && c.CommandTrigger == Trigger.Vote && c.Name.Equals(name));
 
-            if (_command == null || _command.CommandTrigger != Trigger.Vote)
+            if (_command == null)
             {
                 Context.Respond($"Couldn't find any votable command with the name {name}");
-                _command = null;
                 return;
             }
 
 
-            // Rexxar's spam blocker. Timing is random as fuck and unique to each player.
             var steamid = Context.Player.SteamUserId;
             if (_voteCooldown.TryGetValue(steamid, out var activeCooldown))
             {
@@ -79,15 +79,15 @@ namespace Essentials.Commands
                     return;
                 }
 
-                _voteCooldown[steamid] = DateTime.Now.AddMinutes(_cooldown);
+                _voteCooldown[steamid] = DateTime.Now.AddSeconds(_command.TriggerCount);
             }
 
             else
             {
-                _voteCooldown.Add(steamid, DateTime.Now.AddMinutes(_cooldown));
+                _voteCooldown.Add(steamid, DateTime.Now.AddSeconds(_command.TriggerCount));
             }
 
-            var _voteDuration = TimeSpan.Parse(_command.Interval);
+            var voteDuration = TimeSpan.Parse(_command.Interval);
             // voting status
             voteInProgress = name;
             VoteStatus = Status.voteInProgress;
@@ -99,7 +99,7 @@ namespace Essentials.Commands
             //vote countdown
             Task.Run(() =>
             {
-                var countdown = VoteCountdown(_voteDuration).GetEnumerator();
+                var countdown = VoteCountdown(voteDuration).GetEnumerator();
                 while (countdown.MoveNext()) Thread.Sleep(1000);
             });
 
