@@ -57,7 +57,7 @@ namespace Essentials.Commands
                 return;
             }
 
-            _command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(name));
+            _command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => string.IsNullOrEmpty(c.Name) && c.Name.Equals(name));
 
             if (_command == null || _command.CommandTrigger != Trigger.Vote)
             {
