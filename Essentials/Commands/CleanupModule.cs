@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using Torch.Commands;
 using Torch.Mod;
 using Torch.Mod.Messages;
+using VRage.Game;
 using Vector3D = VRageMath.Vector3D;
 
 namespace Essentials.Commands
@@ -366,6 +367,13 @@ namespace Essentials.Commands
             if (string.Compare(str, "pirates", StringComparison.InvariantCultureIgnoreCase) == 0)
             {
                 identityId = MyPirateAntennas.GetPiratesId();
+                var pirateFaction = MySession.Static.Factions.GetPlayerFaction(identityId);
+                if (pirateFaction != null && pirateFaction.Members.Count > 1)
+                {
+                    return grid.BigOwners.Count > 0 &&
+                           pirateFaction.Members.ContainsKey(grid.BigOwners.FirstOrDefault());
+                }
+
             }
             else
             {
