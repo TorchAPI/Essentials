@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Sandbox.Game.Entities;
 using Sandbox.Game.World;
 using Sandbox.ModAPI;
-using Torch;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.Utils;
@@ -97,6 +94,23 @@ namespace Essentials
             }
 
             return null;
+        }
+
+        public static int GetOnlinePlayerCount()
+        {
+            var result = 0;
+
+            result =  MySession.Static.Players.GetOnlinePlayers()
+                .Count(x => x.IsRealPlayer && !string.IsNullOrEmpty(x.DisplayName));
+
+            return result;
+        }
+
+        public static List<MyPlayer> GetOnlinePlayers()
+        {
+            var result = new List<MyPlayer>(MySession.Static.Players.GetOnlinePlayers()
+                .Where(x => x.IsRealPlayer && !string.IsNullOrEmpty(x.DisplayName)));
+            return result;
         }
 
         public static string FormatDataSize(double size)

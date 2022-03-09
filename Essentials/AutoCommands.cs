@@ -72,13 +72,14 @@ namespace Essentials
                     }
                 case Trigger.PlayerCount:
 
-                    if (command.Compare == GreaterThan)
+                    switch (command.Compare)
                     {
-                        return MySession.Static?.Players.GetOnlinePlayerCount() > command.TriggerCount;
-                    }
-                    else if (command.Compare == LessThan)
-                    {
-                        return MySession.Static?.Players.GetOnlinePlayerCount() < command.TriggerCount;
+                        case GreaterThan:
+                            return Utilities.GetOnlinePlayerCount() > command.TriggerCount;
+                        case LessThan:
+                            return Utilities.GetOnlinePlayerCount() < command.TriggerCount;
+                        case Equal:
+                            return Math.Abs(Utilities.GetOnlinePlayerCount() - command.TriggerCount) < 1;
                     }
                     break;
 
