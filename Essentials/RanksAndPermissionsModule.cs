@@ -20,7 +20,7 @@ namespace Essentials {
         public static List<RankData> Ranks = new List<RankData>();
         public static PlayerAccountModule PlayerAccountModule = new PlayerAccountModule();
         public static readonly Logger Log = LogManager.GetCurrentClassLogger();
-        public Dictionary<ulong, List<RankData>> PlayersInheritedRanksStore = new Dictionary<ulong, List<RankData>>();
+        public static Dictionary<ulong, List<RankData>> PlayersInheritedRanksStore = new Dictionary<ulong, List<RankData>>();
         public bool debug = true;
 
         public class Permissions {
@@ -208,6 +208,20 @@ namespace Essentials {
                 Log.Info($"{player.DisplayName} tried to use the blocked command '{cmd}'");
                 ModCommunication.SendMessageTo(new NotificationMessage($"You do not have permission to use that command!", 10000, "Red"), player.SteamUserId);
             }
+        }
+
+        public static List<string> GetInheritRankList(ulong steamID)
+        {
+            var ranksStore = new List<RankData>(PlayersInheritedRanksStore[steamID]);
+            var permList = new List<string>();
+            foreach (var rankData in ranksStore)
+            {
+                permList.Add(rankData.RankName);
+                permList.AddRange(rankData.Inherits.Where(x=>!permList.Contains(x)));
+            }
+
+            return permList;
+
         }
 
         public Dictionary<string, List<string>> GetInheritPermList(ulong steamID) {

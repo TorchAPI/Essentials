@@ -42,19 +42,15 @@ namespace Essentials.Commands
             var count = 0;
             var idents = MySession.Static.Players.GetAllIdentities().ToList();
             var cutoff = DateTime.Now - TimeSpan.FromDays(days);
-            foreach (var identity in idents)
+            var removeIds = new List<MyIdentity>();
+            foreach (var identity in idents.Where(identity => identity.LastLoginTime < cutoff))
             {
-                if (identity.LastLoginTime < cutoff)
-                {
-                    //MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
-                    RemoveFromFaction_Internal(identity);
-                    MySession.Static.Players.RemoveIdentity(identity.IdentityId);
-                    count++;
-                }
+                count++;
+                removeIds.Add(identity);
             }
-
+            
+            FixGridOwnership(new List<long>(removeIds.Select(x => x.IdentityId)), false);
             RemoveEmptyFactions();
-            FixBlockOwnership();
             Context.Respond($"Removed {count} old identities");
         }
 
@@ -64,30 +60,25 @@ namespace Essentials.Commands
         {
             var count = 0;
             var count2 = 0;
-            var grids = MyEntities.GetEntities().OfType<MyCubeGrid>().ToList();
+            var removeIds = new List<MyIdentity>();
             var idents = MySession.Static.Players.GetAllIdentities().ToList();
             var cutoff = DateTime.Now - TimeSpan.FromDays(days);
-            foreach (var identity in idents)
+            foreach (var identity in idents.Where(identity => identity.LastLoginTime < cutoff))
             {
-                if (identity.LastLoginTime < cutoff)
-                {
-                    //MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
-                    RemoveFromFaction_Internal(identity);
-                    MySession.Static.Players.RemoveIdentity(identity.IdentityId);
-                    count++;
-                    foreach (var grid in grids)
-                    {
-                        if (grid.BigOwners.Contains(identity.IdentityId))
-                        {
-                            grid.Close();
-                            count2++;
-                        }
-                    }
-                }
+                count++;
+                removeIds.Add(identity);
             }
 
+            if (count == 0)
+            {
+                Context.Respond($"No old identity found past {days}");
+                return;
+            }
+
+            count2 = FixGridOwnership(new List<long>(removeIds.Select(x => x.IdentityId)));
+            RemoveFromFaction_Internal(removeIds);
+
             RemoveEmptyFactions();
-            FixBlockOwnership();
             Context.Respond($"Removed {count} old identities and {count2} grids owned by them.");
         }
 
@@ -96,23 +87,16 @@ namespace Essentials.Commands
         public void PurgeIdentity (string playername) {
             var count2 = 0;
             var grids = MyEntities.GetEntities().OfType<MyCubeGrid>().ToList();
-            var idents = MySession.Static.Players.GetAllIdentities().ToList();
-            foreach (var identity in idents) {
-                if (identity.DisplayName == playername) {
-                    //MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
-                    RemoveFromFaction_Internal(identity);
-                    MySession.Static.Players.RemoveIdentity(identity.IdentityId);
-                    foreach (var grid in grids) {
-                        if (grid.BigOwners.Contains(identity.IdentityId)) {
-                            grid.Close();
-                            count2++;
-                        }
-                    }
-                }
+            var id = Utilities.GetIdentityByNameOrIds(playername);
+
+            if (id == null)
+            {
+                Context.Respond($"No Identity found for {playername}.  Try Again");
+                return;
             }
 
+            count2 = FixGridOwnership(new List<long> { id.IdentityId });
             RemoveEmptyFactions();
-            FixBlockOwnership();
             Context.Respond($"Removed identity and {count2} grids owned by them.");
         }
 
@@ -233,6 +217,15 @@ namespace Essentials.Commands
             return result;
         }
 
+        private static void RemoveFromFaction_Internal(List<MyIdentity> Ids)
+        {
+            foreach (var identity in Ids)
+            {
+                RemoveFromFaction_Internal(identity);
+                MySession.Static.Players.RemoveIdentity(identity.IdentityId);
+            }
+        }
+
         private static bool RemoveFromFaction_Internal(MyIdentity identity)
         {
             var fac = MySession.Static.Factions.GetPlayerFaction(identity.IdentityId);
@@ -268,6 +261,36 @@ namespace Essentials.Commands
             NetworkManager.RaiseStaticEvent(_factionChangeSuccessInfo, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
             if(!MyAPIGateway.Session.Factions.FactionTagExists(faction.Tag)) return;
             MyAPIGateway.Session.Factions.RemoveFaction(faction.FactionId); //Added to remove factions that got through the crack
+        }
+
+        private static int FixGridOwnership(List<long> Ids, bool deleteGrids = true)
+        {
+            if (Ids.Count == 0) return 0;
+            var grids = new List<MyCubeGrid>(MyEntities.GetEntities().OfType<MyCubeGrid>());
+            int count = 0;
+            foreach (var id in Ids)
+            {
+                if (id == 0) continue;
+                foreach (var grid in grids.Where(grid => grid.BigOwners.Contains(id)))
+                {
+                    if (grid.BigOwners.Count > 1)
+                    {
+                        var newOwnerId = grid.BigOwners.FirstOrDefault(x => x != id);
+                        grid.TransferBlocksBuiltByID(id, newOwnerId);
+                        foreach (var gridCubeBlock in grid.CubeBlocks.Where(x=>x.OwnerId == id))
+                        {
+                            grid.ChangeOwner(gridCubeBlock.FatBlock,id, newOwnerId);
+                        }
+                        grid.RecalculateOwners();
+                        continue;
+                    }
+                    if (deleteGrids) grid.Close();
+                    count++;
+                }
+            }
+
+            return count;
+
         }
 
         private static int FixBlockOwnership()
@@ -326,7 +349,7 @@ namespace Essentials.Commands
             //clean identities that don't own any blocks, or don't have a steam ID for whatever reason
             foreach (var identity in MySession.Static.Players.GetAllIdentities().ToList())
             {
-                if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId)  || string.IsNullOrEmpty(identity.DisplayName))
                 {
                     validIdentities.Add(identity.IdentityId);
                     continue;
