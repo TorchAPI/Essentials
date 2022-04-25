@@ -35,7 +35,7 @@ namespace Essentials.Commands
             Stats.Timing.WriteTo(sb);
 
             if (Context?.Player?.SteamUserId > 0)
-                ModCommunication.SendMessageTo(new DialogMessage("Statistics", null, sb.ToString()) , Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Statistics", null, sb.ToString()), Context.Player.SteamUserId);
             else
                 Context.Respond(sb.ToString());
         }
@@ -58,7 +58,7 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void ListPlayers()
         {
-            if(MySession.Static.Players.GetOnlinePlayerCount() == 0)
+            if (MySession.Static.Players.GetOnlinePlayerCount() == 0)
             {
                 Context.Respond("No players online");
                 return;
@@ -72,7 +72,7 @@ namespace Essentials.Commands
             }
 
             sb.AppendLine($"Found {players.Count} Players on server");
-            foreach(var player in players)
+            foreach (var player in players)
             {
                 sb.AppendLine($"{player.DisplayName}");
                 sb.AppendLine($">PlayerId: {player.Identity.IdentityId}");
@@ -119,7 +119,7 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void EndByOrder(int commandNumber = 0)
         {
-            var commands = new List<AutoCommand>(EssentialsPlugin.Instance.Config.AutoCommands.Where(x=>x.IsRunning()));
+            var commands = new List<AutoCommand>(EssentialsPlugin.Instance.Config.AutoCommands.Where(x => x.IsRunning()));
 
             if (commands.Count == 0)
             {
@@ -164,7 +164,7 @@ namespace Essentials.Commands
 
             else
             {
-                ModCommunication.SendMessageTo(new DialogMessage("Current AutoCommands",$"Found {commands.Count} Commands",sb.ToString()), Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Current AutoCommands", $"Found {commands.Count} Commands", sb.ToString()), Context.Player.SteamUserId);
             }
         }
 
@@ -172,7 +172,7 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void ListAutoRunning()
         {
-            var commands = new List<AutoCommand>(EssentialsPlugin.Instance.Config.AutoCommands.Where(x=>x.IsRunning()));
+            var commands = new List<AutoCommand>(EssentialsPlugin.Instance.Config.AutoCommands.Where(x => x.IsRunning()));
 
             if (commands.Count == 0)
             {
@@ -196,7 +196,7 @@ namespace Essentials.Commands
 
             else
             {
-                ModCommunication.SendMessageTo(new DialogMessage("Current AutoCommands",$"Found {commands.Count} Commands",sb.ToString()), Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Current AutoCommands", $"Found {commands.Count} Commands", sb.ToString()), Context.Player.SteamUserId);
             }
         }
 
@@ -250,7 +250,7 @@ namespace Essentials.Commands
         {
             ulong.TryParse(playerNameOrId, out var id);
             id = Utilities.GetPlayerByNameOrId(playerNameOrId)?.SteamUserId ?? id;
-            
+
             if (id == 0)
             {
                 Context.Respond($"Player '{playerNameOrId}' not found or ID is invalid.");
@@ -262,7 +262,7 @@ namespace Essentials.Commands
                 Context.Respond($"ID {id} is already reserved.");
                 return;
             }
-            
+
             MySandboxGame.ConfigDedicated.Reserved.Add(id);
             MySandboxGame.ConfigDedicated.Save();
             Context.Respond($"ID {id} added to reserved slots.");
@@ -274,19 +274,19 @@ namespace Essentials.Commands
         {
             ulong.TryParse(playerNameOrId, out var id);
             id = Utilities.GetPlayerByNameOrId(playerNameOrId)?.SteamUserId ?? id;
-            
+
             if (id == 0)
             {
                 Context.Respond($"Player '{playerNameOrId}' not found or ID is invalid.");
                 return;
             }
-            
+
             if (!MySandboxGame.ConfigDedicated.Reserved.Contains(id))
             {
                 Context.Respond($"ID {id} is already unreserved.");
                 return;
             }
-            
+
             MySandboxGame.ConfigDedicated.Reserved.Remove(id);
             MySandboxGame.ConfigDedicated.Save();
             Context.Respond($"ID {id} removed from reserved slots.");
@@ -320,7 +320,7 @@ namespace Essentials.Commands
 
             bool res = ChatManager.MuteUser(p.SteamUserId);
 
-            if(!res)
+            if (!res)
                 Context.Respond($"Failed to mute user {user}. They are already muted.");
             else
                 Context.Respond($"Muted user {p.DisplayName}");
@@ -339,7 +339,7 @@ namespace Essentials.Commands
             {
                 foreach (var p in _muted)
                 {
-                    if(p.Value > DateTime.Now)
+                    if (p.Value > DateTime.Now)
                         continue;
 
                     _removeCache.Add(p.Key);
@@ -387,11 +387,11 @@ namespace Essentials.Commands
             foreach (var m in ChatManager.MutedUsers)
             {
                 var s = MySession.Static.Players.TryGetIdentityNameFromSteamId(m);
-                if(string.IsNullOrEmpty(s))
+                if (string.IsNullOrEmpty(s))
                     s = m.ToString();
                 bool f = false;
                 DateTime t = default(DateTime);
-                if(_muted != null)
+                if (_muted != null)
                     lock (_muted)
                         f = _muted.TryGetValue(m, out t);
 
@@ -409,18 +409,22 @@ namespace Essentials.Commands
 
         [Command("give", "Insert an item with a specific quanity into a players inventory")]
         [Permission(MyPromoteLevel.Admin)]
-        public void give(string playerName, string itemType, string item, int quantity) {
+        public void give(string playerName, string itemType, string item, int quantity)
+        {
             string type = "MyObjectBuilder_" + itemType;
             VRage.Game.MyDefinitionId.TryParse(type, item, out VRage.Game.MyDefinitionId defID);
 
-            if (defID.ToString().Contains("null")) {
+            if (defID.ToString().Contains("null"))
+            {
                 Context.Respond("Invalid item type");
                 return;
             }
 
-            if (playerName != "*") {
+            if (playerName != "*")
+            {
                 var p = Utilities.GetPlayerByNameOrId(playerName);
-                if (p == null) {
+                if (p == null)
+                {
                     Context.Respond("Player not found");
                     return;
                 }
@@ -428,14 +432,35 @@ namespace Essentials.Commands
                 ModCommunication.SendMessageTo(new NotificationMessage($"You have been given {quantity} {item} {itemType}", 5000, "Blue"), p.SteamUserId);
             }
 
-            else {
-                foreach (var p in MySession.Static.Players.GetOnlinePlayers()) {
+            else
+            {
+                foreach (var p in MySession.Static.Players.GetOnlinePlayers())
+                {
                     var player = Utilities.GetPlayerByNameOrId(p.DisplayName);
                     Sandbox.Game.MyVisualScriptLogicProvider.AddToPlayersInventory(p.Identity.IdentityId, defID, quantity);
                     ModCommunication.SendMessageTo(new NotificationMessage($"You have been given {quantity} {item} {itemType}", 5000, "Blue"), player.SteamUserId);
                 }
             }
             Context.Respond("Item(s) given!");
+        }
+
+        [Command("playervote", "[playervote Enable] to allow players to start votes, [playervote disable] to disable stop players from starting votes.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void playerVote(string DisEnable)
+        {
+            switch (DisEnable.ToUpper())
+            {
+                case "ENABLE":
+                    EssentialsPlugin.Instance.Config.EnableVote = true;
+                    Context.Respond("Player vote is now enabled");
+                    return;
+
+                case "DISABLE":
+                    EssentialsPlugin.Instance.Config.EnableVote = false;
+                    Context.Respond("Player vote is now disabled");
+                    return;
+            }
+
         }
     }
 }

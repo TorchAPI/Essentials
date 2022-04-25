@@ -86,6 +86,10 @@ namespace Essentials
             set => SetValue(ref _markerShowPosition, value);
         }
 
+        private bool _enableVote = true;
+        [Display(Name = "Enable player use of Vote", Description = "Large factions can abuse the restart, refresh, and other commands with votes. Disabling this will prevent any possible vote abuse.")]
+        public bool EnableVote { get => _enableVote; set => SetValue(ref _enableVote, value); }
+
         private int _backpackLimit = 1;
         [Display(Name = "Backpack Limit", Description = "Sets the number of backpacks that can belong to any player. Empty backpacks are deleted after 30 seconds, and backpacks which break the limit are deleted in order spawned. Set -1 for no limit.")]
         public int BackpackLimit

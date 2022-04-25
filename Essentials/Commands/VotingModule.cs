@@ -45,6 +45,12 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.None)]
         public void Vote(string name)
         {
+            if (EssentialsPlugin.Instance.Config.EnableVote == false)
+            {
+                Context.Respond("Voting has been disabled");
+                return;
+            }
+
             if (Context.Player == null)
             {
                 Context.Respond("This is an in-game command");
