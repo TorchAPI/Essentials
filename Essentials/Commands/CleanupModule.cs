@@ -60,6 +60,30 @@ namespace Essentials.Commands
             Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
         }
 
+        [Command("delete offtype", "Deletes grids with specified blocks toggled off.")]
+        public void OffType(string type)
+        {
+          var count = 0;
+          foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(x => x.Projector == null))
+          {
+            foreach (var block in grid.GetFatBlocks().OfType<IMyFunctionalBlock>())
+            {
+              var blockType = block.BlockDefinition.TypeId.ToString().Substring(16);
+              if (block != null && string.Compare(type, blockType, StringComparison.InvariantCultureIgnoreCase) == 0)
+              {
+                  if (block.IsWorking == false)
+                  {
+                      Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}");
+                      EjectPilots(grid);
+                      grid.Close();
+                      count++;
+                    }
+                  }
+                }
+              }
+              Context.Respond($"grid delete {count} with off blocks of type {type}.");
+            }
+
         [Command("delete floatingobjects", "deletes floating objects")]
         public void FlObjDelete()
         {
@@ -362,7 +386,7 @@ namespace Essentials.Commands
                 return grid.BigOwners.Count > 0 &&
                        MySession.Static.Factions.IsNpcFaction(grid.BigOwners.FirstOrDefault());
             }
-            
+
 
             if (string.Compare(str, "pirates", StringComparison.InvariantCultureIgnoreCase) == 0)
             {
@@ -394,7 +418,7 @@ namespace Essentials.Commands
 
             return grid.BigOwners.Contains(identityId);
         }
-        
+
 
         [Condition("hastype", "notype", "Finds grids containing blocks of the given type.")]
         public bool BlockType(MyCubeGrid grid, string str)
