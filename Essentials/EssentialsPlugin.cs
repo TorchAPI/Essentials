@@ -33,6 +33,7 @@ using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRageMath;
 using Newtonsoft.Json;
+using Sandbox;
 using SpaceEngineers.Game.World;
 using VRage.Network;
 
@@ -105,6 +106,16 @@ namespace Essentials
             
             if (Config.CutGameTags)
                 GameTagsPatch.Patch(_context);
+            
+            torch.GameStateChanged += TorchOnGameStateChanged;
+        }
+
+        private void TorchOnGameStateChanged(MySandboxGame game, TorchGameState newstate)
+        {
+            if (newstate == TorchGameState.Loading)
+            {
+                ConditionsChecker.Init();
+            }
         }
 
         private void SessionChanged(ITorchSession session, TorchSessionState state)

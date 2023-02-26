@@ -153,6 +153,11 @@
     <Compile Include="Commands\CleanupModule.cs" />
     <Compile Include="Commands\VoxelModule.cs" />
     <Compile Include="Commands\WorldModule.cs" />
+    <Compile Include="Conditions\Condition.cs" />
+    <Compile Include="Conditions\ConditionAttribute.cs" />
+    <Compile Include="Conditions\ConditionModule.cs" />
+    <Compile Include="Conditions\ConditionsChecker.cs" />
+    <Compile Include="Conditions\ConditionsImplementations.cs" />
     <Compile Include="EssentialsConfig.cs" />
     <Compile Include="Commands\EntityModule.cs" />
     <Compile Include="EssentialsControl.xaml.cs">
