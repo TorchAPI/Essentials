@@ -218,10 +218,22 @@ namespace Essentials.Commands
             return grid.HasBlockType(str);
         }
 
+        [Condition("hastype-fast", "notype-fast", "Finds grids containing blocks of the given type.")]
+        public static bool BlockTypeFast(MyCubeGrid grid, string str)
+        {
+            return grid.HasBlockTypeFast(str);
+        }
+        
         [Condition("hassubtype", "nosubtype", "Finds grids containing blocks of the given subtype.")]
         public static bool BlockSubType(MyCubeGrid grid, string str)
         {
             return grid.HasBlockSubtype(str);
+        }
+        
+        [Condition("hassubtype-fast", "nosubtype-fast", "Finds grids containing blocks of the given subtype.")]
+        public static bool BlockSubTypeFast(MyCubeGrid grid, string str)
+        {
+            return grid.HasBlockSubtypeFast(str);
         }
 
         [Condition("haspilot", "Finds grids with pilots")]
