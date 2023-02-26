@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Essentials.Conditions;
-using ParallelTasks;
 using Sandbox.Game.Entities;
 using Torch.Commands;
 
@@ -101,7 +101,7 @@ namespace Essentials.Commands
                 if (!found)
                 {
                     context.Respond($"Unknown argument '{arg}'");
-                    yield break;
+                    return new List<MyCubeGrid>();
                 }
             }
 
@@ -109,7 +109,9 @@ namespace Essentials.Commands
             if (!args.Contains("haspilot", StringComparer.CurrentCultureIgnoreCase))
                 conditions.Add(g => !ConditionsImplementations.Piloted(g));
 
-            foreach (var group in MyCubeGridGroups.Static.Logical.Groups)
+
+            var resultList = new List<MyCubeGrid>();
+            Parallel.ForEach(MyCubeGridGroups.Static.Logical.Groups, (group) =>
             {
                 //if (group.Nodes.All(grid => conditions.TrueForAll(func => func(grid.NodeData))))
                 bool res = true;
@@ -122,21 +124,39 @@ namespace Essentials.Commands
                     {
                         bool? r = c.Invoke(node.NodeData);
                         if (r == null)
-                            yield break;
+                        {
+                            return;
+                        }
+
                         if (r == true)
+                        {
                             continue;
+                        }
 
                         res = false;
                         break;
                     }
+
                     if (!res)
+                    {
                         break;
+                    }
                 }
 
                 if (res)
-                    foreach (var grid in group.Nodes.Where(x => x.NodeData.Projector == null))
-                        yield return grid.NodeData;
-            }
+                {
+                    lock (resultList)
+                    {
+                        foreach (var grid in group.Nodes.Where(x => x.NodeData.Projector == null))
+                        {
+                            resultList.Add(grid.NodeData);
+                        }
+                    }
+                }
+                    
+            });
+
+            return resultList;
         }
         
     }
