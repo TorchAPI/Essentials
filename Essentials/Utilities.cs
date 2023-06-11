@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sandbox.Game.Entities;
@@ -8,6 +8,7 @@ using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.Utils;
 using Newtonsoft.Json;
+using VRage.ObjectBuilders;
 
 namespace Essentials
 {
@@ -28,6 +29,61 @@ namespace Essentials
             foreach (var block in ((MyCubeGrid)grid).GetFatBlocks())
                 if (string.Compare(block.BlockDefinition.Id.SubtypeName, subtypeName, StringComparison.InvariantCultureIgnoreCase) == 0)
                     return true;
+
+            return false;
+        }
+        
+        public static bool HasBlockTypeFast(this IMyCubeGrid grid, string typeName)
+        {
+            var types = typeName.Split(new string[] {","}, StringSplitOptions.RemoveEmptyEntries);
+            var list = new List<MyObjectBuilderType>();
+
+            foreach (var s in types)
+            {
+                if (MyObjectBuilderType.TryParse(s, out var typeId))
+                {
+                    list.Add(typeId);
+                }
+            }
+
+            if (list.Count == 0)
+            {
+                return false;
+            }
+            
+            foreach (var block in ((MyCubeGrid) grid).GetFatBlocks())
+            {
+                for (var i = 0; i < list.Count; i++)
+                {
+                    if (block.BlockDefinition.Id.TypeId == list[i])
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public static bool HasBlockSubtypeFast(this IMyCubeGrid grid, string subtypeName)
+        {
+            var subtypes = subtypeName.Split(new string[] {","}, StringSplitOptions.RemoveEmptyEntries);
+            var list = new List<MyStringHash>();
+
+            foreach (var s in subtypes)
+            {
+                list.Add(MyStringHash.TryGet(s));
+            }
+
+            foreach (var block in ((MyCubeGrid) grid).GetFatBlocks())
+            {
+                for (var i = 0; i < list.Count; i++)
+                {
+                    if (block.BlockDefinition.Id.SubtypeId == list[i])
+                    {
+                        return true;
+                    }
+                }
+            }
 
             return false;
         }
