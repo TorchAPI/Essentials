@@ -171,7 +171,11 @@ namespace Essentials.Commands
                 Context.Respond("Player is not online or cannot be found!");
                 return;
             }
-            MyBankingSystem.RequestTransfer(Context.Player.Identity.IdentityId, p.IdentityId, amount);
+            
+            var finalFromBalance = MyBankingSystem.GetBalance(Context.Player.Identity.IdentityId) - amount;
+            var finalToBalance = MyBankingSystem.GetBalance(p.Identity.IdentityId) + amount;
+            
+            MyBankingSystem.RequestTransfer_BroadcastToClients(Context.Player.Identity.IdentityId, p.Identity.IdentityId, amount, finalFromBalance, finalToBalance);
             ModCommunication.SendMessageTo(new NotificationMessage($"Your have recieved {amount} credits from {Context.Player}!", 10000, "Blue"),p.SteamUserId);
             ModCommunication.SendMessageTo(new NotificationMessage($"Your have sent {amount} credits to {p.DisplayName}!", 10000, "Blue"),Context.Player.SteamUserId);
         }

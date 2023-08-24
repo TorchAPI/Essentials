@@ -16,6 +16,7 @@ using VRage.Game;
 using VRage.ObjectBuilders;
 using System.Collections.Concurrent;
 using VRage.Groups;
+using VRage.ObjectBuilders.Private;
 
 namespace Essentials
 {
@@ -201,7 +202,7 @@ namespace Essentials
                 return;
             }
 
-            MyObjectBuilderSerializer.SerializeXML(path, false, ent.GetObjectBuilder());
+            MyObjectBuilderSerializerKeen.SerializeXML(path, false, ent.GetObjectBuilder());
             Context.Respond($"Grid saved to {path}");
         }
         
@@ -233,7 +234,7 @@ namespace Essentials
                 return;
             }
 
-            if (MyObjectBuilderSerializer.DeserializeXML(path, out MyObjectBuilder_CubeGrid grid))
+            if (MyObjectBuilderSerializerKeen.DeserializeXML(path, out MyObjectBuilder_CubeGrid grid))
             {
                 Context.Respond($"Importing grid from {path}");
                 MyEntities.RemapObjectBuilder(grid);
