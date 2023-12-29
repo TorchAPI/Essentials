@@ -130,9 +130,19 @@ namespace Essentials.Commands
             ecodata.AppendLine("Summary of balanaces accross the server");
             Dictionary<ulong, long> balances = new Dictionary<ulong, long>();
             foreach (var p in MySession.Static.Players.GetAllPlayers()) {
+
                 long IdentityID = MySession.Static.Players.TryGetIdentityId(p.SteamId);
                 long balance = MyBankingSystem.GetBalance(IdentityID);
-                balances.Add(p.SteamId, balance);
+
+                /*
+                 * Add or Update. We have seen that it is possible to have 
+                 * two players with the same SteamID but different SerialIDs.
+                 * 
+                 * Those also had different identities. But one of which was dead. 
+                 * TryGetIdentityId() Returned the same value in both cases. So no damage done if
+                 * Value is just overwritten.
+                 */
+                balances[p.SteamId] = balance;
             }
             var sorted = balances.OrderByDescending(x => x.Value).ThenBy(x => x.Key);
             foreach (var value in sorted) {
