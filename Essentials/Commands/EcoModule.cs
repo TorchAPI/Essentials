@@ -22,6 +22,7 @@ namespace Essentials.Commands
 {
     [Category("econ")]
     public class EcoModule : CommandModule {
+
         [Command("give", "Add a specified anount of credits into a users account. Use '*' to affect all players")]
         [Permission(MyPromoteLevel.Admin)]
         public void EcoGive(string Player, long amount) {
@@ -32,19 +33,19 @@ namespace Essentials.Commands
                     return;
                 }
                 p.TryGetBalanceInfo(out long balance);
-                Context.Respond($"new bal will be {balance + amount}");
+                Context.Respond($"new bal will be {balance + amount:#,##0}");
                 p.RequestChangeBalance(amount);
-                ModCommunication.SendMessageTo(new NotificationMessage($"{amount} credits have been added to your virtual account", 10000, "Blue"), p.SteamUserId);
+                ModCommunication.SendMessageTo(new NotificationMessage($"{amount:#,##0} credits have been added to your virtual account", 10000, "Blue"), p.SteamUserId);
 
             }
             else {
                 foreach (var p in MySession.Static.Players.GetAllPlayers()) {
                     long IdentityID = MySession.Static.Players.TryGetIdentityId(p.SteamId);
                     MyBankingSystem.ChangeBalance(IdentityID, amount);
-                    ModCommunication.SendMessageTo(new NotificationMessage($"{amount} credits have been added to your virtual account", 10000, "Blue"), p.SteamId);
+                    ModCommunication.SendMessageTo(new NotificationMessage($"{amount:#,##0} credits have been added to your virtual account", 10000, "Blue"), p.SteamId);
                 }
             }
-            Context.Respond($"{amount} credits given to account(s)");
+            Context.Respond($"{amount:#,##0} credits given to account(s)");
         }
 
         [Command("take", "Take a specified anount of credits from a users account. Use '*' to affect all players")]
@@ -58,17 +59,17 @@ namespace Essentials.Commands
                 }
                 long changefactor = 0 - amount;
                 p.RequestChangeBalance(changefactor);
-                ModCommunication.SendMessageTo(new NotificationMessage($"{amount} credits have been taken to your virtual account", 10000, "Blue"), p.SteamUserId);
+                ModCommunication.SendMessageTo(new NotificationMessage($"{amount:#,##0} credits have been taken to your virtual account", 10000, "Blue"), p.SteamUserId);
             }
             else {
                 foreach (var p in MySession.Static.Players.GetAllPlayers()) {
                     long IdentityID = MySession.Static.Players.TryGetIdentityId(p.SteamId);
                     long balance = MyBankingSystem.GetBalance(IdentityID);
                     MyBankingSystem.ChangeBalance(IdentityID, -amount);
-                    ModCommunication.SendMessageTo(new NotificationMessage($"{amount} credits have been taken to your virtual account", 10000, "Blue"), p.SteamId);
+                    ModCommunication.SendMessageTo(new NotificationMessage($"{amount:#,##0} credits have been taken to your virtual account", 10000, "Blue"), p.SteamId);
                 }
             }
-            Context.Respond($"{amount} credits taken from account(s)");
+            Context.Respond($"{amount:#,##0} credits taken from account(s)");
         }
 
         [Command("set", "Set a users account to a specifed balance. Use '*' to affect all players")]
@@ -83,7 +84,7 @@ namespace Essentials.Commands
                 p.TryGetBalanceInfo(out long balance);
                 long difference = (balance - amount);
                 p.RequestChangeBalance(-difference);
-                ModCommunication.SendMessageTo(new NotificationMessage($"Your balance has been set to {amount} credits!", 10000, "Blue"), p.SteamUserId);
+                ModCommunication.SendMessageTo(new NotificationMessage($"Your balance has been set to {amount:#,##0} credits!", 10000, "Blue"), p.SteamUserId);
             }
             else {
                 foreach (var p in MySession.Static.Players.GetAllPlayers()) {
@@ -91,10 +92,10 @@ namespace Essentials.Commands
                     long balance = MyBankingSystem.GetBalance(IdentityID);
                     long difference = (balance - amount);
                     MyBankingSystem.ChangeBalance(IdentityID, -difference);
-                    ModCommunication.SendMessageTo(new NotificationMessage($"Your balance has been set to {amount} credits!", 10000, "Blue"), p.SteamId);
+                    ModCommunication.SendMessageTo(new NotificationMessage($"Your balance has been set to {amount:#,##0} credits!", 10000, "Blue"), p.SteamId);
                 }
             }
-            Context.Respond($"Balance(s) set to {amount}");
+            Context.Respond($"Balance(s) set to {amount:#,##0}");
         }
 
         [Command("reset", "Reset the credits in a users account to 10,000. Use '*' to affect all players")]
@@ -147,7 +148,7 @@ namespace Essentials.Commands
             var sorted = balances.OrderByDescending(x => x.Value).ThenBy(x => x.Key);
             foreach (var value in sorted) {
                 var test = MySession.Static.Players.TryGetIdentityNameFromSteamId(value.Key);
-                ecodata.AppendLine($"Player: {MySession.Static.Players.TryGetIdentityNameFromSteamId(value.Key).ToString()} - Balance: {value.Value.ToString()}");
+                ecodata.AppendLine($"Player: {MySession.Static.Players.TryGetIdentityNameFromSteamId(value.Key)} - Balance: {value.Value:#,##0}");
             }
 
             if (Context.Player == null) {
@@ -166,7 +167,7 @@ namespace Essentials.Commands
                 return;
             }
             long balance = MyBankingSystem.GetBalance(p.Identity.IdentityId);
-            Context.Respond($"{p.DisplayName}'s balance is {balance} credits");
+            Context.Respond($"{p.DisplayName}'s balance is {balance:#,##0} credits");
         }
 
         [Command("pay")]
@@ -186,8 +187,8 @@ namespace Essentials.Commands
             var finalToBalance = MyBankingSystem.GetBalance(p.Identity.IdentityId) + amount;
             
             MyBankingSystem.RequestTransfer_BroadcastToClients(Context.Player.Identity.IdentityId, p.Identity.IdentityId, amount, finalFromBalance, finalToBalance);
-            ModCommunication.SendMessageTo(new NotificationMessage($"Your have recieved {amount} credits from {Context.Player}!", 10000, "Blue"),p.SteamUserId);
-            ModCommunication.SendMessageTo(new NotificationMessage($"Your have sent {amount} credits to {p.DisplayName}!", 10000, "Blue"),Context.Player.SteamUserId);
+            ModCommunication.SendMessageTo(new NotificationMessage($"Your have recieved {amount:#,##0} credits from {Context.Player}!", 10000, "Blue"),p.SteamUserId);
+            ModCommunication.SendMessageTo(new NotificationMessage($"Your have sent {amount:#,##0} credits to {p.DisplayName}!", 10000, "Blue"),Context.Player.SteamUserId);
         }
 
     }
