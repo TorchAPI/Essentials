@@ -29,7 +29,7 @@ namespace Essentials.Commands
             if (Player != "*") {
                 var p = Utilities.GetPlayerByNameOrId(Player);
                 if (p == null) {
-                    Context.Respond("Player not found");
+                    Context.Respond("Player is not online or cannot be found!");
                     return;
                 }
                 p.TryGetBalanceInfo(out long balance);
@@ -54,7 +54,7 @@ namespace Essentials.Commands
             if (Player != "*") {
                 var p = Utilities.GetPlayerByNameOrId(Player);
                 if (p == null) {
-                    Context.Respond("Player not found");
+                    Context.Respond("Player is not online or cannot be found!");
                     return;
                 }
                 long changefactor = 0 - amount;
@@ -78,7 +78,7 @@ namespace Essentials.Commands
             if (Player != "*") {
                 var p = Utilities.GetPlayerByNameOrId(Player);
                 if (p == null) {
-                    Context.Respond("Player not found");
+                    Context.Respond("Player is not online or cannot be found!");
                     return;
                 }
                 p.TryGetBalanceInfo(out long balance);
@@ -104,7 +104,7 @@ namespace Essentials.Commands
             if (Player != "*") {
                 var p = Utilities.GetPlayerByNameOrId(Player);
                 if (p == null) {
-                    Context.Respond("Player not found");
+                    Context.Respond("Player is not online or cannot be found!");
                     return;
                 }
                 p.TryGetBalanceInfo(out long balance);
