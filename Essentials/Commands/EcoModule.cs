@@ -161,12 +161,12 @@ namespace Essentials.Commands
         [Command("check", "Check the balance of a specific player")]
         [Permission(MyPromoteLevel.None)]
         public void EcoCheck(string Player) {
-            var p = Utilities.GetPlayerByNameOrId(Player);
+            var p = Utilities.GetIdentityByNameOrIds(Player);
             if (p == null) {
-                Context.Respond("Player is not online or cannot be found!");
+                Context.Respond("Player cannot be found!");
                 return;
             }
-            long balance = MyBankingSystem.GetBalance(p.Identity.IdentityId);
+            long balance = MyBankingSystem.GetBalance(p.IdentityId);
             Context.Respond($"{p.DisplayName}'s balance is {balance:#,##0} credits");
         }
 
