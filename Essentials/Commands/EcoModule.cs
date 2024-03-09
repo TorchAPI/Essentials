@@ -175,6 +175,11 @@ namespace Essentials.Commands
             var finalFromBalance = MyBankingSystem.GetBalance(fromIdentitiyId) - amount;
             var finalToBalance = MyBankingSystem.GetBalance(toIdentitiyId) + amount;
 
+            if(finalFromBalance < 0) {
+                Context.Respond($"Sorry, but you are short {-finalFromBalance} credits!");
+                return;
+            }
+
             MyBankingSystem.RequestTransfer_BroadcastToClients(Context.Player.Identity.IdentityId, p.Identity.IdentityId, amount, finalFromBalance, finalToBalance);
             ModCommunication.SendMessageTo(new NotificationMessage($"Your have recieved {amount:#,##0} credits from {Context.Player.DisplayName}!", 10000, "Blue"), p.SteamUserId);
             ModCommunication.SendMessageTo(new NotificationMessage($"Your have sent {amount:#,##0} credits to {p.DisplayName}!", 10000, "Blue"), Context.Player.SteamUserId);
@@ -184,12 +189,17 @@ namespace Essentials.Commands
         /// This method changes the balance of the given identity by the passed amount. 
         /// If the amount is positive the player receives credits. If it is negative, the player loses credits.
         /// 
+        /// If the amount taken from a users account is greater than the amount the user has, the accounts balance is set to 0, since negative balances are not possible.
+        /// 
         /// This Method performs an online check and only broadcasts the change to players that are currently online. 
         /// For offline players only a change in the server is needed. The player receives their new balance upon next login.
         /// </summary>
         private void ChangeBalance(long identityId, long amount) {
 
             long balance = MyBankingSystem.GetBalance(identityId);
+
+            if (balance + amount < 0)
+                amount = -balance;
 
             if (MySession.Static.Players.IsPlayerOnline(identityId))
                 MyBankingSystem.ChangeBalanceBroadcastToClients(identityId, amount, balance + amount);
