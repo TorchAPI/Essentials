@@ -190,9 +190,6 @@ namespace Essentials.Commands
         /// If the amount is positive the player receives credits. If it is negative, the player loses credits.
         /// 
         /// If the amount taken from a users account is greater than the amount the user has, the accounts balance is set to 0, since negative balances are not possible.
-        /// 
-        /// This Method performs an online check and only broadcasts the change to players that are currently online. 
-        /// For offline players only a change in the server is needed. The player receives their new balance upon next login.
         /// </summary>
         private void ChangeBalance(long identityId, long amount) {
 
@@ -201,10 +198,7 @@ namespace Essentials.Commands
             if (balance + amount < 0)
                 amount = -balance;
 
-            if (MySession.Static.Players.IsPlayerOnline(identityId))
-                MyBankingSystem.ChangeBalanceBroadcastToClients(identityId, amount, balance + amount);
-            else
-                MyBankingSystem.ChangeBalance(identityId, amount);
+            MyBankingSystem.ChangeBalance(identityId, amount);
         }
 
         /// <summary>
