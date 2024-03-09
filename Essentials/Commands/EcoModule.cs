@@ -176,7 +176,7 @@ namespace Essentials.Commands
             var finalToBalance = MyBankingSystem.GetBalance(toIdentitiyId) + amount;
 
             if(finalFromBalance < 0) {
-                Context.Respond($"Sorry, but you are short {-finalFromBalance} credits!");
+                Context.Respond($"Sorry, but you are short {-finalFromBalance:#,##0} credits!");
                 return;
             }
 
