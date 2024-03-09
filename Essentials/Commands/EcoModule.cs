@@ -36,7 +36,7 @@ namespace Essentials.Commands
                 changedIdentities++;
             }
 
-            Context.Respond($"{amount:#,##0} credits given to {changedIdentities} account(s)");
+            Context.Respond($"{amount:#,##0} credits given to {changedIdentities:#,##0} account(s)");
         }
 
         [Command("take", "Take a specified anount of credits from a users account. Use '*' to affect all players")]
@@ -61,7 +61,7 @@ namespace Essentials.Commands
                 changedIdentities++;
             }
 
-            Context.Respond($"{amount:#,##0} credits taken from {changedIdentities} account(s)");
+            Context.Respond($"{amount:#,##0} credits taken from {changedIdentities:#,##0} account(s)");
         }
 
         [Command("set", "Set a users account to a specifed balance. Use '*' to affect all players")]
@@ -88,7 +88,7 @@ namespace Essentials.Commands
                 changedIdentities++;
             }
 
-            Context.Respond($"Balance(s) set to {amount:#,##0} on {changedIdentities} accounts");
+            Context.Respond($"Balance(s) set to {amount:#,##0} on {changedIdentities:#,##0} accounts");
         }
 
         [Command("reset", "Reset the credits in a users account to 10,000. Use '*' to affect all players")]
