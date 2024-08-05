@@ -99,7 +99,7 @@ namespace Essentials
                 return;
             }
 
-            Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsOther(message, Context.Player?.DisplayName ?? "Server", MyFontEnum.Red, player.SteamUserId);
+            Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsOther(Context.Player?.DisplayName ?? "Server", message, MyFontEnum.Red, player.SteamUserId);
         }
 
         [Command("kick", "Kick a player from the game.")]
