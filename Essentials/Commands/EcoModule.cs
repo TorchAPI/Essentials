@@ -151,7 +151,10 @@ namespace Essentials.Commands
         [Command("pay")]
         [Permission(MyPromoteLevel.None)]
         public void EcoPay(string Player, long amount) {
-            
+            if (amount <= 0) {
+                Context.Respond("Amount cannot be negative");
+                return;
+            }
             if (Context.Player == null) {
                 Context.Respond("Console cannot execute this command");
                 return;
