@@ -260,6 +260,32 @@ namespace Essentials.Commands
             
 
         }
+        
+        [Command("reset planet area", "Resets voxel damange in specified radius from player")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void ResetPlanetVoxelArea(float Radius)
+        {
+            if (Context.Player == null)
+                Context.Respond("Invalid command input! Must be ingame!");
+ 
+
+            if(Radius <= 0)
+            {
+                Context.Respond("Inavlid radius!");
+                return;
+            }
+                
+
+            if(ResetPlanetVoxelsInArea(Context.Player.GetPosition(), Radius)) {
+                Context.Respond("Voxel reset complete!");
+            }
+            else
+            {
+                Context.Respond("Couldnt reset voxels! Check log for more information!");
+            }
+            
+
+        }
 
         [Command("reset gps", "Resets voxel damange in specified radius from given point")]
         [Permission(MyPromoteLevel.Admin)]
@@ -342,6 +368,67 @@ namespace Essentials.Commands
                 return false;
             }
         }
+        
+        private static bool ResetPlanetVoxelsInArea(Vector3D center, float radius)
+        {
+            try
+            {
+                BoundingSphereD sphere = new BoundingSphereD(center, radius);
+                List<MyPlanet> planets = MyEntities.GetEntitiesInSphere(ref sphere).OfType<MyPlanet>().ToList();
+                if (planets.Count == 0)
+                    return true;
+
+                foreach (var planet in planets)
+                {
+                    using (planet.Pin())
+                    {
+                        if (planet.MarkedForClose)
+                        {
+                            continue;
+                        }
+
+                        MyShapeSphere shape = new MyShapeSphere
+                        {
+                            Center = center,
+                            Radius = radius
+                        };
+
+                        // Planet-specific adjustment to voxel coordinates
+                        Vector3I minCorner, maxCorner;
+                        BoundingBoxD shapeAabb = shape.GetWorldBoundaries();
+                        Vector3I storageSize = planet.Storage.Size;
+                        MyVoxelCoordSystems.WorldPositionToVoxelCoord(planet.PositionLeftBottomCorner, ref shapeAabb.Min, out minCorner);
+                        MyVoxelCoordSystems.WorldPositionToVoxelCoord(planet.PositionLeftBottomCorner, ref shapeAabb.Max, out maxCorner);
+                        minCorner += planet.StorageMin;
+                        maxCorner += planet.StorageMin;
+                        maxCorner += 1;
+                        storageSize -= 1;
+
+                        Vector3I.Clamp(ref minCorner, ref Vector3I.Zero, ref storageSize, out minCorner);
+                        Vector3I.Clamp(ref maxCorner, ref Vector3I.Zero, ref storageSize, out maxCorner);
+
+                        planet.Storage.DeleteRange(MyStorageDataTypeFlags.ContentAndMaterial, minCorner, maxCorner, false);
+
+                        BoundingBoxD cutOutBox = shape.GetWorldBoundaries();
+                        MySandboxGame.Static.Invoke(delegate
+                        {
+                            if (planet.Storage != null)
+                            {
+                                planet.Storage.NotifyChanged(minCorner, maxCorner, MyStorageDataTypeFlags.ContentAndMaterial);
+                                MyVoxelGenerator.NotifyVoxelChanged(MyVoxelBase.OperationType.Revert, planet, ref cutOutBox);
+                            }
+                        }, "ResetPlanetVoxels notify");
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex, "Planet voxel reset failed!");
+                return false;
+            }
+        }
+
 
         private static LockToken PinDelete()
         {

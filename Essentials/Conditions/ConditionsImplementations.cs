@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Sandbox.ModAPI;
 using Vector3D = VRageMath.Vector3D;
 
 namespace Essentials.Commands
@@ -59,6 +60,21 @@ namespace Essentials.Commands
                 return grid.GridSizeEnum == VRage.Game.MyCubeSize.Small;
 
             // In all other cases, just return false.
+            return false;
+        }
+        
+        public static bool IsNPCTradeStation(MyCubeGrid grid)
+        {
+            if (grid == null)
+                return false;
+
+            if (grid.IsStatic && grid.GridSizeEnum == VRage.Game.MyCubeSize.Large)
+            {
+                var faction = MyAPIGateway.Session.Factions.TryGetPlayerFaction(grid.BigOwners.FirstOrDefault());
+                if (faction != null && faction.Tag == "NPC")
+                    return true;
+            }
+
             return false;
         }
 

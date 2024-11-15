@@ -215,8 +215,7 @@ namespace Essentials
 
 
         public static void InsertDiscordID(ulong steamID, string discordID, string discordName, Dictionary<ulong,string> RoleData) {
-            PlayerAccountModule.InsertDiscord(steamID, discordID, discordName, RoleData);
-            
+            //removed for now
         }
 
         private void ProcessBags()

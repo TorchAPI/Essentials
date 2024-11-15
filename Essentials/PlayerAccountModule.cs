@@ -118,25 +118,6 @@ namespace Essentials {
             File.WriteAllText(EssentialsPlugin.Instance.homeDataPath, JsonConvert.SerializeObject(PlayersAccounts, Formatting.Indented));
         }
 
-        public static void InsertDiscord(ulong steamID, string discordID, string discordName, Dictionary<ulong, string> RoleData) {
-            Log.Info($"DiscordID for {steamID} received from SEDB!... Inserting into player account ({discordID})");
-            var AccModule = new PlayerAccountModule();
-            var account = AccModule.GetAccount(steamID);
-
-            account.DiscordData.DiscordID = ulong.Parse(discordID);
-            account.DiscordData.DiscordName = discordName;
-            foreach (var role in RoleData) {
-                if (account.DiscordData.DiscordID == ulong.Parse(discordID)) {
-                    account.DiscordData.DiscordName = discordName;
-                    if (!account.DiscordData.Roles.ContainsKey(role.Key)) {
-                        account.DiscordData.Roles.Add(role.Key, role.Value);
-                    }
-                }
-            } 
-
-            AccModule.UpdatePlayerAccount(account);
-        }
-
         public void GenerateAccount(Torch.API.IPlayer player) {
             try {
                 var state = new MyP2PSessionState();
@@ -182,12 +163,6 @@ namespace Essentials {
             var state = new MyP2PSessionState();
             Sandbox.Engine.Networking.MyGameService.Peer2Peer.GetSessionState(Player.SteamId, ref state);
             var ip = new IPAddress(BitConverter.GetBytes(state.RemoteIP).Reverse().ToArray());
-
-            foreach (var account in PlayersAccounts) {
-                if (account.KnownIps.Contains(ip.ToString()) && account.Player != Player.Name) {
-                    Log.Warn($"WARNING! {Player.Name} shares the same IP address as {account.Player}");
-                }
-            }
 
         }
 
