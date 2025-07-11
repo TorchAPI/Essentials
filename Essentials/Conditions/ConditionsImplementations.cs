@@ -171,6 +171,21 @@ namespace Essentials.Commands
             return false;
         }
 
+        [Condition("poweredgriddistancegreaterthan", "Finds grids that are farther than the given distance from other grids that are powered.")]
+        public static bool PoweredGridDistanceGreaterThan(MyCubeGrid grid, double dist)
+        {
+            // Returns 'true' if the count of matched grids is zero for these conditions:
+            //        the distance from grid to entity is less than dist
+            //        the grid is unpowered
+            // Otherwise, returns 'false'
+            dist *= dist;
+            return MyEntities.GetEntities().Where(
+                x => 
+                (VRageMath.Vector3.DistanceSquared(x.PositionComp.GetPosition(), grid.PositionComp.GetPosition()) < dist 
+                && (x.GetType() == typeof(MyCubeGrid)))).Cast<MyCubeGrid>().Where(y => !y.EntityId.Equals(grid.EntityId) && !y.IsPowered)
+            .Count() == 0;           
+        }
+
         [Condition("centerdistancelessthan", "centerdistancegreaterthan", "Finds grids that are further than the given distance from center.")]
         public static bool CenterDistanceLessThan(MyCubeGrid grid, double dist)
         {
