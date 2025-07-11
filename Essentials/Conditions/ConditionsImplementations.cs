@@ -174,15 +174,16 @@ namespace Essentials.Commands
         [Condition("poweredgriddistancegreaterthan", "Finds grids that are farther than the given distance from other grids that are powered.")]
         public static bool PoweredGridDistanceGreaterThan(MyCubeGrid grid, double dist)
         {
-            // Returns 'true' if the count of matched grids is zero for these conditions:
+            // Returns 'true' if the count of matched grids from a list of all grids is zero for these conditions:
             //        the distance from grid to entity is less than dist
-            //        the grid is unpowered
+            //        the grid is powered
             // Otherwise, returns 'false'
             dist *= dist;
             return MyEntities.GetEntities().Where(
                 x => 
                 (VRageMath.Vector3.DistanceSquared(x.PositionComp.GetPosition(), grid.PositionComp.GetPosition()) < dist 
-                && (x.GetType() == typeof(MyCubeGrid)))).Cast<MyCubeGrid>().Where(y => !y.EntityId.Equals(grid.EntityId) && !y.IsPowered)
+                    && (x.GetType() == typeof(MyCubeGrid))                
+                )).Cast<MyCubeGrid>().Where(y => !y.EntityId.Equals(grid.EntityId) && y.IsPowered)
             .Count() == 0;           
         }
 
