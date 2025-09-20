@@ -1,16 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Essentials.Utils;
 using NLog;
 using Sandbox;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Voxels;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
+using Sandbox.Game.Screens.Helpers;
 using Sandbox.Game.World;
 using Sandbox.Game.World.Generator;
+using Sandbox.ModAPI;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Controls;
+using System.Windows.Shapes;
 using Torch.Commands;
 using Torch.Commands.Permissions;
 using Torch.Mod;
@@ -18,9 +27,12 @@ using Torch.Mod.Messages;
 using Torch.Utils;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
+using VRage.ModAPI;
 using VRage.Network;
+using VRage.Utils;
 using VRage.Voxels;
 using VRageMath;
+using static Sandbox.Game.Entities.MyVoxelBase;
 using Parallel = ParallelTasks.Parallel;
 
 namespace Essentials.Commands
@@ -29,6 +41,8 @@ namespace Essentials.Commands
     public class VoxelModule : CommandModule
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+
+        
 
         [ReflectedGetter(Name = "m_asteroidsModule")]
         private static Func<MyProceduralWorldGenerator, MyProceduralAsteroidCellGenerator> _asteroidGenerator;
@@ -42,10 +56,10 @@ namespace Essentials.Commands
         public void ResetAll(bool deleteStorage = false)
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelBase>();
-            
+
             var resetIds = new List<long>();
             int count = 0;
-            
+
             foreach (var map in voxelMaps)
             {
                 try
@@ -136,7 +150,7 @@ namespace Essentials.Commands
 
             var resetIds = new List<long>();
             int count = 0;
-            
+
             foreach (var map in voxelMaps)
             {
                 try
@@ -212,7 +226,7 @@ namespace Essentials.Commands
             var maps = new List<MyPlanet>(2);
             foreach (MyPlanet map in MyEntities.GetEntities().OfType<MyPlanet>())
             {
-                if( map.StorageName.Contains(planetName, StringComparison.CurrentCultureIgnoreCase))
+                if (map.StorageName.Contains(planetName, StringComparison.CurrentCultureIgnoreCase))
                     maps.Add(map);
             }
 
@@ -224,7 +238,7 @@ namespace Essentials.Commands
                 case 1:
                     var map = maps[0];
                     map.Storage.Reset(MyStorageDataTypeFlags.All);
-                    ModCommunication.SendMessageToClients(new VoxelResetMessage(new long[]{map.EntityId}));
+                    ModCommunication.SendMessageToClients(new VoxelResetMessage(new long[] { map.EntityId }));
                     Context.Respond($"Reset planet {map.Name}");
                     return;
                 default:
@@ -241,49 +255,24 @@ namespace Essentials.Commands
         {
             if (Context.Player == null)
                 Context.Respond("Invalid command input! Must be ingame!");
- 
 
-            if(Radius <= 0)
+
+            if (Radius <= 0)
             {
                 Context.Respond("Inavlid radius!");
                 return;
             }
-                
 
-            if(ResetVoxelInArea(Context.Player.GetPosition(), Radius)) {
+
+            if (ResetVoxelInArea(Context.Player.GetPosition(), Radius))
+            {
                 Context.Respond("Voxel reset complete!");
             }
             else
             {
                 Context.Respond("Couldnt reset voxels! Check log for more information!");
             }
-            
 
-        }
-        
-        [Command("reset planet area", "Resets voxel damange in specified radius from player")]
-        [Permission(MyPromoteLevel.Admin)]
-        public void ResetPlanetVoxelArea(float Radius)
-        {
-            if (Context.Player == null)
-                Context.Respond("Invalid command input! Must be ingame!");
- 
-
-            if(Radius <= 0)
-            {
-                Context.Respond("Inavlid radius!");
-                return;
-            }
-                
-
-            if(ResetPlanetVoxelsInArea(Context.Player.GetPosition(), Radius)) {
-                Context.Respond("Voxel reset complete!");
-            }
-            else
-            {
-                Context.Respond("Couldnt reset voxels! Check log for more information!");
-            }
-            
 
         }
 
@@ -309,7 +298,7 @@ namespace Essentials.Commands
             }
         }
 
-        private static bool ResetVoxelInArea(Vector3D Center, float Radius)
+        public static bool ResetVoxelInArea(Vector3D Center, float Radius, bool UpdatePlayers = true)
         {
 
             try
@@ -319,115 +308,36 @@ namespace Essentials.Commands
                 if (Maps.Count == 0)
                     return true;
 
+                var m = typeof(MyVoxelBase).GetMethod("PerformVoxelOperationSphere_Implementation", BindingFlags.Instance | BindingFlags.NonPublic);
+
                 foreach (var voxelMap in Maps)
                 {
-                    using (voxelMap.Pin())
-                    {
-                        if (voxelMap.MarkedForClose)
-                        {
-                            continue;
-                        }
-                        MyShapeSphere shape = new MyShapeSphere();
-                        shape.Center = Center;
-                        shape.Radius = Radius;
-                        Vector3I minCorner;
-                        Vector3I maxCorner;
-                        Vector3I numCells;
-                        BoundingBoxD shapeAabb = shape.GetWorldBoundaries();
-                        Vector3I StorageSize = voxelMap.Storage.Size;
-                        MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxelMap.PositionLeftBottomCorner, ref shapeAabb.Min, out minCorner);
-                        MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxelMap.PositionLeftBottomCorner, ref shapeAabb.Max, out maxCorner);
-                        minCorner += voxelMap.StorageMin;
-                        maxCorner += voxelMap.StorageMin;
-                        maxCorner += 1;
-                        StorageSize -= 1;
-                        Vector3I.Clamp(ref minCorner, ref Vector3I.Zero, ref StorageSize, out minCorner);
-                        Vector3I.Clamp(ref maxCorner, ref Vector3I.Zero, ref StorageSize, out maxCorner);
-                        numCells = new Vector3I((maxCorner.X - minCorner.X) / 16, (maxCorner.Y - minCorner.Y) / 16, (maxCorner.Z - minCorner.Z) / 16);
+                    if (voxelMap.MarkedForClose)
+                        continue;
 
 
-                        minCorner = Vector3I.Max(Vector3I.One, minCorner);
-                        maxCorner = Vector3I.Max(minCorner, maxCorner - Vector3I.One);
-                        voxelMap.Storage.DeleteRange(MyStorageDataTypeFlags.ContentAndMaterial, minCorner, maxCorner, false);
-                        BoundingBoxD cutOutBox = shape.GetWorldBoundaries();
-                        MySandboxGame.Static.Invoke(delegate
-                        {
-                            if (voxelMap.Storage != null)
-                            {
-                                voxelMap.Storage.NotifyChanged(minCorner, maxCorner, MyStorageDataTypeFlags.ContentAndMaterial);
-                                MyVoxelGenerator.NotifyVoxelChanged(MyVoxelBase.OperationType.Revert, voxelMap, ref cutOutBox);
-                            }
-                        }, "RevertShape notify");
-                    }
-                }
-                return true;
-            }
-            catch(Exception ex)
-            {
-                _log.Error(ex, "Voxel reset failed!");
-                return false;
-            }
-        }
-        
-        private static bool ResetPlanetVoxelsInArea(Vector3D center, float radius)
-        {
-            try
-            {
-                BoundingSphereD sphere = new BoundingSphereD(center, radius);
-                List<MyPlanet> planets = MyEntities.GetEntitiesInSphere(ref sphere).OfType<MyPlanet>().ToList();
-                if (planets.Count == 0)
-                    return true;
 
-                foreach (var planet in planets)
-                {
-                    using (planet.Pin())
-                    {
-                        if (planet.MarkedForClose)
-                        {
-                            continue;
-                        }
+                    MyShapeSphere shape = new MyShapeSphere();
+                    shape.Center = Center;
+                    shape.Radius = Radius;
 
-                        MyShapeSphere shape = new MyShapeSphere
-                        {
-                            Center = center,
-                            Radius = radius
-                        };
+                    MyVoxelGenerator.RevertShape(voxelMap, shape);
 
-                        // Planet-specific adjustment to voxel coordinates
-                        Vector3I minCorner, maxCorner;
-                        BoundingBoxD shapeAabb = shape.GetWorldBoundaries();
-                        Vector3I storageSize = planet.Storage.Size;
-                        MyVoxelCoordSystems.WorldPositionToVoxelCoord(planet.PositionLeftBottomCorner, ref shapeAabb.Min, out minCorner);
-                        MyVoxelCoordSystems.WorldPositionToVoxelCoord(planet.PositionLeftBottomCorner, ref shapeAabb.Max, out maxCorner);
-                        minCorner += planet.StorageMin;
-                        maxCorner += planet.StorageMin;
-                        maxCorner += 1;
-                        storageSize -= 1;
+                    if (UpdatePlayers)
+                        Events.RaiseEvent<MyVoxelBase, Vector3D, float, byte, OperationType>(voxelMap.RootVoxel, m, shape.Center, shape.Radius, 0, MyVoxelBase.OperationType.Revert);
 
-                        Vector3I.Clamp(ref minCorner, ref Vector3I.Zero, ref storageSize, out minCorner);
-                        Vector3I.Clamp(ref maxCorner, ref Vector3I.Zero, ref storageSize, out maxCorner);
-
-                        planet.Storage.DeleteRange(MyStorageDataTypeFlags.ContentAndMaterial, minCorner, maxCorner, false);
-
-                        BoundingBoxD cutOutBox = shape.GetWorldBoundaries();
-                        MySandboxGame.Static.Invoke(delegate
-                        {
-                            if (planet.Storage != null)
-                            {
-                                planet.Storage.NotifyChanged(minCorner, maxCorner, MyStorageDataTypeFlags.ContentAndMaterial);
-                                MyVoxelGenerator.NotifyVoxelChanged(MyVoxelBase.OperationType.Revert, planet, ref cutOutBox);
-                            }
-                        }, "ResetPlanetVoxels notify");
-                    }
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                _log.Error(ex, "Planet voxel reset failed!");
+                _log.Error(ex, "Voxel reset failed!");
                 return false;
             }
         }
+
+
+
 
 
         private static LockToken PinDelete()
