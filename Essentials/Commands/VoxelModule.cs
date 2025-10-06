@@ -108,8 +108,6 @@ namespace Essentials.Commands
                     if (map.StorageName == null || map.Storage.DataProvider == null)
                         continue;
 
-                    count++;
-
                     var s = map.PositionComp.WorldVolume;
                     var nearEntities = new List<MyEntity>();
 
@@ -117,6 +115,8 @@ namespace Essentials.Commands
 
                     if (nearEntities.Any(e => e is MyCubeGrid || e is MyCharacter))
                         continue;
+
+                    count++;
 
                     long id = map.EntityId;
 
