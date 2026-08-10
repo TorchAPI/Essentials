@@ -183,7 +183,7 @@ namespace Essentials.Commands
                 x => 
                 (VRageMath.Vector3.DistanceSquared(x.PositionComp.GetPosition(), grid.PositionComp.GetPosition()) < dist 
                     && (x.GetType() == typeof(MyCubeGrid))                
-                )).Cast<MyCubeGrid>().Where(y => !y.EntityId.Equals(grid.EntityId) && y.IsPowered)
+                )).Cast<MyCubeGrid>().Where(y => !y.EntityId.Equals(grid.EntityId) && y.IsPowerSwitchOn)
             .Count() == 0;           
         }
 
