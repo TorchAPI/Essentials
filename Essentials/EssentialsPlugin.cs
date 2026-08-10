@@ -325,7 +325,7 @@ namespace Essentials
 
         private void KillMotdTasks(IPlayer player)
         {
-            if (_motdTasks.TryGetValue(player.SteamId, out var cts))
+            if (_motdTasks.TryRemove(player.SteamId, out var cts))
             {
                 cts.Cancel();
             }
