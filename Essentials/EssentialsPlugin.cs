@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -141,6 +142,7 @@ namespace Essentials
                     mpMan.PlayerJoined += AccModule.GenerateAccount;
                     mpMan.PlayerJoined += AccModule.CheckIp;
                     mpMan.PlayerJoined += MotdOnce;
+                    mpMan.PlayerLeft += KillMotdTasks;
                     if (Config.EnableRanks) {
                         RanksAndPermissions.GenerateRank(Config.DefaultRank);
                         mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
@@ -268,34 +270,65 @@ namespace Essentials
             _motdOnce.Remove(player.SteamId);
         }
 
+        private readonly ConcurrentDictionary<ulong, CancellationTokenSource> _motdTasks = new ConcurrentDictionary<ulong, CancellationTokenSource>();
         private void MotdOnce(IPlayer player)
         {
-            //TODO: REMOVE ALL THIS TRASH!
-            //implement a PlayerSpawned event in Torch. This will work for now.
-            Task.Run(() =>
-                     {
-                         var start = DateTime.Now;
-                         var timeout = TimeSpan.FromMinutes(5);
-                         var pid = new MyPlayer.PlayerId(player.SteamId, 0);
-                         while (DateTime.Now - start <= timeout)
-                         {
-                             if (!MySession.Static.Players.TryGetPlayerById(pid, out MyPlayer p) || p.Character == null)
-                             {
-                                 Thread.Sleep(1000);
-                                 continue;
-                             }
+            var cts = new CancellationTokenSource();
 
-                             Torch.Invoke(() =>
-                                          {
-                                              if (_motdOnce.Contains(player.SteamId))
-                                                  return;
+            if (!_motdTasks.TryAdd(player.SteamId, cts))
+            {
+                cts.Dispose();
+                return;
+            }
 
-                                              SendMotd(p, true);
-                                              _motdOnce.Add(player.SteamId);
-                                          });
-                             break;
-                         }
-                     });
+            Task.Run(async () =>
+            {
+                var start = DateTime.UtcNow;
+                var timeout = TimeSpan.FromMinutes(5);
+                var pid = new MyPlayer.PlayerId(player.SteamId, 0);
+
+                try
+                {
+                    while (DateTime.UtcNow - start <= timeout)
+                    {
+                        cts.Token.ThrowIfCancellationRequested();
+                        if (!MySession.Static.Players.TryGetPlayerById(pid, out MyPlayer p) ||
+                            p.Character == null)
+                        {
+                            await Task.Delay(1000, cts.Token);
+                            continue;
+                        }
+
+                        await Torch.InvokeAsync(() =>
+                        {
+                            if (_motdOnce.Contains(player.SteamId))
+                                return;
+
+                            SendMotd(p, true);
+                           _motdOnce.Add(player.SteamId);
+                        });
+
+                        break;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Player disconnected.
+                }
+                finally
+                {
+                    _motdTasks.TryRemove(player.SteamId, out _);
+                    cts.Dispose();
+                }
+            }, cts.Token);
+        }
+
+        private void KillMotdTasks(IPlayer player)
+        {
+            if (_motdTasks.TryGetValue(player.SteamId, out var cts))
+            {
+                cts.Cancel();
+            }
         }
 
         public void SendMotd(MyPlayer player, bool onSessionChanged)
