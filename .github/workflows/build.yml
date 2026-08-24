@@ -2,14 +2,16 @@
 #
 # Repo-specific settings below:
 #   PLATFORM        x64 -- Essentials.sln only defines x64, not Any CPU.
-#   VERSION_SCRIPT      -- manifest.xml carries ${VERSION} as a placeholder; the
-#                          real version comes from Versioning/version.ps1
-#                          (git describe + build number), which also writes
-#                          Versioning/AssemblyVersion.cs before the compile.
-#   PACKAGE_INCLUDE     -- ship only Essentials.*, as the Jenkinsfile did. The
-#                          output directory also holds netstandard.dll and
-#                          Newtonsoft.Json 12.0.3, both of which Torch already
-#                          provides; shipping them risks a runtime conflict.
+#   VERSION_SCRIPT      -- Versioning/version.ps1 still runs, because it writes
+#                          Versioning/AssemblyVersion.cs which the csproj
+#                          compiles. Its string is no longer the plugin version.
+#   VERSION_FROM_TORCHAPI -- the published version on torchapi decides the
+#                          number: highest known version, patch bumped, so a
+#                          build never ships a version already published.
+#                          manifest.xml holds ${VERSION}, so there is no local
+#                          number to fall back on.
+#   PACKAGE_INCLUDE     -- ship only Essentials.*, as the Jenkinsfile did.
+#                          Newtonsoft.Json is Private=False and Torch provides it.
 #
 # Auto-detected: Essentials.sln (root, beating the nested Essentials/Essentials.sln),
 # Essentials/Essentials.csproj (Essentials.Tests excluded), and the root manifest.xml.
@@ -36,6 +38,9 @@ env:
   # when the repo versions itself (git describe, a build counter) instead of
   # carrying a real version in manifest.xml. Empty = derive from torchapi.
   VERSION_SCRIPT: 'Versioning/version.ps1'
+  # 'true' makes torchapi's published version decide the number even when
+  # VERSION_SCRIPT is set (the script still runs, for any source it generates).
+  VERSION_FROM_TORCHAPI: 'true'
   # Glob(s), one per line, selecting what goes in the zip from each project's
   # output. Empty = every *.dll.
   PACKAGE_INCLUDE: 'Essentials.*'
@@ -340,41 +345,58 @@ jobs:
           $guid = $xml.PluginManifest.Guid
           $localRaw = "$($xml.PluginManifest.Version)".Trim()
 
+          Write-Host "manifest       : guid=$guid version=$localRaw"
+
+          # A repo version script (git describe, build counter, ...) reports the
+          # version on its last stdout line. Run it even when torchapi decides the
+          # final number, because these scripts commonly generate source consumed
+          # by the compile -- Essentials writes Versioning/AssemblyVersion.cs.
+          # BUILD_NUMBER is exported for scripts carried over from Jenkins.
+          $scriptRaw = $null
           if (-not [string]::IsNullOrWhiteSpace($env:VERSION_SCRIPT)) {
-              # The repo owns its versioning (git describe, build counter, ...).
-              # Its last line of stdout is the version. BUILD_NUMBER is exported
-              # for scripts carried over from Jenkins.
               if (-not (Test-Path $env:VERSION_SCRIPT)) { throw "VERSION_SCRIPT not found: $($env:VERSION_SCRIPT)" }
               $out = & $env:VERSION_SCRIPT
-              $new = "$(@($out) | Where-Object { "$_".Trim() } | Select-Object -Last 1)".Trim()
-              if (-not $new) { throw "$($env:VERSION_SCRIPT) produced no version" }
-              $publishedRaw = 'n/a (repo version script)'
-              Write-Host "version from $($env:VERSION_SCRIPT): $new"
+              $scriptRaw = "$(@($out) | Where-Object { "$_".Trim() } | Select-Object -Last 1)".Trim()
+              if (-not $scriptRaw) { throw "$($env:VERSION_SCRIPT) produced no version" }
+              Write-Host "version script : $scriptRaw"
+          }
+
+          $published = $null
+          $publishedRaw = 'not listed'
+          try {
+              $resp = Invoke-RestMethod "https://torchapi.com/api/plugins/search/$guid" -TimeoutSec 30
+              $published = Get-VersionParts $resp.latestVersion
+              $publishedRaw = $resp.latestVersion
+              Write-Host "torchapi       : $publishedRaw"
+          } catch {
+              Write-Host "::warning::plugin $guid not found on torchapi"
+          }
+
+          $useTorchapi = "$($env:VERSION_FROM_TORCHAPI)" -match '^(?i:true|1|yes)$'
+
+          if ($scriptRaw -and -not $useTorchapi) {
+              # The script's string is the version verbatim.
+              $new = $scriptRaw
           } else {
-              $local = Get-VersionParts $localRaw
-              if (-not $local) { throw "could not parse version '$localRaw' from $manifestPath (set VERSION_SCRIPT if this repo versions itself)" }
-              Write-Host "manifest: guid=$guid version=$localRaw"
-
-              $published = $null
-              $publishedRaw = 'not listed'
-              try {
-                  $resp = Invoke-RestMethod "https://torchapi.com/api/plugins/search/$guid" -TimeoutSec 30
-                  $published = Get-VersionParts $resp.latestVersion
-                  $publishedRaw = $resp.latestVersion
-                  Write-Host "torchapi:  latestVersion=$publishedRaw"
-              } catch {
-                  Write-Host "::warning::plugin $guid not found on torchapi; basing version on the manifest alone"
+              # Bump the patch on the highest version we know about, so a build can
+              # never ship a number that is already published.
+              $candidates = @()
+              foreach ($c in @($published, (Get-VersionParts $localRaw), (Get-VersionParts $scriptRaw))) {
+                  if ($c) { $candidates += ,$c }
               }
-
-              # Never move backwards: base off whichever of the two is higher.
-              $base = $local
-              if ($published -and (Compare-VersionParts $published $local) -gt 0) { $base = $published }
+              if ($candidates.Count -eq 0) {
+                  throw "no usable version: manifest '$localRaw' has no digits, torchapi returned nothing, and no VERSION_SCRIPT is set"
+              }
+              $base = $candidates[0]
+              foreach ($c in $candidates) { if ((Compare-VersionParts $c $base) -gt 0) { $base = $c } }
 
               # Patch is the third component; a patch bump drops any build suffix beyond it.
               $new = '{0}.{1}.{2}' -f $base[0], $base[1], ($base[2] + 1)
-              if ($localRaw.Trim().StartsWith('v')) { $new = "v$new" }
-              Write-Host "building as $new (base $($base -join '.'))"
+              $prefixFrom = if ($scriptRaw) { $scriptRaw } else { $localRaw }
+              if ($prefixFrom.StartsWith('v')) { $new = "v$new" }
+              Write-Host "base           : $($base -join '.')"
           }
+          Write-Host "building as    : $new"
 
           $xml.PluginManifest.Version = $new
           $xml.Save((Resolve-Path $manifestPath))
