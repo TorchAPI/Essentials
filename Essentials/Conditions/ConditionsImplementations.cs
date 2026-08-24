@@ -183,8 +183,21 @@ namespace Essentials.Commands
                 x => 
                 (VRageMath.Vector3.DistanceSquared(x.PositionComp.GetPosition(), grid.PositionComp.GetPosition()) < dist 
                     && (x.GetType() == typeof(MyCubeGrid))                
-                )).Cast<MyCubeGrid>().Where(y => !y.EntityId.Equals(grid.EntityId) && y.IsPowerSwitchOn)
-            .Count() == 0;           
+                )).Cast<MyCubeGrid>().Where(y => !y.EntityId.Equals(grid.EntityId) && IsPowered(y))
+            .Count() == 0;
+        }
+
+        // MyCubeGrid exposes no IsPowered member; power state lives on the grid's
+        // resource distributor, which is null for grids with no power systems.
+        private static bool IsPowered(MyCubeGrid grid)
+        {
+            var distributor = grid?.GridSystems?.ResourceDistributor;
+            if (distributor == null)
+                return false;
+
+            var state = distributor.ResourceState;
+            return state != VRage.MyResourceStateEnum.NoPower
+                && state != VRage.MyResourceStateEnum.Disconnected;
         }
 
         [Condition("centerdistancelessthan", "centerdistancegreaterthan", "Finds grids that are further than the given distance from center.")]
