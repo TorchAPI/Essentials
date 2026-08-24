@@ -1,0 +1,526 @@
+# Essentials build workflow (from the generic Torch plugin build template).
+#
+# Repo-specific settings below:
+#   PLATFORM        x64 -- Essentials.sln only defines x64, not Any CPU.
+#   VERSION_SCRIPT      -- manifest.xml carries ${VERSION} as a placeholder; the
+#                          real version comes from Versioning/version.ps1
+#                          (git describe + build number), which also writes
+#                          Versioning/AssemblyVersion.cs before the compile.
+#   PACKAGE_INCLUDE     -- ship only Essentials.*, as the Jenkinsfile did. The
+#                          output directory also holds netstandard.dll and
+#                          Newtonsoft.Json 12.0.3, both of which Torch already
+#                          provides; shipping them risks a runtime conflict.
+#
+# Auto-detected: Essentials.sln (root, beating the nested Essentials/Essentials.sln),
+# Essentials/Essentials.csproj (Essentials.Tests excluded), and the root manifest.xml.
+# Build output lands in bin/x64/Release at the repo root, because the csproj sets
+# OutputPath to $(SolutionDir) rather than the project directory.
+
+name: Build
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+env:
+  # Both accept a list, one entry per line. Leave empty to auto-detect.
+  SOLUTIONS: ''
+  PROJECTS: ''
+  MANIFEST: ''
+  CONFIGURATION: Release
+  PLATFORM: 'x64'
+  # Path to a script that prints the version on its last stdout line. Set this
+  # when the repo versions itself (git describe, a build counter) instead of
+  # carrying a real version in manifest.xml. Empty = derive from torchapi.
+  VERSION_SCRIPT: 'Versioning/version.ps1'
+  # Glob(s), one per line, selecting what goes in the zip from each project's
+  # output. Empty = every *.dll.
+  PACKAGE_INCLUDE: 'Essentials.*'
+
+  SE_APPID: '298740'
+  TORCH_URL: 'https://build.torchapi.com/job/Torch/job/master/lastSuccessfulBuild/artifact/bin/torch-server.zip'
+
+jobs:
+  # Pushes only ever run on master/main (see the triggers above). Pull requests
+  # are opt-in: the workflow is skipped unless the PR title contains [build], so
+  # drive-by PRs don't each burn a multi-GB steamcmd download.
+
+  discover:
+    name: Discover layout
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.title, '[build]')
+    outputs:
+      solutions: ${{ steps.find.outputs.solutions }}
+      projects: ${{ steps.find.outputs.projects }}
+      manifest: ${{ steps.find.outputs.manifest }}
+      plugin_name: ${{ steps.find.outputs.plugin_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve solution, projects and manifest
+        id: find
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Split-List([string]$raw) {
+              if ([string]::IsNullOrWhiteSpace($raw)) { return @() }
+              return @($raw -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+          }
+
+          # Repo-relative, forward-slashed, skipping build and dependency dirs.
+          function Find-Files([string]$pattern) {
+              return @(Get-ChildItem -Path . -Recurse -File -Filter $pattern |
+                  Where-Object { $_.FullName -notmatch '[\\/](bin|obj|packages|\.git)[\\/]' } |
+                  ForEach-Object { ((Resolve-Path -Relative $_.FullName) -replace '^\.[\\/]','') -replace '\\','/' } |
+                  Sort-Object)
+          }
+
+          # --- solutions -------------------------------------------------
+          # Never silently build every .sln found: a repo that keeps a root
+          # solution plus a nested duplicate would build the same projects
+          # twice, and for a Core/Mod split this would be guessing at order.
+          $solutions = Split-List $env:SOLUTIONS
+          if ($solutions.Count -eq 0) {
+              $all = Find-Files '*.sln'
+              if ($all.Count -eq 1) {
+                  $solutions = $all
+              } else {
+                  $root = @($all | Where-Object { $_ -notmatch '/' })
+                  if ($root.Count -eq 1) {
+                      $solutions = $root
+                  } else {
+                      throw ("Could not pick a solution automatically. Set SOLUTIONS in the workflow env. Candidates:`n  " + ($all -join "`n  "))
+                  }
+              }
+          }
+
+          # --- projects --------------------------------------------------
+          $projects = Split-List $env:PROJECTS
+          if ($projects.Count -eq 0) {
+              $all = @(Find-Files '*.csproj' | Where-Object {
+                  [System.IO.Path]::GetFileNameWithoutExtension($_) -notmatch '(?i)(^|\.)tests?$'
+              })
+              if ($all.Count -eq 1) {
+                  $projects = $all
+              } else {
+                  throw ("Could not pick a project automatically. Set PROJECTS in the workflow env. Candidates:`n  " + ($all -join "`n  "))
+              }
+          }
+
+          # --- manifest --------------------------------------------------
+          # Root first: some plugins keep it there and never reference it from
+          # the csproj, so it never reaches build output.
+          $manifest = $env:MANIFEST
+          if ([string]::IsNullOrWhiteSpace($manifest)) {
+              if (Test-Path 'manifest.xml') {
+                  $manifest = 'manifest.xml'
+              } else {
+                  $all = Find-Files 'manifest.xml'
+                  # Prefer one sitting beside a resolved project before falling
+                  # back to "the only one anywhere" -- stray copies in staging or
+                  # output directories otherwise make this ambiguous.
+                  $projDirs = @($projects | ForEach-Object { Split-Path -Parent ($_ -replace '\\','/') })
+                  $beside = @($all | Where-Object { $projDirs -contains (Split-Path -Parent $_) })
+                  if ($beside.Count -eq 1) {
+                      $manifest = $beside[0]
+                  } elseif ($all.Count -eq 1) {
+                      $manifest = $all[0]
+                  } else {
+                      throw ("Could not find manifest.xml. Set MANIFEST in the workflow env. Candidates:`n  " + ($all -join "`n  "))
+                  }
+              }
+          }
+          if (-not (Test-Path $manifest)) { throw "manifest not found: $manifest" }
+
+          $xml = [xml](Get-Content $manifest)
+          $rawName = "$($xml.PluginManifest.Name)".Trim()
+          if (-not $rawName) { $rawName = 'plugin' }
+          # Artifact names reject / \ : < > | * ? " and control characters.
+          # Collapse separator runs so "Foo - Bar" becomes Foo-Bar, not Foo---Bar.
+          $safeName = ((($rawName -replace '[^A-Za-z0-9._-]+','-') -replace '-{2,}','-')).Trim('-')
+
+          Write-Host "solutions : $($solutions -join ', ')"
+          Write-Host "projects  : $($projects -join ', ')"
+          Write-Host "manifest  : $manifest"
+          Write-Host "name      : $rawName  (artifact: $safeName)"
+
+          "solutions=$($solutions | ConvertTo-Json -Compress -AsArray)" >> $env:GITHUB_OUTPUT
+          "projects=$($projects | ConvertTo-Json -Compress -AsArray)"   >> $env:GITHUB_OUTPUT
+          "manifest=$manifest"      >> $env:GITHUB_OUTPUT
+          "plugin_name=$safeName"   >> $env:GITHUB_OUTPUT
+
+  # The two fetch jobs run in parallel and hand their output to `build` through
+  # the actions cache. Each exports the exact key it used so `build` restores the
+  # same entry even if the job straddles a week boundary. Binaries refresh
+  # weekly so the plugin keeps building against a recent SE / Torch.
+  get-se:
+    name: Get Space Engineers
+    runs-on: windows-latest
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.title, '[build]')
+    outputs:
+      key: ${{ steps.stamp.outputs.key }}
+    steps:
+      - name: Compute cache key
+        id: stamp
+        shell: pwsh
+        run: |
+          $now = Get-Date
+          $week = '{0}-{1:d2}' -f $now.Year, [System.Globalization.ISOWeek]::GetWeekOfYear($now)
+          "key=gamebinaries-$week" >> $env:GITHUB_OUTPUT
+
+      - name: Restore cache
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: GameBinaries
+          key: ${{ steps.stamp.outputs.key }}
+
+      # Same source Torch's Jenkinsfile uses: steamcmd, anonymous login, app
+      # 298740 (Space Engineers Dedicated Server). Only DedicatedServer64 is kept.
+      - name: Download dedicated server
+        if: steps.restore.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $steamRoot = 'C:\Steam'
+          $steamCmd  = Join-Path $steamRoot 'steamcmd'
+          $seRoot    = Join-Path $steamRoot 'SEDS'
+          New-Item -ItemType Directory -Force -Path $steamCmd, $seRoot | Out-Null
+
+          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile "$steamRoot\steamcmd.zip"
+          Expand-Archive "$steamRoot\steamcmd.zip" -DestinationPath $steamCmd -Force
+
+          # steamcmd self-updates on first run and can exit non-zero even when it
+          # succeeded, so retry and judge success by the files on disk instead.
+          $exe = Join-Path $steamCmd 'steamcmd.exe'
+          for ($i = 1; $i -le 3; $i++) {
+            Write-Host "steamcmd attempt $i"
+            & $exe +force_install_dir $seRoot +login anonymous +app_update $env:SE_APPID validate +quit
+            if (Test-Path "$seRoot\DedicatedServer64\VRage.Dedicated.dll") { break }
+          }
+          if (-not (Test-Path "$seRoot\DedicatedServer64\VRage.Dedicated.dll")) {
+            throw "steamcmd did not produce DedicatedServer64 after 3 attempts"
+          }
+
+          New-Item -ItemType Directory -Force -Path GameBinaries | Out-Null
+          Copy-Item "$seRoot\DedicatedServer64\*" GameBinaries -Recurse -Force
+
+      - name: Save cache
+        if: steps.restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: GameBinaries
+          key: ${{ steps.stamp.outputs.key }}
+
+  get-torch:
+    name: Get Torch
+    runs-on: windows-latest
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.title, '[build]')
+    outputs:
+      key: ${{ steps.stamp.outputs.key }}
+    steps:
+      - name: Compute cache key
+        id: stamp
+        shell: pwsh
+        run: |
+          $now = Get-Date
+          $week = '{0}-{1:d2}' -f $now.Year, [System.Globalization.ISOWeek]::GetWeekOfYear($now)
+          "key=torchbinaries-$week" >> $env:GITHUB_OUTPUT
+
+      - name: Restore cache
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: TorchBinaries
+          key: ${{ steps.stamp.outputs.key }}
+
+      - name: Download Torch
+        if: steps.restore.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path TorchBinaries | Out-Null
+          Invoke-WebRequest $env:TORCH_URL -OutFile torch-server.zip
+          Expand-Archive torch-server.zip -DestinationPath TorchBinaries -Force
+          if (-not (Test-Path 'TorchBinaries\Torch.API.dll')) { throw 'Torch.API.dll missing from torch-server.zip' }
+
+      - name: Save cache
+        if: steps.restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: TorchBinaries
+          key: ${{ steps.stamp.outputs.key }}
+
+  build:
+    name: Build and upload
+    runs-on: windows-latest
+    needs: [ discover, get-se, get-torch ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history and tags, so a VERSION_SCRIPT using `git describe` works.
+          fetch-depth: 0
+
+      # Both entries are guaranteed to exist -- the fetch jobs either hit them or
+      # created them -- so a miss here is a real failure, not a cold cache.
+      - name: Restore GameBinaries
+        uses: actions/cache/restore@v4
+        with:
+          path: GameBinaries
+          key: ${{ needs.get-se.outputs.key }}
+          fail-on-cache-miss: true
+
+      - name: Restore TorchBinaries
+        uses: actions/cache/restore@v4
+        with:
+          path: TorchBinaries
+          key: ${{ needs.get-torch.outputs.key }}
+          fail-on-cache-miss: true
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      # `nuget restore` covers both packages.config and PackageReference projects.
+      - name: Restore packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # [string[]] cast, not @(...): piping into ConvertFrom-Json enumerates
+          # on pwsh 7 but yields a single nested array on Windows PowerShell.
+          [string[]]$solutions = ConvertFrom-Json '${{ needs.discover.outputs.solutions }}'
+          foreach ($sln in $solutions) {
+            Write-Host "restoring $sln"
+            nuget restore $sln
+            if ($LASTEXITCODE -ne 0) { throw "nuget restore failed for $sln" }
+          }
+
+      # Version the artifact off whatever torchapi already publishes for this
+      # plugin, so a build never ships a version that is already taken. The
+      # rewrite is workspace-only -- manifest.xml in the repo is not touched.
+      - name: Set plugin version
+        id: version
+        shell: pwsh
+        env:
+          # Jenkins-era version scripts commonly read BUILD_NUMBER.
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Get-VersionParts([string]$v) {
+              if ([string]::IsNullOrWhiteSpace($v)) { return $null }
+              $m = [regex]::Match($v, '\d+(\.\d+)*')
+              if (-not $m.Success) { return $null }
+              $parts = @($m.Value.Split('.') | ForEach-Object { [int]$_ })
+              while ($parts.Count -lt 3) { $parts += 0 }
+              return ,$parts
+          }
+
+          # Element-wise compare, zero-padding the shorter side. -1 / 0 / 1.
+          function Compare-VersionParts($a, $b) {
+              $n = [Math]::Max($a.Count, $b.Count)
+              for ($i = 0; $i -lt $n; $i++) {
+                  $x = 0; if ($i -lt $a.Count) { $x = $a[$i] }
+                  $y = 0; if ($i -lt $b.Count) { $y = $b[$i] }
+                  if ($x -lt $y) { return -1 }
+                  if ($x -gt $y) { return 1 }
+              }
+              return 0
+          }
+
+          $manifestPath = '${{ needs.discover.outputs.manifest }}'
+          $xml  = [xml](Get-Content $manifestPath)
+          $guid = $xml.PluginManifest.Guid
+          $localRaw = "$($xml.PluginManifest.Version)".Trim()
+
+          if (-not [string]::IsNullOrWhiteSpace($env:VERSION_SCRIPT)) {
+              # The repo owns its versioning (git describe, build counter, ...).
+              # Its last line of stdout is the version. BUILD_NUMBER is exported
+              # for scripts carried over from Jenkins.
+              if (-not (Test-Path $env:VERSION_SCRIPT)) { throw "VERSION_SCRIPT not found: $($env:VERSION_SCRIPT)" }
+              $out = & $env:VERSION_SCRIPT
+              $new = "$(@($out) | Where-Object { "$_".Trim() } | Select-Object -Last 1)".Trim()
+              if (-not $new) { throw "$($env:VERSION_SCRIPT) produced no version" }
+              $publishedRaw = 'n/a (repo version script)'
+              Write-Host "version from $($env:VERSION_SCRIPT): $new"
+          } else {
+              $local = Get-VersionParts $localRaw
+              if (-not $local) { throw "could not parse version '$localRaw' from $manifestPath (set VERSION_SCRIPT if this repo versions itself)" }
+              Write-Host "manifest: guid=$guid version=$localRaw"
+
+              $published = $null
+              $publishedRaw = 'not listed'
+              try {
+                  $resp = Invoke-RestMethod "https://torchapi.com/api/plugins/search/$guid" -TimeoutSec 30
+                  $published = Get-VersionParts $resp.latestVersion
+                  $publishedRaw = $resp.latestVersion
+                  Write-Host "torchapi:  latestVersion=$publishedRaw"
+              } catch {
+                  Write-Host "::warning::plugin $guid not found on torchapi; basing version on the manifest alone"
+              }
+
+              # Never move backwards: base off whichever of the two is higher.
+              $base = $local
+              if ($published -and (Compare-VersionParts $published $local) -gt 0) { $base = $published }
+
+              # Patch is the third component; a patch bump drops any build suffix beyond it.
+              $new = '{0}.{1}.{2}' -f $base[0], $base[1], ($base[2] + 1)
+              if ($localRaw.Trim().StartsWith('v')) { $new = "v$new" }
+              Write-Host "building as $new (base $($base -join '.'))"
+          }
+
+          $xml.PluginManifest.Version = $new
+          $xml.Save((Resolve-Path $manifestPath))
+
+          "version=$new"                   >> $env:GITHUB_OUTPUT
+          "manifest_version=$localRaw"     >> $env:GITHUB_OUTPUT
+          "torchapi_version=$publishedRaw" >> $env:GITHUB_OUTPUT
+
+      - name: Build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          [string[]]$solutions = ConvertFrom-Json '${{ needs.discover.outputs.solutions }}'
+          foreach ($sln in $solutions) {
+            Write-Host "building $sln"
+            msbuild $sln /p:Configuration=$env:CONFIGURATION "/p:Platform=$env:PLATFORM" /v:minimal /nologo
+            if ($LASTEXITCODE -ne 0) { throw "msbuild failed for $sln" }
+          }
+
+      - name: Package plugin
+        id: package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # [string[]] cast, not @(...): piping into ConvertFrom-Json enumerates
+          # on pwsh 7 but yields a single nested array on Windows PowerShell.
+          [string[]]$projects = ConvertFrom-Json '${{ needs.discover.outputs.projects }}'
+          $stage = Join-Path $env:RUNNER_TEMP 'stage'
+          if (Test-Path $stage) { Remove-Item -Recurse -Force -LiteralPath $stage }
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+
+          foreach ($proj in $projects) {
+              $projDir  = Split-Path -Parent (Resolve-Path $proj)
+              $projName = [System.IO.Path]::GetFileNameWithoutExtension($proj)
+
+              $text = Get-Content $proj -Raw
+              $m = [regex]::Match($text, '<AssemblyName>\s*([^<]+?)\s*</AssemblyName>')
+              $asmName = if ($m.Success) { $m.Groups[1].Value } else { $projName }
+
+              # MSBuild -getProperty cannot be used here: it errors on .sln files
+              # (MSB1063), and querying the .csproj directly with the solution's
+              # platform string reports bin\Any CPU\Release while the solution
+              # build actually writes bin\Release (Any CPU -> AnyCPU mapping).
+              # Globbing the freshly built assembly is layout-independent.
+              #
+              # Search nearest-first: most projects write to <proj>\bin, but some
+              # redirect OutputPath to $(SolutionDir)\bin\... . Ordering matters
+              # so a test project's copy of the same assembly cannot win.
+              $searchRoots = @()
+              $projBin = Join-Path $projDir 'bin'
+              if (Test-Path $projBin) { $searchRoots += $projBin }
+              if (Test-Path 'bin')    { $searchRoots += (Resolve-Path 'bin').Path }
+              $searchRoots += (Get-Location).Path
+
+              $dll = $null
+              foreach ($root in $searchRoots) {
+                  $dll = Get-ChildItem $root -Recurse -File -Filter "$asmName.dll" -ErrorAction SilentlyContinue |
+                           Where-Object { $_.FullName -notmatch '[\\/](obj|packages|GameBinaries|TorchBinaries|\.git)[\\/]' } |
+                           Sort-Object LastWriteTime -Descending | Select-Object -First 1
+                  if ($dll) { break }
+              }
+              if (-not $dll) { throw "could not find $asmName.dll for $proj" }
+              $outDir = $dll.Directory.FullName
+              Write-Host "$projName -> $outDir"
+
+              # One project stays flat (a Torch plugin zip expects DLLs at the
+              # root); several get a subdirectory each to avoid collisions.
+              $dest = if ($projects.Count -eq 1) { $stage } else { Join-Path $stage $projName }
+              New-Item -ItemType Directory -Force -Path $dest | Out-Null
+
+              # Default ships every DLL beside the plugin. Narrow it with
+              # PACKAGE_INCLUDE where the host already provides the dependencies
+              # -- shipping an older copy of something Torch loads can conflict.
+              [string[]]$patterns = @('*.dll')
+              if (-not [string]::IsNullOrWhiteSpace($env:PACKAGE_INCLUDE)) {
+                  $patterns = @($env:PACKAGE_INCLUDE -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+              }
+              $files = @()
+              foreach ($pat in $patterns) {
+                  $files += Get-ChildItem $outDir -File -Filter $pat -ErrorAction SilentlyContinue
+              }
+              $files = @($files | Sort-Object FullName -Unique)
+              if ($files.Count -eq 0) { throw "PACKAGE_INCLUDE ($($patterns -join ', ')) matched nothing in $outDir" }
+              $files | Copy-Item -Destination $dest -Force
+          }
+
+          # Always from source: some plugins never copy manifest.xml to output.
+          Copy-Item '${{ needs.discover.outputs.manifest }}' (Join-Path $stage 'manifest.xml') -Force
+
+          $name    = '${{ needs.discover.outputs.plugin_name }}'
+          $version = '${{ steps.version.outputs.version }}'
+          $zipName = "$name-$version.zip"
+          $artifactDir = Join-Path $env:RUNNER_TEMP 'artifact'
+          New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
+          $zipPath = Join-Path $artifactDir $zipName
+          Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zipPath -Force
+
+          $zip    = Get-Item $zipPath
+          $sha    = (Get-FileHash $zipPath -Algorithm SHA256).Hash
+          $sizeKb = [math]::Round($zip.Length / 1KB, 1)
+
+          $entries = @(Get-ChildItem $stage -Recurse -File |
+              ForEach-Object { $_.FullName.Substring($stage.Length + 1) -replace '\\','/' } |
+              Sort-Object)
+
+          "zip_name=$zipName"         >> $env:GITHUB_OUTPUT
+          "artifact_dir=$artifactDir" >> $env:GITHUB_OUTPUT
+
+          # Same detail to the log, for anyone reading raw output.
+          Write-Host "packaged $zipName ($sizeKb KB, sha256 $sha)"
+          $entries | ForEach-Object { Write-Host "  $_" }
+
+          $md = @()
+          $md += "## $name ``$version``"
+          $md += ""
+          $md += "| | |"
+          $md += "|---|---|"
+          $md += "| Version | ``$version`` |"
+          $md += "| Manifest said | ``${{ steps.version.outputs.manifest_version }}`` |"
+          $md += "| torchapi latest | ``${{ steps.version.outputs.torchapi_version }}`` |"
+          $md += "| File | ``$zipName`` |"
+          $md += "| Size | $sizeKb KB |"
+          $md += "| SHA-256 | ``$sha`` |"
+          $md += ""
+          $md += "<details><summary>$($entries.Count) files in the zip</summary>"
+          $md += ""
+          $md += '```'
+          $md += $entries
+          $md += '```'
+          $md += ""
+          $md += "</details>"
+          ($md -join "`n") >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload plugin
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.discover.outputs.plugin_name }}-${{ steps.version.outputs.version }}
+          path: ${{ steps.package.outputs.artifact_dir }}/*.zip
+          if-no-files-found: error
+
+      - name: Link artifact in summary
+        shell: pwsh
+        run: |
+          $url  = '${{ steps.upload.outputs.artifact-url }}'
+          $name = '${{ needs.discover.outputs.plugin_name }}-${{ steps.version.outputs.version }}'
+          # This URL only resolves for viewers signed in to GitHub.
+          "**[Download $name]($url)**" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "artifact: $url"
